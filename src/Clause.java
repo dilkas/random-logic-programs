@@ -1,9 +1,5 @@
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
-import org.chocosolver.solver.search.strategy.Search;
-import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
-import org.chocosolver.solver.search.strategy.selectors.variables.Random;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
@@ -11,19 +7,27 @@ import java.util.Arrays;
 
 public class Clause {
 
-    private static final int NUM_SOLUTIONS = 10000;
-    private static final int MAX_NUM_NODES = 5;
-    private static final String[] VALUES = {"not", "and", "or", "T", "p(X)"};
+    private static final String[] CONSTANT_VALUES = {"not", "and", "or", "T"};
     private static final int NUM_CONNECTIVES = 2; // AND and OR
     private static final int INDEX_OF_TRUE = 3;
 
-    private static String treeToString(IntVar[] treeStructure, IntVar[] treeValues, int i) {
+    private int maxNumNodes;
+    private String[] values;
+    private IntVar[][] tree;
+    private IntVar[] treeStructure;
+    private IntVar[] treeValues;
+
+    IntVar[] getDecisionVariables() {
+        return ArrayUtils.flatten(tree);
+    }
+
+    private String treeToString(IntVar[] treeStructure, IntVar[] treeValues, int i) {
         int value = treeValues[i].getValue();
         if (value > NUM_CONNECTIVES)
-            return VALUES[value];
+            return values[value];
         if (value == 0) {
             int j = 0;
-            for (; j < MAX_NUM_NODES; j++)
+            for (; j < maxNumNodes; j++)
                 if (j != i && treeStructure[j].getValue() == i)
                     break;
             return "not(" + treeToString(treeStructure, treeValues, j) + ")";
@@ -31,12 +35,12 @@ public class Clause {
 
         boolean first = true;
         StringBuilder output = new StringBuilder();
-        for (int j = 0; j < MAX_NUM_NODES; j++) {
+        for (int j = 0; j < maxNumNodes; j++) {
             if (j != i && treeStructure[j].getValue() == i) {
                 if (first) {
                     first = false;
                 } else {
-                    output.append(" ").append(VALUES[value]).append(" ");
+                    output.append(" ").append(values[value]).append(" ");
                 }
                 output.append("(").append(treeToString(treeStructure, treeValues, j)).append(")");
             }
@@ -44,35 +48,44 @@ public class Clause {
         return output.toString();
     }
 
-    private static void simplePrint(IntVar[] array) {
+    private String simplePrint(IntVar[] array) {
+        StringBuilder builder = new StringBuilder();
         for (IntVar i : array)
-            System.out.print(i.getValue() + " ");
-        System.out.println();
+            builder.append(i.getValue()).append(" ");
+        builder.append("\n");
+        return builder.toString();
     }
 
-    public static void main(String[] args) {
-        Model model = new Model();
+    public String toString() {
+        return treeToString(treeStructure, treeValues, 0);
+    }
+
+    Clause(Model model, IntVar assignment, String[] predicates, int maxNumNodes) {
+        this.maxNumNodes = maxNumNodes;
+        values = new String[CONSTANT_VALUES.length + predicates.length];
+        System.arraycopy(CONSTANT_VALUES, 0, values, 0, CONSTANT_VALUES.length);
+        System.arraycopy(predicates, 0, values, CONSTANT_VALUES.length, predicates.length);
 
         // First column determines the tree structure, second column assigns values to nodes
-        IntVar numNodes = model.intVar("numNodes", 1, MAX_NUM_NODES);
-        IntVar[][] tree = model.intVarMatrix(MAX_NUM_NODES, 2, 0, Math.max(MAX_NUM_NODES - 1, VALUES.length - 1));
-        IntVar[] treeStructure = ArrayUtils.getColumn(tree, 0);
-        IntVar[] treeValues = ArrayUtils.getColumn(tree, 1);
+        IntVar numNodes = model.intVar(1, maxNumNodes);
+        tree = model.intVarMatrix(maxNumNodes, 2, 0, Math.max(maxNumNodes - 1, values.length - 1));
+        treeStructure = ArrayUtils.getColumn(tree, 0);
+        treeValues = ArrayUtils.getColumn(tree, 1);
 
         // Tree structure
-        IntVar numTrees = model.intVar("numTrees", 1, MAX_NUM_NODES);
+        IntVar numTrees = model.intVar(1, maxNumNodes);
         model.tree(treeStructure, numTrees).post();
         model.arithm(treeStructure[0], "=", 0).post();
 
-        model.arithm(numTrees, "+", numNodes, "=", MAX_NUM_NODES + 1).post();
+        model.arithm(numTrees, "+", numNodes, "=", maxNumNodes + 1).post();
 
         // Removing symmetries
-        if (MAX_NUM_NODES > 1) {
-            IntVar[][] treeWithoutRoot = Arrays.copyOfRange(tree, 1, MAX_NUM_NODES);
+        if (maxNumNodes > 1) {
+            IntVar[][] treeWithoutRoot = Arrays.copyOfRange(tree, 1, maxNumNodes);
             model.keySort(treeWithoutRoot, null, treeWithoutRoot, 2).post();
         }
 
-        for (int i = 0; i < MAX_NUM_NODES; i++) {
+        for (int i = 0; i < maxNumNodes; i++) {
             Constraint outsideScope = model.arithm(numNodes, "<=", i);
             Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
             Constraint valueIsZero = model.arithm(treeValues[i], "=", INDEX_OF_TRUE);
@@ -81,16 +94,16 @@ public class Clause {
         }
 
         // Tree values
-        for (int i = 0; i < MAX_NUM_NODES; i++) {
-            model.arithm(treeValues[i], "<", VALUES.length).post();
-            IntVar exactlyZero = model.intVar("exactlyZero" + i, 0);
-            IntVar exactlyOne = model.intVar("exactlyOne" + i, 1);
-            IntVar moreThanOne = model.intVar("moreThanOne" + i, 2, Math.max(MAX_NUM_NODES, 2));
+        for (int i = 0; i < maxNumNodes; i++) {
+            model.arithm(treeValues[i], "<", values.length).post();
+            IntVar exactlyZero = model.intVar(0);
+            IntVar exactlyOne = model.intVar(1);
+            IntVar moreThanOne = model.intVar(2, Math.max(maxNumNodes, 2));
 
-            IntVar[] structureWithoutI = new IntVar[MAX_NUM_NODES - 1];
+            IntVar[] structureWithoutI = new IntVar[maxNumNodes - 1];
             for (int j = 0; j < i; j++)
                 structureWithoutI[j] = treeStructure[j];
-            for (int j = i + 1; j < MAX_NUM_NODES; j++)
+            for (int j = i + 1; j < maxNumNodes; j++)
                 structureWithoutI[j - 1] = treeStructure[j];
 
             Constraint isLeaf = model.count(i, structureWithoutI, exactlyZero);
@@ -105,19 +118,10 @@ public class Clause {
             model.ifOnlyIf(isInternal, mustBeAConnective);
         }
 
-        // Configure search strategy
-        java.util.Random rng = new java.util.Random();
-        Solver solver = model.getSolver();
-        solver.setSearch(Search.intVarSearch(new Random<>(rng.nextLong()),
-                new IntDomainRandom(rng.nextLong()), ArrayUtils.flatten(tree)));
-
-        // Print solutions
-        for (int i = 0; i < NUM_SOLUTIONS && solver.solve(); i++) {
-            System.out.println("num nodes: " + numNodes.getValue());
-            System.out.println("num trees: " + numTrees.getValue());
-            simplePrint(treeStructure);
-            simplePrint(treeValues);
-            System.out.println(treeToString(treeStructure, treeValues, 0));
-        }
+        // Disable the clause (restrict it to a unique value) if required
+        Constraint shouldBeDisabled = model.arithm(assignment, "=", predicates.length);
+        Constraint oneNode = model.arithm(numNodes, "=", 1);
+        Constraint alwaysTrue = model.arithm(treeValues[0], "=", INDEX_OF_TRUE);
+        model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
     }
 }
