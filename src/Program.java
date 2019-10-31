@@ -13,6 +13,8 @@ public class Program {
     private static final int MAX_NUM_NODES = 5;
     private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)"};
     private static final int MAX_NUM_CLAUSES = 3;
+    private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+            1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
 
     public static void main(String[] args) {
         Model model = new Model();
@@ -66,7 +68,18 @@ public class Program {
                 int predicate = clauseAssignments[j].getValue();
                 if (predicate == PREDICATES.length)
                     break;
-                System.out.println(PREDICATES[predicate] + " :- " + clauses[j]);
+
+                int probability = rng.nextInt(PROBABILITIES.length);
+                String probabilityString = "";
+                if (PROBABILITIES[probability] < 1)
+                    probabilityString = PROBABILITIES[probability] + " :: ";
+
+                String clause = clauses[j].toString();
+                if (clause.equals("T.")) {
+                    System.out.println(probabilityString + PREDICATES[predicate] + ".");
+                } else {
+                    System.out.println(probabilityString + PREDICATES[predicate] + " :- " + clause);
+                }
             }
             System.out.println();
         }

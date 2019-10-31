@@ -16,11 +16,7 @@ class SignedPredicate {
         return sign;
     }
 
-    void changeSign() {
-        if (sign == Sign.POS) {
-            sign = Sign.NEG;
-        } else {
-            sign = Sign.POS;
-        }
+    void setNegative() {
+        sign = Sign.NEG;
     }
 }

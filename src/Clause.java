@@ -10,6 +10,7 @@ import java.util.List;
 public class Clause {
 
     private static final String[] CONSTANT_VALUES = {"not", "and", "or", "T"};
+    private static final String[] PROBLOG_TOKENS = {"\\+", ",", ";"};
     private static final int NUM_CONNECTIVES = 2; // AND and OR
     private static final int INDEX_OF_TRUE = 3;
 
@@ -49,7 +50,7 @@ public class Clause {
 
             List<SignedPredicate> descendants = getPredicates(firstChild);
             for (SignedPredicate descendant : descendants)
-                descendant.changeSign();
+                descendant.setNegative();
             return descendants;
         }
 
@@ -78,7 +79,7 @@ public class Clause {
         if (value > NUM_CONNECTIVES)
             return values[value];
         if (value == 0)
-            return "not(" + treeToString(treeStructure, treeValues, findFirstChild(i)) + ")";
+            return PROBLOG_TOKENS[0] + "(" + treeToString(treeStructure, treeValues, findFirstChild(i)) + ")";
 
         boolean first = true;
         StringBuilder output = new StringBuilder();
@@ -87,7 +88,7 @@ public class Clause {
                 if (first) {
                     first = false;
                 } else {
-                    output.append(" ").append(values[value]).append(" ");
+                    output.append(PROBLOG_TOKENS[value]).append(" ");
                 }
                 output.append("(").append(treeToString(treeStructure, treeValues, j)).append(")");
             }
@@ -104,7 +105,7 @@ public class Clause {
     }
 
     public String toString() {
-        return treeToString(treeStructure, treeValues, 0);
+        return treeToString(treeStructure, treeValues, 0) + ".";
     }
 
     Clause(Model model, IntVar assignment, String[] predicates, int maxNumNodes) {
