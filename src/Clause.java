@@ -122,11 +122,11 @@ public class Clause {
         // Tree structure
         IntVar numTrees = model.intVar(1, maxNumNodes);
         model.tree(treeStructure, numTrees).post();
-        model.arithm(treeStructure[0], "=", 0).post();
+        model.arithm(treeStructure[0], "=", 0).post(); // the 0th element is always a root
 
         model.arithm(numTrees, "+", numNodes, "=", maxNumNodes + 1).post();
 
-        // Removing symmetries
+        // Removing symmetries: keep everything except the 0th column sorted
         if (maxNumNodes > 1) {
             IntVar[][] treeWithoutRoot = Arrays.copyOfRange(tree, 1, maxNumNodes);
             model.keySort(treeWithoutRoot, null, treeWithoutRoot, 2).post();
@@ -135,9 +135,9 @@ public class Clause {
         for (int i = 0; i < maxNumNodes; i++) {
             Constraint outsideScope = model.arithm(numNodes, "<=", i);
             Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
-            Constraint valueIsZero = model.arithm(treeValues[i], "=", INDEX_OF_TRUE);
+            Constraint fixValue = model.arithm(treeValues[i], "=", CONSTANT_VALUES.length);
             Constraint isRestricted = model.arithm(treeStructure[i], "<", numNodes);
-            model.ifThenElse(outsideScope, model.and(mustBeALoop, valueIsZero), isRestricted);
+            model.ifThenElse(outsideScope, model.and(mustBeALoop, fixValue), isRestricted);
         }
 
         // Tree values
@@ -163,6 +163,10 @@ public class Clause {
             model.ifOnlyIf(isLeaf, model.arithm(treeValues[i], ">", NUM_CONNECTIVES));
             model.ifOnlyIf(isNegation, model.arithm(treeValues[i], "=", 0));
             model.ifOnlyIf(isInternal, mustBeAConnective);
+
+            // 'True' (T) is only acceptable for the root node
+            if (i > 0)
+                model.arithm(treeValues[i], "!=", INDEX_OF_TRUE).post();
         }
 
         // Disable the clause (restrict it to a unique value) if required
