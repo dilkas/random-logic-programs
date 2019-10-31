@@ -4,6 +4,8 @@ import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 public class Clause {
 
@@ -17,6 +19,56 @@ public class Clause {
     private IntVar[] treeStructure;
     private IntVar[] treeValues;
 
+    /** A list of predicates featured in this clause. The sign of each predicate denotes whether the predicate is
+     * negated or not (after unfolding all the logical connectives). */
+    List<SignedPredicate> getPredicates() {
+        return getPredicates(0);
+    }
+
+    private List<SignedPredicate> getPredicates(int index) {
+        int valueIndex = treeValues[index].getValue();
+        List<SignedPredicate> predicates = new LinkedList<>();
+
+        // If the node is T (true)
+        if (valueIndex == INDEX_OF_TRUE)
+            return predicates;
+
+        // If the node is a predicate
+        if (valueIndex >= CONSTANT_VALUES.length) {
+            predicates.add(new SignedPredicate(valueIndex - CONSTANT_VALUES.length, Sign.POS));
+            return predicates;
+        }
+
+        // If the node is a NOT
+        if (valueIndex == 0) {
+            int firstChild = findFirstChild(index);
+
+            // This only happens if the tree constraint is unsatisfied but negative cycle constraint is propagated first
+            if (firstChild >= maxNumNodes)
+                return predicates;
+
+            List<SignedPredicate> descendants = getPredicates(firstChild);
+            for (SignedPredicate descendant : descendants)
+                descendant.changeSign();
+            return descendants;
+        }
+
+        // If the node is AND/OR
+        for (int i = 0; i < maxNumNodes; i++) {
+            if (i != index && treeStructure[i].getValue() == index)
+                predicates.addAll(getPredicates(i));
+        }
+        return predicates;
+    }
+
+    private int findFirstChild(int parent) {
+        int i = 0;
+        for (; i < maxNumNodes; i++)
+            if (i != parent && treeStructure[i].getValue() == parent)
+                break;
+        return i;
+    }
+
     IntVar[] getDecisionVariables() {
         return ArrayUtils.flatten(tree);
     }
@@ -25,13 +77,8 @@ public class Clause {
         int value = treeValues[i].getValue();
         if (value > NUM_CONNECTIVES)
             return values[value];
-        if (value == 0) {
-            int j = 0;
-            for (; j < maxNumNodes; j++)
-                if (j != i && treeStructure[j].getValue() == i)
-                    break;
-            return "not(" + treeToString(treeStructure, treeValues, j) + ")";
-        }
+        if (value == 0)
+            return "not(" + treeToString(treeStructure, treeValues, findFirstChild(i)) + ")";
 
         boolean first = true;
         StringBuilder output = new StringBuilder();

@@ -10,8 +10,8 @@ import org.chocosolver.util.tools.ArrayUtils;
 public class Program {
 
     private static final int NUM_SOLUTIONS = 10000;
-    private static final int MAX_NUM_NODES = 1;
-    private static final String[] PREDICATES = {"p(X)", "q(X)"};
+    private static final int MAX_NUM_NODES = 5;
+    private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)"};
     private static final int MAX_NUM_CLAUSES = 3;
 
     public static void main(String[] args) {
@@ -44,18 +44,21 @@ public class Program {
             IntVar[] currentDecisionVariables = clauses[i].getDecisionVariables();
             decisionVariables = ArrayUtils.concat(decisionVariables, currentDecisionVariables);
             if (i > 0) {
-                Constraint clauseIsActive = model.arithm(clauseAssignments[i], "<", PREDICATES.length);
+                Constraint sameClause = model.arithm(clauseAssignments[i], "=", clauseAssignments[i-1]);
                 Constraint lexOrdering = model.lexLessEq(previousDecisionVariables, currentDecisionVariables);
-                model.ifThen(clauseIsActive, lexOrdering);
+                model.ifThen(sameClause, lexOrdering);
             }
             previousDecisionVariables = currentDecisionVariables;
         }
+
+        new Constraint("NoNegativeCycles", new NegativeCyclePropagator(clauseAssignments, clauses)).post();
 
         // Configure search strategy
         java.util.Random rng = new java.util.Random();
         Solver solver = model.getSolver();
         solver.setSearch(Search.intVarSearch(new Random<>(rng.nextLong()),
                 new IntDomainRandom(rng.nextLong()), decisionVariables));
+        solver.setRestartOnSolutions();
 
         // Print solutions
         for (int i = 0; i < NUM_SOLUTIONS && solver.solve(); i++) {
