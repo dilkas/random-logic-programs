@@ -3,7 +3,6 @@ import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -74,12 +73,24 @@ public class Clause {
         return ArrayUtils.flatten(tree);
     }
 
-    private String treeToString(IntVar[] treeStructure, IntVar[] treeValues, int i) {
+    IntVar[] getTreeStructure() {
+        return treeStructure;
+    }
+
+    IntVar[] getTreeValues() {
+        return treeValues;
+    }
+
+    static int countConstantValues() {
+        return CONSTANT_VALUES.length;
+    }
+
+    private String treeToString(int i) {
         int value = treeValues[i].getValue();
         if (value > NUM_CONNECTIVES)
             return values[value];
         if (value == 0)
-            return PROBLOG_TOKENS[0] + "(" + treeToString(treeStructure, treeValues, findFirstChild(i)) + ")";
+            return PROBLOG_TOKENS[0] + "(" + treeToString(findFirstChild(i)) + ")";
 
         boolean first = true;
         StringBuilder output = new StringBuilder();
@@ -90,13 +101,17 @@ public class Clause {
                 } else {
                     output.append(PROBLOG_TOKENS[value]).append(" ");
                 }
-                output.append("(").append(treeToString(treeStructure, treeValues, j)).append(")");
+                output.append("(").append(treeToString(j)).append(")");
             }
         }
         return output.toString();
     }
 
-    private String simplePrint(IntVar[] array) {
+    String simpleToString() {
+        return "structure: " + arrayToString(treeStructure) + "values:    " + arrayToString(treeValues);
+    }
+
+    private static String arrayToString(IntVar[] array) {
         StringBuilder builder = new StringBuilder();
         for (IntVar i : array)
             builder.append(i.getValue()).append(" ");
@@ -105,7 +120,7 @@ public class Clause {
     }
 
     public String toString() {
-        return treeToString(treeStructure, treeValues, 0) + ".";
+        return treeToString(0) + ".";
     }
 
     Clause(Model model, IntVar assignment, String[] predicates, int maxNumNodes) {
@@ -126,12 +141,7 @@ public class Clause {
         model.arithm(treeStructure[0], "=", 0).post(); // the 0th element is always a root
 
         model.arithm(numTrees, "+", numNodes, "=", maxNumNodes + 1).post();
-
-        // Removing symmetries: keep everything except the 0th column sorted
-        if (maxNumNodes > 1) {
-            IntVar[][] treeWithoutRoot = Arrays.copyOfRange(tree, 1, maxNumNodes);
-            model.keySort(treeWithoutRoot, null, treeWithoutRoot, 2).post();
-        }
+        model.sort(treeStructure, treeStructure).post();
 
         for (int i = 0; i < maxNumNodes; i++) {
             Constraint outsideScope = model.arithm(numNodes, "<=", i);
@@ -157,8 +167,7 @@ public class Clause {
             Constraint isLeaf = model.count(i, structureWithoutI, exactlyZero);
             Constraint isNegation = model.count(i, structureWithoutI, exactlyOne);
             Constraint isInternal = model.count(i, structureWithoutI, moreThanOne);
-            Constraint mustBeAConnective = model.or(model.arithm(treeValues[i], "=", 1),
-                    model.arithm(treeValues[i], "=", 2));
+            Constraint mustBeAConnective = model.member(treeValues[i], new int[]{1, 2});
 
             // Dividing nodes into predicate nodes, negation nodes, and connective nodes
             model.ifOnlyIf(isLeaf, model.arithm(treeValues[i], ">", NUM_CONNECTIVES));

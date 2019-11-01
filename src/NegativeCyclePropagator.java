@@ -13,6 +13,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
 
     private IntVar[] clauseAssignments;
     private Clause[] clauses;
+    private boolean forbidAllCycles;
     private List<List<SignedPredicate>> adjacencyList;
 
     private static IntVar[] constructDecisionVariables(IntVar[] clauseAssignments, Clause[] clauses) {
@@ -22,10 +23,11 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
         return decisionVariables;
     }
 
-    NegativeCyclePropagator(IntVar[] clauseAssignments, Clause[] clauses) {
+    NegativeCyclePropagator(IntVar[] clauseAssignments, Clause[] clauses, boolean forbidAllCycles) {
         super(constructDecisionVariables(clauseAssignments, clauses));
         this.clauseAssignments = clauseAssignments;
         this.clauses = clauses;
+        this.forbidAllCycles = forbidAllCycles;
     }
 
     @Override
@@ -108,7 +110,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
         boolean[] visited = new boolean[numNodes];
         boolean[] recursionStack = new boolean[numNodes];
         for (int i = 0; i < numNodes; i++)
-            if (isCyclic(i, false, visited, recursionStack))
+            if (isCyclic(i, forbidAllCycles, visited, recursionStack))
                 return ESat.FALSE;
 
         // If there is no negative cycle and the program is fully determined, then (and only then) can we say that
