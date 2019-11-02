@@ -1,3 +1,7 @@
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
@@ -7,16 +11,12 @@ import org.chocosolver.solver.search.strategy.selectors.variables.Random;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
-
 public class GeneratePrograms {
 
-    private static final int NUM_SOLUTIONS = 100;
-    private static final int MAX_NUM_NODES = 5;
-    private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)"};
-    private static final int MAX_NUM_CLAUSES = 3;
+    private static final int NUM_SOLUTIONS = 10000;
+    private static final int MAX_NUM_NODES = 4;
+    private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)", "s(X)"};
+    private static final int MAX_NUM_CLAUSES = 5;
     private static final boolean FORBID_ALL_CYCLES = false;
     private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
             1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
@@ -64,6 +64,8 @@ public class GeneratePrograms {
         clauses = new Clause[MAX_NUM_CLAUSES];
         for (int i = 0; i < MAX_NUM_CLAUSES; i++)
             clauses[i] = new Clause(model, clauseAssignments[i], PREDICATES, MAX_NUM_NODES);
+        new Constraint("NoNegativeCycles",
+                new NegativeCyclePropagator(clauseAssignments, clauses, FORBID_ALL_CYCLES)).post();
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
         IntVar[] decisionVariables = clauseAssignments;
@@ -79,8 +81,23 @@ public class GeneratePrograms {
             previousDecisionVariables = currentDecisionVariables;
         }
 
-        new Constraint("NoNegativeCycles",
-                new NegativeCyclePropagator(clauseAssignments, clauses, FORBID_ALL_CYCLES)).post();
+        // Adding a graph representation
+        IntVar[][] adjacencyMatrix = model.intVarMatrix(PREDICATES.length, PREDICATES.length, 0, 1);
+        IntVar zero = model.intVar(0);
+        for (int i = 0; i < PREDICATES.length; i++) {
+            for (int j = 0; j < PREDICATES.length; j++) {
+                Constraint noEdge = model.arithm(adjacencyMatrix[i][j], "=", 0);
+                Constraint[] clausesAssignedToJHaveNoI = new Constraint[clauses.length];
+                for (int k = 0; k < clauses.length; k++) {
+                    Constraint notAssignedToJ = model.arithm(clauseAssignments[k], "!=", j);
+                    Constraint hasNoI = model.count(i, clauses[k].getTreeValues(), zero);
+                    clausesAssignedToJHaveNoI[k] = model.or(notAssignedToJ, hasNoI);
+                }
+                // A[i][j] = 0 iff there are no clauses such that clauseAssignments[k] = j
+                // and i is in clause[k].treeValues
+                model.ifOnlyIf(noEdge, model.and(clausesAssignedToJHaveNoI));
+            }
+        }
 
         // Add extra conditions. TODO: remove when no longer necessary
         model.arithm(clauseAssignments[0], "=", 0).post();
@@ -98,7 +115,7 @@ public class GeneratePrograms {
         Solver solver = model.getSolver();
         solver.setSearch(Search.intVarSearch(new Random<>(rng.nextLong()),
                 new IntDomainRandom(rng.nextLong()), decisionVariables));
-        solver.setRestartOnSolutions();
+        //solver.setRestartOnSolutions(); // takes much longer, but solutions are more random
 
         // Write generated programs to files
         for (int i = 0; i < NUM_SOLUTIONS && solver.solve(); i++) {
