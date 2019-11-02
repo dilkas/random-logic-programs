@@ -9,7 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 /** A simple propagator to check if the program contains negative cycles */
-public class NegativeCyclePropagator extends Propagator<IntVar> {
+class NegativeCyclePropagator extends Propagator<IntVar> {
 
     private IntVar[] clauseAssignments;
     private Clause[] clauses;

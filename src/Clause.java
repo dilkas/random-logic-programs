@@ -6,7 +6,7 @@ import org.chocosolver.util.tools.ArrayUtils;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Clause {
+class Clause {
 
     private static final String[] CONSTANT_VALUES = {"not", "and", "or", "T"};
     private static final String[] PROBLOG_TOKENS = {"\\+", ",", ";"};
@@ -171,9 +171,12 @@ public class Clause {
             model.ifOnlyIf(isNegation, model.arithm(treeValues[i], "=", 0));
             model.ifOnlyIf(isInternal, mustBeAConnective);
 
-            // 'True' (T) is only acceptable for the root node
-            if (i > 0)
-                model.arithm(treeValues[i], "!=", INDEX_OF_TRUE).post();
+            // 'True' (T) is only acceptable for root nodes
+            if (i > 0) {
+                Constraint notRoot = model.arithm(treeStructure[i], "!=", i);
+                Constraint cannotBeTrue = model.arithm(treeValues[i], "!=", INDEX_OF_TRUE);
+                model.ifThen(notRoot, cannotBeTrue);
+            }
         }
 
         // Disable the clause (restrict it to a unique value) if required

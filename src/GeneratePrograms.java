@@ -11,12 +11,12 @@ import org.chocosolver.solver.search.strategy.selectors.variables.Random;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
-public class GeneratePrograms {
+class GeneratePrograms {
 
     private static final int NUM_SOLUTIONS = 10000;
-    private static final int MAX_NUM_NODES = 4;
-    private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)", "s(X)"};
-    private static final int MAX_NUM_CLAUSES = 5;
+    private static final int MAX_NUM_NODES = 3;
+    private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)"};
+    private static final int MAX_NUM_CLAUSES = 3;
     private static final boolean FORBID_ALL_CYCLES = false;
     private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
             1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
@@ -64,8 +64,6 @@ public class GeneratePrograms {
         clauses = new Clause[MAX_NUM_CLAUSES];
         for (int i = 0; i < MAX_NUM_CLAUSES; i++)
             clauses[i] = new Clause(model, clauseAssignments[i], PREDICATES, MAX_NUM_NODES);
-        new Constraint("NoNegativeCycles",
-                new NegativeCyclePropagator(clauseAssignments, clauses, FORBID_ALL_CYCLES)).post();
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
         IntVar[] decisionVariables = clauseAssignments;
@@ -100,6 +98,12 @@ public class GeneratePrograms {
             }
         }
 
+        // My own constraints
+        new Constraint("NoNegativeCycles",
+                new NegativeCyclePropagator(clauseAssignments, clauses, FORBID_ALL_CYCLES)).post();
+        new Constraint("Independence",
+                new IndependencePropagator(adjacencyMatrix, 1, 2)).post();
+
         // Add extra conditions. TODO: remove when no longer necessary
         model.arithm(clauseAssignments[0], "=", 0).post();
         IntVar[] treeStructure = clauses[0].getTreeStructure();
@@ -109,7 +113,6 @@ public class GeneratePrograms {
         model.arithm(treeStructure[2], "=", 0).post();
         model.arithm(treeValues[1], "=", 5).post();
         model.arithm(treeValues[2], "=", 6).post();
-        predicatesCannotMentionEachOther(1, 2);
 
         // Configure search strategy
         java.util.Random rng = new java.util.Random();
@@ -133,6 +136,7 @@ public class GeneratePrograms {
         }
     }
 
+    // This also makes it so a predicate cannot reference itself
     private static void predicatesCannotMentionEachOther(int... predicates) {
         int numConstantValues = Clause.countConstantValues();
         int[] predicateValues = new int[predicates.length];

@@ -1,3 +1,3 @@
 public enum Sign {
-    POS, NEG;
+    POS, NEG
 }
