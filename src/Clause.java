@@ -15,7 +15,6 @@ public class Clause {
 
     private int maxNumNodes;
     private String[] values;
-    private IntVar[][] tree;
     private IntVar[] treeStructure;
     private IntVar[] treeValues;
 
@@ -70,7 +69,7 @@ public class Clause {
     }
 
     IntVar[] getDecisionVariables() {
-        return ArrayUtils.flatten(tree);
+        return ArrayUtils.concat(treeStructure, treeValues);
     }
 
     IntVar[] getTreeStructure() {
@@ -131,9 +130,8 @@ public class Clause {
 
         // First column determines the tree structure, second column assigns values to nodes
         IntVar numNodes = model.intVar(1, maxNumNodes);
-        tree = model.intVarMatrix(maxNumNodes, 2, 0, Math.max(maxNumNodes - 1, values.length - 1));
-        treeStructure = ArrayUtils.getColumn(tree, 0);
-        treeValues = ArrayUtils.getColumn(tree, 1);
+        treeStructure = model.intVarArray(maxNumNodes, 0, maxNumNodes - 1);
+        treeValues = model.intVarArray(maxNumNodes, 0, values.length - 1);
 
         // Tree structure
         IntVar numTrees = model.intVar(1, maxNumNodes);
