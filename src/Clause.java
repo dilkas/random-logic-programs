@@ -144,14 +144,13 @@ public class Clause {
         for (int i = 0; i < maxNumNodes; i++) {
             Constraint outsideScope = model.arithm(numNodes, "<=", i);
             Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
-            Constraint fixValue = model.arithm(treeValues[i], "=", CONSTANT_VALUES.length);
+            Constraint fixValue = model.arithm(treeValues[i], "=", INDEX_OF_TRUE);
             Constraint isRestricted = model.arithm(treeStructure[i], "<", numNodes);
             model.ifThenElse(outsideScope, model.and(mustBeALoop, fixValue), isRestricted);
         }
 
         // Tree values
         for (int i = 0; i < maxNumNodes; i++) {
-            model.arithm(treeValues[i], "<", values.length).post();
             IntVar exactlyZero = model.intVar(0);
             IntVar exactlyOne = model.intVar(1);
             IntVar moreThanOne = model.intVar(2, Math.max(maxNumNodes, 2));

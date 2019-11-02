@@ -90,7 +90,8 @@ public class GeneratePrograms {
                 Constraint[] clausesAssignedToJHaveNoI = new Constraint[clauses.length];
                 for (int k = 0; k < clauses.length; k++) {
                     Constraint notAssignedToJ = model.arithm(clauseAssignments[k], "!=", j);
-                    Constraint hasNoI = model.count(i, clauses[k].getTreeValues(), zero);
+                    Constraint hasNoI = model.count(i + Clause.countConstantValues(),
+                            clauses[k].getTreeValues(), zero);
                     clausesAssignedToJHaveNoI[k] = model.or(notAssignedToJ, hasNoI);
                 }
                 // A[i][j] = 0 iff there are no clauses such that clauseAssignments[k] = j
