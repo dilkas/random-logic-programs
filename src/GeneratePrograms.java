@@ -14,9 +14,9 @@ import org.chocosolver.util.tools.ArrayUtils;
 class GeneratePrograms {
 
     private static final int NUM_SOLUTIONS = 10000;
-    private static final int MAX_NUM_NODES = 3;
-    private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)"};
-    private static final int MAX_NUM_CLAUSES = 3;
+    private static final int MAX_NUM_NODES = 5;
+    private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)", "s(X)"};
+    private static final int MAX_NUM_CLAUSES = 4;
     private static final boolean FORBID_ALL_CYCLES = false;
     private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
             1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
@@ -101,8 +101,6 @@ class GeneratePrograms {
         // My own constraints
         new Constraint("NoNegativeCycles",
                 new NegativeCyclePropagator(clauseAssignments, clauses, FORBID_ALL_CYCLES)).post();
-        new Constraint("Independence",
-                new IndependencePropagator(adjacencyMatrix, 1, 2)).post();
 
         // Add extra conditions. TODO: remove when no longer necessary
         model.arithm(clauseAssignments[0], "=", 0).post();
@@ -113,6 +111,8 @@ class GeneratePrograms {
         model.arithm(treeStructure[2], "=", 0).post();
         model.arithm(treeValues[1], "=", 5).post();
         model.arithm(treeValues[2], "=", 6).post();
+        new Constraint("Independence",
+                new IndependencePropagator(adjacencyMatrix, 1, 2)).post();
 
         // Configure search strategy
         java.util.Random rng = new java.util.Random();
@@ -123,12 +123,12 @@ class GeneratePrograms {
 
         // Write generated programs to files
         for (int i = 0; i < NUM_SOLUTIONS && solver.solve(); i++) {
+            System.out.println("========== " + i + " ==========");
             StringBuilder program = new StringBuilder();
             for (int j = 0; j < MAX_NUM_CLAUSES; j++) {
                 program.append(clauseToString(j, rng));
                 System.out.println(clauses[j].simpleToString());
             }
-            System.out.println("====================");
 
             BufferedWriter writer = new BufferedWriter(new FileWriter("../programs/" + i + ".pl"));
             writer.write(program.toString());

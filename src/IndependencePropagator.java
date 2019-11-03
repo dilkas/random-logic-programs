@@ -23,22 +23,37 @@ class IndependencePropagator extends Propagator<IntVar> {
 
     @Override
     public void propagate(int evtmask) throws ContradictionException {
-        if (isEntailed() == ESat.FALSE)
-            fails();
+        Set<Dependency> dependencies1 = getDependencies(predicate1);
+        Set<Dependency> dependencies2 = getDependencies(predicate2);
+        for (Dependency dependency1 : dependencies1) {
+            for (Dependency dependency2 : dependencies2) {
+                if (dependency1.getPredicate() == dependency2.getPredicate()) {
+                    if (dependency1.isDetermined() && dependency2.isDetermined())
+                        fails();
+                    if (dependency1.isDetermined()) {
+                        adjacencyMatrix[dependency2.getSource()][dependency2.getTarget()].removeValue(1, this);
+                    } else if (dependency2.isDetermined()) {
+                        adjacencyMatrix[dependency1.getSource()][dependency1.getTarget()].removeValue(1, this);
+                    }
+                }
+            }
+        }
     }
 
     @Override
     public ESat isEntailed() {
-        Set<Integer> d1 = new HashSet<>();
-        d1.add(predicate1);
-        Set<Integer> d2 = new HashSet<>();
-        d2.add(predicate2);
-        ESat answer = independent(d1, d2);
-        /*if (answer != ESat.UNDEFINED) {
-            System.out.print(matrixToString(adjacencyMatrix));
-            System.out.println(answer + "\n");
-        }*/
-        return answer;
+        Set<Dependency> dependencies1 = getDependencies(predicate1);
+        Set<Dependency> dependencies2 = getDependencies(predicate2);
+        for (Dependency dependency1 : dependencies1) {
+            for (Dependency dependency2 : dependencies2) {
+                if (dependency1.getPredicate() == dependency2.getPredicate()) {
+                    if (dependency1.isDetermined() && dependency2.isDetermined())
+                        return ESat.FALSE;
+                    return ESat.UNDEFINED;
+                }
+            }
+        }
+        return ESat.TRUE;
     }
 
     private String matrixToString(IntVar[][] matrix) {
@@ -51,47 +66,31 @@ class IndependencePropagator extends Propagator<IntVar> {
         return builder.toString();
     }
 
-    private Dependencies getDependencies(int predicate) {
-        Dependencies dependencies = new Dependencies();
-        for (int i = 0; i < adjacencyMatrix.length; i++) {
-            boolean certain = adjacencyMatrix[i][predicate].getDomainSize() == 1;
-            if (!certain) {
-                dependencies.setUncertain();
-                return dependencies;
+    /** Return a set of two types of dependencies: those that are guaranteed to be there (determined) and those that
+     * could exist if one edge in the dependency graph is instantiated. */
+    private Set<Dependency> getDependencies(int initialPredicate) {
+        Set<Dependency> dependencies = new HashSet<>();
+        dependencies.add(new Dependency(initialPredicate));
+        while (true) {
+            Set<Dependency> newDependencies = new HashSet<>();
+            for (Dependency dependency : dependencies) {
+                for (int i = 0; i < adjacencyMatrix.length; i++) {
+                    boolean edgeIsDetermined = adjacencyMatrix[i][dependency.getPredicate()].getDomainSize() == 1;
+                    boolean edgeExists = adjacencyMatrix[i][dependency.getPredicate()].getValue() == 1;
+                    if (edgeIsDetermined && edgeExists && dependency.isDetermined()) {
+                        newDependencies.add(new Dependency(i));
+                    } else if (edgeIsDetermined && edgeExists && !dependency.isDetermined()) {
+                        newDependencies.add(new Dependency(i, dependency.getSource(), dependency.getTarget()));
+                    } else if (!edgeIsDetermined && dependency.isDetermined()) {
+                        newDependencies.add(new Dependency(i, i, dependency.getPredicate()));
+                    }
+                }
             }
-            int value = adjacencyMatrix[i][predicate].getValue();
-            if (value == 1)
-                dependencies.add(i);
-
+            int previousSize = dependencies.size();
+            dependencies.addAll(newDependencies);
+            if (dependencies.size() == previousSize)
+                break;
         }
         return dependencies;
-    }
-
-    private ESat independent(Set<Integer> dependencies1, Set<Integer> dependencies2) {
-        Set<Integer> intersection = new HashSet<>(dependencies1);
-        intersection.retainAll(dependencies2);
-        if (!intersection.isEmpty())
-            return ESat.FALSE;
-
-        Set<Integer> newDependencies1 = new HashSet<>(dependencies1);
-        Set<Integer> newDependencies2 = new HashSet<>(dependencies2);
-        for (int predicate : dependencies1) {
-            Dependencies dependencies = getDependencies(predicate);
-            if (!dependencies.areCertain())
-                return ESat.UNDEFINED;
-            newDependencies1.addAll(dependencies.getDependencies());
-        }
-        for (int predicate : dependencies2) {
-            Dependencies dependencies = getDependencies(predicate);
-            if (!dependencies.areCertain())
-                return ESat.UNDEFINED;
-            newDependencies2.addAll(dependencies.getDependencies());
-        }
-
-        if (newDependencies1.size() == dependencies1.size() && newDependencies2.size() == dependencies2.size()) {
-            return ESat.TRUE;
-        }
-
-        return independent(newDependencies1, newDependencies2);
     }
 }
