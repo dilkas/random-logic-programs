@@ -14,11 +14,28 @@ class IndependencePropagator extends Propagator<IntVar> {
     private int predicate1;
     private int predicate2;
 
+    // Fields specific to conditional independence
+    private IntVar[] clauseAssignments;
+    private Clause[] clauses;
+    private Mask mask;
+
     IndependencePropagator(IntVar[][] adjacencyMatrix, int predicate1, int predicate2) {
         super(ArrayUtils.flatten(adjacencyMatrix));
         this.adjacencyMatrix = adjacencyMatrix;
         this.predicate1 = predicate1;
         this.predicate2 = predicate2;
+    }
+
+    IndependencePropagator(IntVar[][] adjacencyMatrix, IntVar[] clauseAssignments, Clause[] clauses,
+                           int predicate1, int predicate2,  Mask mask) {
+        super(ArrayUtils.concat(ArrayUtils.flatten(adjacencyMatrix),
+                NegativeCyclePropagator.constructDecisionVariables(clauseAssignments, clauses)));
+        this.adjacencyMatrix = adjacencyMatrix;
+        this.predicate1 = predicate1;
+        this.predicate2 = predicate2;
+        this.clauseAssignments = clauseAssignments;
+        this.clauses = clauses;
+        this.mask = mask;
     }
 
     @Override
@@ -31,15 +48,18 @@ class IndependencePropagator extends Propagator<IntVar> {
                     if (dependency1.isDetermined() && dependency2.isDetermined())
                         fails();
                     if (dependency1.isDetermined()) {
-                        adjacencyMatrix[dependency2.getSource()][dependency2.getTarget()].removeValue(1, this);
+                        adjacencyMatrix[dependency2.getSource()][dependency2.getTarget()].removeValue(1,
+                                this);
                     } else if (dependency2.isDetermined()) {
-                        adjacencyMatrix[dependency1.getSource()][dependency1.getTarget()].removeValue(1, this);
+                        adjacencyMatrix[dependency1.getSource()][dependency1.getTarget()].removeValue(1,
+                                this);
                     }
                 }
             }
         }
     }
 
+    // TODO: this could be improved (see the pseudocode)
     @Override
     public ESat isEntailed() {
         Set<Dependency> dependencies1 = getDependencies(predicate1);
@@ -74,7 +94,19 @@ class IndependencePropagator extends Propagator<IntVar> {
         while (true) {
             Set<Dependency> newDependencies = new HashSet<>();
             for (Dependency dependency : dependencies) {
+
+                // The only difference between conditional and unconditional independence
+                MaskValue[] masked = new MaskValue[adjacencyMatrix.length];
+                if (mask != null) {
+                    masked = mask.applyMask(clauses, clauseAssignments, dependency.getPredicate());
+                } else {
+                    for (int i = 0; i < adjacencyMatrix.length; i++)
+                        masked[i] = MaskValue.UNMASKED;
+                }
+
                 for (int i = 0; i < adjacencyMatrix.length; i++) {
+                    if (masked[i] == MaskValue.MASKED)
+                        continue; // TODO: update this
                     boolean edgeIsDetermined = adjacencyMatrix[i][dependency.getPredicate()].getDomainSize() == 1;
                     boolean edgeExists = adjacencyMatrix[i][dependency.getPredicate()].getValue() == 1;
                     if (edgeIsDetermined && edgeExists && dependency.isDetermined()) {

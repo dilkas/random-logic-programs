@@ -15,8 +15,8 @@ class GeneratePrograms {
 
     private static final int NUM_SOLUTIONS = 10000;
     private static final int MAX_NUM_NODES = 5;
-    private static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)", "s(X)"};
-    private static final int MAX_NUM_CLAUSES = 4;
+    static final String[] PREDICATES = {"p(X)", "q(X)", "r(X)", "s(X)"};
+    private static final int MAX_NUM_CLAUSES = 5;
     private static final boolean FORBID_ALL_CYCLES = false;
     private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
             1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
@@ -50,9 +50,10 @@ class GeneratePrograms {
 
         model.sort(clauseAssignments, clauseAssignments).post();
 
-        // Each possible value (< PREDICATES.length) should be mentioned at least once
         IntVar numDisabledClauses = model.intVar(0, MAX_NUM_CLAUSES - PREDICATES.length);
         model.count(PREDICATES.length, clauseAssignments, numDisabledClauses).post();
+
+        // Each possible value (< PREDICATES.length) should be mentioned at least once
         IntVar numDistinctValues = model.intVar(PREDICATES.length, PREDICATES.length + 1);
         model.nValues(clauseAssignments, numDistinctValues).post();
 
@@ -88,7 +89,7 @@ class GeneratePrograms {
                 Constraint[] clausesAssignedToJHaveNoI = new Constraint[clauses.length];
                 for (int k = 0; k < clauses.length; k++) {
                     Constraint notAssignedToJ = model.arithm(clauseAssignments[k], "!=", j);
-                    Constraint hasNoI = model.count(i + Clause.countConstantValues(),
+                    Constraint hasNoI = model.count(i + Token.values().length,
                             clauses[k].getTreeValues(), zero);
                     clausesAssignedToJHaveNoI[k] = model.or(notAssignedToJ, hasNoI);
                 }
@@ -106,13 +107,18 @@ class GeneratePrograms {
         model.arithm(clauseAssignments[0], "=", 0).post();
         IntVar[] treeStructure = clauses[0].getTreeStructure();
         IntVar[] treeValues = clauses[0].getTreeValues();
-        model.arithm(treeValues[0], "=", 2).post();
+        model.arithm(treeValues[0], "=", 1).post();
         model.arithm(treeStructure[1], "=", 0).post();
         model.arithm(treeStructure[2], "=", 0).post();
         model.arithm(treeValues[1], "=", 5).post();
         model.arithm(treeValues[2], "=", 6).post();
-        new Constraint("Independence",
+        new Constraint("q and r are independent",
                 new IndependencePropagator(adjacencyMatrix, 1, 2)).post();
+        Mask qAndR = new Mask(Token.AND, 1, 2);
+        new Constraint("p is independent of q given q and r", new IndependencePropagator(adjacencyMatrix,
+                clauseAssignments, clauses, 0, 1, qAndR)).post();
+        new Constraint("p is independent of r given q and r", new IndependencePropagator(adjacencyMatrix,
+                clauseAssignments, clauses, 0, 2, qAndR)).post();
 
         // Configure search strategy
         java.util.Random rng = new java.util.Random();
@@ -138,10 +144,9 @@ class GeneratePrograms {
 
     // This also makes it so a predicate cannot reference itself
     private static void predicatesCannotMentionEachOther(int... predicates) {
-        int numConstantValues = Clause.countConstantValues();
         int[] predicateValues = new int[predicates.length];
         for (int i = 0; i < predicates.length; i++)
-            predicateValues[i] = predicates[i] + numConstantValues;
+            predicateValues[i] = predicates[i] + Token.values().length;
 
         IntVar zero = model.intVar(0);
         for (int i = 0; i < clauseAssignments.length; i++) {

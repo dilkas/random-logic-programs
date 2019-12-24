@@ -16,7 +16,7 @@ class NegativeCyclePropagator extends Propagator<IntVar> {
     private boolean forbidAllCycles;
     private List<List<SignedPredicate>> adjacencyList;
 
-    private static IntVar[] constructDecisionVariables(IntVar[] clauseAssignments, Clause[] clauses) {
+    static IntVar[] constructDecisionVariables(IntVar[] clauseAssignments, Clause[] clauses) {
         IntVar[] decisionVariables = clauseAssignments;
         for (Clause clause : clauses)
             decisionVariables = ArrayUtils.concat(decisionVariables, clause.getDecisionVariables());

@@ -1,0 +1,125 @@
+\documentclass{beamer}
+\usepackage[UKenglish]{babel}
+\usepackage[UKenglish]{isodate}
+
+\beamertemplatenavigationsymbolsempty
+
+\begin{document}
+
+\begin{frame}{Overview}
+  \begin{block}{General parameters}
+    \begin{itemize}
+    \item maximum number of solutions
+    \item \texttt{maxNumNodes} (in the tree representation of a clause)
+    \item list of predicates with their variables
+    \item maximum number of clauses
+    \item option to forbid all cycles or just negative cycles
+    \item list of probabilities that are randomly assigned to clauses: $\{ 0.1,
+      0.2, \dots, 0.9, 1, 1, 1, 1, 1, 1 \}$
+    \end{itemize}
+  \end{block}
+  \begin{block}{Decision variables}
+    \begin{itemize}
+    \item \texttt{IntVar[] clauseAssignments}: a predicate or disabled
+    \item \texttt{Clause[] clauses}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Constraints}
+  \begin{block}{Each predicate should get at least one constraint}
+    \begin{itemize}
+    \item \texttt{numDisabledClauses}: defined by a \texttt{count} constraint
+    \item $\texttt{numDistinctValues} = \begin{cases}
+        \texttt{numPredicates} + 1 & \text{if } \texttt{numDisabledValues} > 0 \\
+        \texttt{numPredicates} & \text{otherwise.}
+      \end{cases}$
+      \begin{itemize}
+      \item also constrained using the \texttt{nValues} constraint
+      \end{itemize}
+    \end{itemize}
+  \end{block}
+  \begin{block}{Miscellaneous}
+    \begin{itemize}
+    \item \texttt{clauseAssignments} are sorted.
+    \item If $\texttt{clauseAssignments}[i-1] = \texttt{clauseAssignments}[i]$,
+      \begin{itemize}
+      \item then $\texttt{clause}[i-1] \preceq \texttt{clause}[i]$.
+      \end{itemize}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Clauses}
+  \begin{block}{A clause is defined by...}
+    \begin{itemize}
+    \item \texttt{IntVar[] treeStructure}
+      \begin{itemize}
+      \item $\texttt{treeStructure}[i] = i$: the $i$-th node is a root.
+      \item $\texttt{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
+      \end{itemize}
+    \item \texttt{IntVar[] treeValues}: $\neg$, $\land$, $\lor$, $\top$, and any
+      predefined predicates with variables.
+    \end{itemize}
+  \end{block}
+  \begin{block}{Auxiliary variables}
+    \begin{itemize}
+    \item $\texttt{numNodes}, \texttt{numTrees} \in \{ 1, \dots, \texttt{maxNumNodes} \}$
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Clause constraints}
+  \begin{itemize}
+  \item \texttt{treeStructure} represents \texttt{numTrees} trees.
+  \item $\texttt{treeStructure}[0] = 0$
+  \item $\texttt{numTrees} + \texttt{numNodes} = \texttt{maxNumNodes} + 1$
+  \item \texttt{treeStructure} is sorted
+  \item For $i = 0, \dots, \texttt{maxNumNodes} - 1$,
+    \begin{itemize}
+    \item If $\texttt{numNodes} \le i$,
+    \item then $\texttt{treeStructure}[i] = i$ and $\texttt{treeValues}[i] = \top$,
+    \item else $\texttt{treeStructure}[i] < \texttt{numNodes}$.
+    \item has 0 children $\iff$ $\texttt{treeValues}[i]$ is a predicate
+    \item has 1 child $\iff$ $\texttt{treeValues}[i] = \neg$
+    \item has $>1$ child $\iff$ $\texttt{treeValues}[i] \in \{ \land, \lor \}$
+    \item $\texttt{treeStructure}[i] \ne i \implies \texttt{treeValues}[i] \ne \top$
+    \end{itemize}
+  \item If the clause should be disabled, $\texttt{numNodes} = 1$ and
+    $\texttt{treeValues}[0] = \top$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \begin{block}{Adjacency matrix representation}
+    $A[i][j] = 0 \iff \nexists k: \texttt{clauseAssignments}[k] = j$ and $i
+    \in \texttt{clauses}[k].\texttt{treeValues}$
+  \end{block}
+  \begin{block}{New constraints}
+    \begin{itemize}
+    \item No (negative) cycles
+      \begin{itemize}
+      \item No clever propagation, just entailment checking.
+      \end{itemize}
+    \item Independence. Propagation:
+      \begin{itemize}
+      \item Two types of dependencies: determined and
+        one-undetermined-edge-away-from-being-determined.
+      \item Look up the dependencies of both predicates. For each pair of
+        matching dependencies:
+        \begin{itemize}
+        \item If both are determined, fail.
+        \item If one is determined, the selected edge of the other must not
+          exist.
+        \end{itemize}
+      \end{itemize}
+    \item Conditional independence
+      \begin{itemize}
+      \item Same propagation, but with a `filter' that masks out the expression
+        that the independence is conditioned on.
+      \end{itemize}
+    \end{itemize}
+  \end{block}
+\end{frame}
+
+\end{document}

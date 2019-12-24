@@ -1,17 +1,13 @@
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.util.iterators.DisposableValueIterator;
 import org.chocosolver.util.tools.ArrayUtils;
 
 import java.util.LinkedList;
 import java.util.List;
 
 class Clause {
-
-    private static final String[] CONSTANT_VALUES = {"not", "and", "or", "T"};
-    private static final String[] PROBLOG_TOKENS = {"\\+", ",", ";"};
-    private static final int NUM_CONNECTIVES = 2; // AND and OR
-    private static final int INDEX_OF_TRUE = 3;
 
     private int maxNumNodes;
     private String[] values;
@@ -29,12 +25,12 @@ class Clause {
         List<SignedPredicate> predicates = new LinkedList<>();
 
         // If the node is T (true)
-        if (valueIndex == INDEX_OF_TRUE)
+        if (valueIndex == Token.TRUE.ordinal())
             return predicates;
 
         // If the node is a predicate
-        if (valueIndex >= CONSTANT_VALUES.length) {
-            predicates.add(new SignedPredicate(valueIndex - CONSTANT_VALUES.length, Sign.POS));
+        if (valueIndex >= Token.values().length) {
+            predicates.add(new SignedPredicate(valueIndex - Token.values().length, Sign.POS));
             return predicates;
         }
 
@@ -80,16 +76,33 @@ class Clause {
         return treeValues;
     }
 
-    static int countConstantValues() {
-        return CONSTANT_VALUES.length;
+    private List<Integer> getDomainValues(IntVar variable, int toSubtract) {
+        List<Integer> values = new LinkedList<>();
+        DisposableValueIterator it = variable.getValueIterator(true);
+        while (it.hasNext()) {
+            int value = it.next() - toSubtract;
+            if (value >= 0)
+                values.add(value);
+        }
+        it.dispose();
+        return values;
+    }
+
+    List<Integer> getTreeStructureDomainValues(int index) {
+        return getDomainValues(treeStructure[index], 0);
+    }
+
+    List<Integer> getTreeValueDomainValues(int index) {
+        return getDomainValues(treeValues[index], Token.values().length);
     }
 
     private String treeToString(int i) {
         int value = treeValues[i].getValue();
-        if (value > NUM_CONNECTIVES)
+        if (value >= Token.TRUE.ordinal())
             return values[value];
-        if (value == 0)
-            return PROBLOG_TOKENS[0] + "(" + treeToString(findFirstChild(i)) + ")";
+        Token token = Token.values()[value];
+        if (token == Token.NOT)
+            return token + "(" + treeToString(findFirstChild(i)) + ")";
 
         boolean first = true;
         StringBuilder output = new StringBuilder();
@@ -98,7 +111,7 @@ class Clause {
                 if (first) {
                     first = false;
                 } else {
-                    output.append(PROBLOG_TOKENS[value]).append(" ");
+                    output.append(token).append(" ");
                 }
                 output.append("(").append(treeToString(j)).append(")");
             }
@@ -118,17 +131,18 @@ class Clause {
         return builder.toString();
     }
 
+    @Override
     public String toString() {
         return treeToString(0) + ".";
     }
 
     Clause(Model model, IntVar assignment, String[] predicates, int maxNumNodes) {
         this.maxNumNodes = maxNumNodes;
-        values = new String[CONSTANT_VALUES.length + predicates.length];
-        System.arraycopy(CONSTANT_VALUES, 0, values, 0, CONSTANT_VALUES.length);
-        System.arraycopy(predicates, 0, values, CONSTANT_VALUES.length, predicates.length);
+        values = new String[Token.values().length + predicates.length];
+        for (int i = 0; i < Token.values().length; i++)
+            values[i] = Token.values()[i].toString();
+        System.arraycopy(predicates, 0, values, Token.values().length, predicates.length);
 
-        // First column determines the tree structure, second column assigns values to nodes
         IntVar numNodes = model.intVar(1, maxNumNodes);
         treeStructure = model.intVarArray(maxNumNodes, 0, maxNumNodes - 1);
         treeValues = model.intVarArray(maxNumNodes, 0, values.length - 1);
@@ -144,7 +158,7 @@ class Clause {
         for (int i = 0; i < maxNumNodes; i++) {
             Constraint outsideScope = model.arithm(numNodes, "<=", i);
             Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
-            Constraint fixValue = model.arithm(treeValues[i], "=", INDEX_OF_TRUE);
+            Constraint fixValue = model.arithm(treeValues[i], "=", Token.TRUE.ordinal());
             Constraint isRestricted = model.arithm(treeStructure[i], "<", numNodes);
             model.ifThenElse(outsideScope, model.and(mustBeALoop, fixValue), isRestricted);
         }
@@ -167,14 +181,14 @@ class Clause {
             Constraint mustBeAConnective = model.member(treeValues[i], new int[]{1, 2});
 
             // Dividing nodes into predicate nodes, negation nodes, and connective nodes
-            model.ifOnlyIf(isLeaf, model.arithm(treeValues[i], ">", NUM_CONNECTIVES));
+            model.ifOnlyIf(isLeaf, model.arithm(treeValues[i], ">=", Token.TRUE.ordinal()));
             model.ifOnlyIf(isNegation, model.arithm(treeValues[i], "=", 0));
             model.ifOnlyIf(isInternal, mustBeAConnective);
 
             // 'True' (T) is only acceptable for root nodes
             if (i > 0) {
                 Constraint notRoot = model.arithm(treeStructure[i], "!=", i);
-                Constraint cannotBeTrue = model.arithm(treeValues[i], "!=", INDEX_OF_TRUE);
+                Constraint cannotBeTrue = model.arithm(treeValues[i], "!=", Token.TRUE.ordinal());
                 model.ifThen(notRoot, cannotBeTrue);
             }
         }
@@ -182,7 +196,7 @@ class Clause {
         // Disable the clause (restrict it to a unique value) if required
         Constraint shouldBeDisabled = model.arithm(assignment, "=", predicates.length);
         Constraint oneNode = model.arithm(numNodes, "=", 1);
-        Constraint alwaysTrue = model.arithm(treeValues[0], "=", INDEX_OF_TRUE);
+        Constraint alwaysTrue = model.arithm(treeValues[0], "=", Token.TRUE.ordinal());
         model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
     }
 }

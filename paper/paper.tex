@@ -1,0 +1,138 @@
+\documentclass{article}
+\usepackage[UKenglish]{babel}
+\usepackage[UKenglish]{isodate}
+\usepackage[utf8]{inputenc}
+\usepackage{fullpage}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{amsmath}
+
+\author{Paulius Dilkas}
+\title{Using Constraint Programming to Generate Random Logic Programs}
+
+\begin{document}
+\maketitle
+
+\section{TODO}
+
+\begin{itemize}
+\item Show that the set of all ProbLog programs is equal to the set of programs
+  I can generate (alternatively, show that, given any ProbLog program, there are
+  parameter values high enough to generate it).
+\item Given fixed parameters, use combinatorial arguments to calculate how many
+  different programs there are and check that I'm generating the same number.
+\end{itemize}
+
+Both determined $\implies$ fail(). Both determined but at least is one masked by
+a (probable/determined) mask $\implies$ nothing. One determined $\implies$ the
+other one cannot exist.
+
+\section{The Independence Constraint}
+
+A dependency is an algebraic data type that is either determined (in which case
+it holds only the index of the predicate) or undetermined (in which case it also
+holds the indices of the source and target vertices, corresponding to the edge
+responsible for making the dependency undetermined).
+
+\begin{algorithm}
+  \SetKwFunction{getDependencies}{getDependencies}
+  \SetKwFunction{isDetermined}{isDetermined}
+  \SetKwFunction{fail}{fail}
+  \SetKwFunction{removeValue}{removeValue}
+  \SetKwData{predicate}{predicate}
+  \SetKwData{source}{source}
+  \SetKwData{target}{target}
+  \KwData{predicates $p_1$, $p_2$; adjacency matrix $\mathbf{A}$}
+  \For{$(d_1, d_2) \in \getDependencies{$p_1$} \times
+    \getDependencies{$p_2$}$ s.t. $d_1.\predicate = d_2.\predicate$}{
+    \If{$d_1$.\isDetermined{} {\bf and} $d_2$.\isDetermined{}}{
+      \fail{}\;
+    }
+    \uIf{$d_1$.\isDetermined{}}{
+      $\mathbf{A}[d_2.\source][d_2.\target]$.\removeValue{$1$}\;
+    }
+    \ElseIf{$d_2$.\isDetermined{}}{
+      $\mathbf{A}[d_1.\source][d_1.\target]$.\removeValue{$1$}\;
+    }
+  }
+  \caption{Propagation}
+\end{algorithm}
+
+\begin{algorithm}
+  \SetKwFunction{getDependencies}{getDependencies}
+  \SetKwFunction{isDetermined}{isDetermined}
+  \SetKwData{predicate}{predicate}
+  \KwData{predicates $p_1$, $p_2$}
+  $D \gets \{ (d_1, d_2) \in \getDependencies{$p_1$} \times
+  \getDependencies{$p_2$} \mid d_1.\predicate = d_2.\predicate \}$\;
+  \If{$\{ (d_1, d_2) \in D \mid d_1.\isDetermined{}, d_2.\isDetermined{} \} \ne
+    \emptyset$}{
+    \Return{FALSE}\;
+  }
+  \If{$D = \emptyset$}{
+    \Return{TRUE}\;
+  }
+  \Return{UNDEFINED}\;
+  \caption{Entailment}
+\end{algorithm}
+
+\begin{algorithm}
+  \SetKwData{edgeExists}{edgeExists}
+  \SetKwData{predicate}{predicate}
+  \SetKwData{source}{source}
+  \SetKwData{target}{target}
+  \SetKwFunction{isDetermined}{isDetermined}
+  \SetKwFunction{getDependencies}{getDependencies}
+  \SetKwProg{Fn}{Function}{:}{}
+  \KwData{an $n \times n$ adjacency matrix $\mathbf{A}$}
+  \Fn{\getDependencies{$p$}} {
+    $D \gets \{ p \}$\;
+    \Repeat{$D' = D$}{
+      $D' \gets D$\;
+      \For{$d \in D$}{
+        \For{$i \gets 1$ \KwTo $n$}{
+          $\edgeExists \gets \mathbf{A}[i][d.\predicate] = \{ 1 \}$\;
+          \uIf{$\edgeExists$ {\bf and} $d$.\isDetermined{}}{
+            $D' \gets D' \cup \{ i \}$\;
+          }
+          \uElseIf{$\edgeExists$ {\bf and not} $d$.\isDetermined{}}{
+            $D' \gets D' \cup \{ (i, d.\source, d.\target) \}$\;
+          }
+          \ElseIf{$|\mathbf{A}[i][d.\predicate]| > 1$ {\bf and} $d$.\isDetermined{}}{
+            $D' \gets D' \cup \{ (i, i, d.\predicate) \}$\;
+          }
+        }
+      }
+    }
+    \Return{$D$}\;
+  }
+  \caption{Computing the dependencies of a predicate}
+\end{algorithm}
+
+\section{Conditional Independence}
+
+\begin{algorithm}
+  \SetKwProg{Fn}{Function}{:}{}
+  \SetKwFunction{potentialRoots}{potentialRoots}
+  \SetKwFunction{getTreeValues}{getTreeValues}
+  \SetKwFunction{getTreeStructureDomainValues}{getTreeStructureDomainValues}
+  \SetKwData{clause}{clause}
+  \KwData{connective $c$, a set of predicates $P$}
+  \Fn{\potentialRoots{\clause, $i$}} {
+    $R \gets \emptyset$\;
+    $V \gets \clause.\getTreeValues{$i$}$\;
+    \For{$v \in V$}{
+      \uIf{$v = c$}{
+        $R \gets R \cup \{ (i, |V| = 1) \}$\;
+      }
+      \ElseIf{$v \in P$}{
+        $R' \gets \clause.\getTreeStructureDomainValues{$i$}$\;
+        $R \gets R \cup \{ (r, |R'| = 1) \mid r \in R' \}$\;
+      }
+    }
+    \Return{$R$}\;
+  }
+  \caption{Potential root nodes of the required expression, assuming that the
+    node at index $i$ is part of the expression}
+\end{algorithm}
+
+\end{document}
