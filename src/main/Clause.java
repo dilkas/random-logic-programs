@@ -1,3 +1,5 @@
+package main;
+
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
@@ -70,11 +72,11 @@ public class Clause {
         return ArrayUtils.concat(treeStructure, treeValues);
     }
 
-    IntVar[] getTreeStructure() {
+    public IntVar[] getTreeStructure() {
         return treeStructure;
     }
 
-    IntVar[] getTreeValues() {
+    public IntVar[] getTreeValues() {
         return treeValues;
     }
 
@@ -121,7 +123,7 @@ public class Clause {
         return output.toString();
     }
 
-    String simpleToString() {
+    public String simpleToString() {
         return "structure: " + arrayToString(treeStructure) + "values:    " + arrayToString(treeValues);
     }
 
@@ -138,7 +140,7 @@ public class Clause {
         return treeToString(0) + ".";
     }
 
-    Clause(Model model, IntVar assignment, String[] predicates, int maxNumNodes) {
+    public Clause(Model model, IntVar assignment, String[] predicates, int maxNumNodes) {
         this.maxNumNodes = maxNumNodes;
         values = new String[Token.values().length + predicates.length];
         for (int i = 0; i < Token.values().length; i++)

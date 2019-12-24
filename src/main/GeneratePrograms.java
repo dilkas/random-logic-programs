@@ -1,7 +1,14 @@
+package main;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 
+import main.Clause;
+import main.Mask;
+import main.Token;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
@@ -116,7 +123,10 @@ class GeneratePrograms {
         model.arithm(treeValues[2], "=", 6).post();
         new Constraint("q and r are independent",
                 new IndependencePropagator(adjacencyMatrix, 1, 2)).post();
-        Mask qAndR = new Mask(Token.AND, 1, 2);
+        List<Integer> predicates = new LinkedList<>();
+        predicates.add(1);
+        predicates.add(2);
+        Mask qAndR = new Mask(Token.AND, predicates);
         new Constraint("p is independent of q given q and r", new IndependencePropagator(adjacencyMatrix,
                 clauseAssignments, clauses, 0, 1, qAndR)).post();
         new Constraint("p is independent of r given q and r", new IndependencePropagator(adjacencyMatrix,

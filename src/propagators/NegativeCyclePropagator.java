@@ -1,11 +1,11 @@
 package propagators;
 
+import main.Clause;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 import org.chocosolver.util.tools.ArrayUtils;
-import propagators.SignedPredicate;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -26,7 +26,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
         return decisionVariables;
     }
 
-    NegativeCyclePropagator(IntVar[] clauseAssignments, Clause[] clauses, boolean forbidAllCycles) {
+    public NegativeCyclePropagator(IntVar[] clauseAssignments, Clause[] clauses, boolean forbidAllCycles) {
         super(constructDecisionVariables(clauseAssignments, clauses));
         this.clauseAssignments = clauseAssignments;
         this.clauses = clauses;

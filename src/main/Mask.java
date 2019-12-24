@@ -1,3 +1,6 @@
+package main;
+
+import main.Clause;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.iterators.DisposableValueIterator;
 
@@ -9,7 +12,7 @@ public class Mask {
     private Token connective;
     private List<Integer> predicates;
 
-    Mask(Token connective, List<Integer> predicates) {
+    public Mask(Token connective, List<Integer> predicates) {
         this.connective = connective;
         this.predicates = predicates;
     }
@@ -40,10 +43,12 @@ public class Mask {
 
     /** Return a list of size GeneratePrograms.PREDICATES.length of boolean values. True means that the clause's
      * dependence on that variable has been 'masked', i.e., is no longer relevant. */
-    private void markInstances(Clause clause, MaskValue[] masked) {
+    private void markInstances(Clause clause, Possibility[] masked) {
         IntVar[] structure = clause.getTreeStructure();
         IntVar[] values = clause.getTreeValues();
+        Token[] tokens = Token.values();
 
+        // Old stuff
         List<Set<PotentialPredicate>> predicatesPerMask = new ArrayList<>();
         for (int i = 0; i < masked.length; i++)
             predicatesPerMask.add(new HashSet<>());
@@ -59,31 +64,56 @@ public class Mask {
             }
         }
 
-        // TODO: finish this
+        // Generate matrices A and B from notes
+        // A: position * (predicates + signs): can this position represent this predicate or sign (based on values[])
+        Possibility[][] predicateAtIndex = new Possibility[values.length][tokens.length + predicates.size()];
+        for (int i = 0; i < values.length; i++) {
+            Arrays.fill(predicateAtIndex[i], Possibility.NO);
+            DisposableValueIterator it = values[i].getValueIterator(true);
+            while (it.hasNext()) {
+                int value = it.next();
+                if (values[i].getDomainSize() == 1)
+                    predicateAtIndex[i][value] = Possibility.YES;
+                else
+                    predicateAtIndex[i][value] = Possibility.MAYBE;
+            }
+            it.dispose();
+        }
+
+        // B: related[i][j] => position i can/must be the parent of position j
+        Possibility[][] related = new Possibility[structure.length][structure.length];
+        for (int i = 0; i < structure.length; i++) {
+            for (int j = 0; j < structure.length; j++) {
+                if (structure[j].getDomainSize() == 1 && values[i].getDomainSize() == 1 && structure[j].contains(i) &&
+                        values[i].contains(connective.ordinal())) {
+                    related[i][j] = Possibility.YES;
+                } else if (structure[j].contains(i) && values[i].contains(connective.ordinal())) {
+                    related[i][j] = Possibility.MAYBE;
+                } else {
+                    related[i][j] = Possibility.NO;
+                }
+            }
+        }
+
         // For each potential root node of the expression
         for (int i = 0; i < structure.length; i++) {
             // Check that it can be the root
             if (!structure[i].contains(i) || !values[i].contains(connective.ordinal()))
                 continue;
 
-            boolean[] foundAtLeastOne = new boolean[predicates.size()];
+            // TODO: do I need this?
             // determinedToBe[a] lists all nodes that are determined to correspond to predicate a
             // in the expression rooted at i
             List<List<Integer>> determinedToBe = new ArrayList<>();
-            for (int i = 0; i < predicates.size(); i++)
+            for (int j = 0; j < predicates.size(); j++)
                 determinedToBe.add(new LinkedList<>());
-
-            // For every node that can be part of the expression rooted at i
-            for (PotentialPredicate j : predicatesPerMask.get(i)) {
-                if (j.)
-            }
         }
     }
 
     // TODO: describe
-    public MaskValue[] applyMask(Clause[] clauses, IntVar[] clauseAssignments, int predicate) {
-        MaskValue[] masks = new MaskValue[GeneratePrograms.PREDICATES.length];
-        Arrays.fill(masks, MaskValue.UNMASKED);
+    public Possibility[] applyMask(Clause[] clauses, IntVar[] clauseAssignments, int predicate) {
+        Possibility[] masks = new Possibility[GeneratePrograms.PREDICATES.length];
+        Arrays.fill(masks, Possibility.NO);
         for (int i = 0; i < clauses.length; i++)
             if (clauseAssignments[i].getValue() == predicate)
                 markInstances(clauses[i], masks);

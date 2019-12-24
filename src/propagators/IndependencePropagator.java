@@ -1,12 +1,13 @@
 package propagators;
 
+import main.Clause;
+import main.Mask;
+import main.Possibility;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 import org.chocosolver.util.tools.ArrayUtils;
-import propagators.Dependency;
-import propagators.NegativeCyclePropagator;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -23,14 +24,14 @@ public class IndependencePropagator extends Propagator<IntVar> {
     private Clause[] clauses;
     private Mask mask;
 
-    IndependencePropagator(IntVar[][] adjacencyMatrix, int predicate1, int predicate2) {
+    public IndependencePropagator(IntVar[][] adjacencyMatrix, int predicate1, int predicate2) {
         super(ArrayUtils.flatten(adjacencyMatrix));
         this.adjacencyMatrix = adjacencyMatrix;
         this.predicate1 = predicate1;
         this.predicate2 = predicate2;
     }
 
-    IndependencePropagator(IntVar[][] adjacencyMatrix, IntVar[] clauseAssignments, Clause[] clauses,
+    public IndependencePropagator(IntVar[][] adjacencyMatrix, IntVar[] clauseAssignments, Clause[] clauses,
                            int predicate1, int predicate2,  Mask mask) {
         super(ArrayUtils.concat(ArrayUtils.flatten(adjacencyMatrix),
                 NegativeCyclePropagator.constructDecisionVariables(clauseAssignments, clauses)));
@@ -100,17 +101,17 @@ public class IndependencePropagator extends Propagator<IntVar> {
             for (Dependency dependency : dependencies) {
 
                 // The only difference between conditional and unconditional independence
-                MaskValue[] masked = new MaskValue[adjacencyMatrix.length];
+                /*Possibility[] masked = new Possibility[adjacencyMatrix.length];
                 if (mask != null) {
                     masked = mask.applyMask(clauses, clauseAssignments, dependency.getPredicate());
                 } else {
                     for (int i = 0; i < adjacencyMatrix.length; i++)
-                        masked[i] = MaskValue.UNMASKED;
-                }
+                        masked[i] = Possibility.NO;
+                }*/
 
                 for (int i = 0; i < adjacencyMatrix.length; i++) {
-                    if (masked[i] == MaskValue.MASKED)
-                        continue; // TODO: update this
+                    //if (masked[i] == Possibility.YES)
+                        //continue; // TODO: update this
                     boolean edgeIsDetermined = adjacencyMatrix[i][dependency.getPredicate()].getDomainSize() == 1;
                     boolean edgeExists = adjacencyMatrix[i][dependency.getPredicate()].getValue() == 1;
                     if (edgeIsDetermined && edgeExists && dependency.isDetermined()) {

@@ -12,9 +12,33 @@
 \begin{document}
 \maketitle
 
+\section{Introduction}
+
+Motivation:
+\begin{itemize}
+\item Generating random programs that generate random data.
+  %For example, enforcing that the decision is independent of gender.
+\item Learning: how this can be used for (targeted) learning, when (atomic)
+  probabilities can be assigned based on counting and we can have extra
+  constraints. A more primitive angle: generate structures, learn weights.
+\end{itemize}
+
 \section{TODO}
 
 \begin{itemize}
+\item Support for constants and multiple variables.
+  \begin{itemize}
+  \item Each clause is defined for each predicate with standard variable names
+    (X, Y, etc.).
+  \item There is a list of constants and a list of predicates with their
+    arities. Maybe also a list of variables.
+  \end{itemize}
+\item Make negative cycle detection use the graph representation.
+\item Finish the propagation algorithm for conditional independence. The
+  propagation algorithm for independence is extended with masks that are either
+  potential or definite. Masking happens in two stages: first, we mask
+  expressions within formulas, and then predicates. Masking algorithm uses an
+  algorithm for perfect bipartite matching.
 \item Show that the set of all ProbLog programs is equal to the set of programs
   I can generate (alternatively, show that, given any ProbLog program, there are
   parameter values high enough to generate it).

@@ -1,3 +1,5 @@
+package main;
+
 class PotentialValue {
 
     private int value;
