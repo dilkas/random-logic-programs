@@ -1,14 +1,18 @@
+package propagators;
+
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 import org.chocosolver.util.tools.ArrayUtils;
+import propagators.Dependency;
+import propagators.NegativeCyclePropagator;
 
 import java.util.HashSet;
 import java.util.Set;
 
 /** A custom constraint for the independence of two predicates */
-class IndependencePropagator extends Propagator<IntVar> {
+public class IndependencePropagator extends Propagator<IntVar> {
 
     private IntVar[][] adjacencyMatrix;
     private int predicate1;

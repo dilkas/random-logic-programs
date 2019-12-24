@@ -1,3 +1,5 @@
+package propagators;
+
 import java.util.Objects;
 
 final class Dependency {

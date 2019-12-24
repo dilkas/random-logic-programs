@@ -4,7 +4,7 @@ import org.chocosolver.util.iterators.DisposableValueIterator;
 import java.util.*;
 
 /** An expression of the form a /\ b or a \/ b for some predicates a and b. */
-class Mask {
+public class Mask {
 
     private Token connective;
     private List<Integer> predicates;
@@ -81,7 +81,7 @@ class Mask {
     }
 
     // TODO: describe
-    MaskValue[] applyMask(Clause[] clauses, IntVar[] clauseAssignments, int predicate) {
+    public MaskValue[] applyMask(Clause[] clauses, IntVar[] clauseAssignments, int predicate) {
         MaskValue[] masks = new MaskValue[GeneratePrograms.PREDICATES.length];
         Arrays.fill(masks, MaskValue.UNMASKED);
         for (int i = 0; i < clauses.length; i++)

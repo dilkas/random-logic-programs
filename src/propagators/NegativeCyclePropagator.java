@@ -1,15 +1,18 @@
+package propagators;
+
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 import org.chocosolver.util.tools.ArrayUtils;
+import propagators.SignedPredicate;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 /** A simple propagator to check if the program contains negative cycles */
-class NegativeCyclePropagator extends Propagator<IntVar> {
+public class NegativeCyclePropagator extends Propagator<IntVar> {
 
     private IntVar[] clauseAssignments;
     private Clause[] clauses;

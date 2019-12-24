@@ -1,9 +1,11 @@
-class SignedPredicate {
+package propagators;
+
+public class SignedPredicate {
 
     private int index;
     private Sign sign;
 
-    SignedPredicate(int index, Sign sign) {
+    public SignedPredicate(int index, Sign sign) {
         this.index = index;
         this.sign = sign;
     }
@@ -16,7 +18,7 @@ class SignedPredicate {
         return sign;
     }
 
-    void setNegative() {
+    public void setNegative() {
         sign = Sign.NEG;
     }
 }

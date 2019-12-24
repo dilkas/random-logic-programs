@@ -10,6 +10,8 @@ import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
 import org.chocosolver.solver.search.strategy.selectors.variables.Random;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
+import propagators.IndependencePropagator;
+import propagators.NegativeCyclePropagator;
 
 class GeneratePrograms {
 

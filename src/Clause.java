@@ -3,11 +3,13 @@ import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.iterators.DisposableValueIterator;
 import org.chocosolver.util.tools.ArrayUtils;
+import propagators.Sign;
+import propagators.SignedPredicate;
 
 import java.util.LinkedList;
 import java.util.List;
 
-class Clause {
+public class Clause {
 
     private int maxNumNodes;
     private String[] values;
@@ -16,7 +18,7 @@ class Clause {
 
     /** A list of predicates featured in this clause. The sign of each predicate denotes whether the predicate is
      * negated or not (after unfolding all the logical connectives). */
-    List<SignedPredicate> getPredicates() {
+    public List<SignedPredicate> getPredicates() {
         return getPredicates(0);
     }
 
@@ -64,7 +66,7 @@ class Clause {
         return i;
     }
 
-    IntVar[] getDecisionVariables() {
+    public IntVar[] getDecisionVariables() {
         return ArrayUtils.concat(treeStructure, treeValues);
     }
 
