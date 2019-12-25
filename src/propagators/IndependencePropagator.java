@@ -2,7 +2,6 @@ package propagators;
 
 import main.Clause;
 import main.Mask;
-import main.Possibility;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;

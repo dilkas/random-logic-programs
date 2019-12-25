@@ -8,15 +8,78 @@ import org.chocosolver.util.tools.ArrayUtils;
 import propagators.Sign;
 import propagators.SignedPredicate;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
 public class Clause {
 
     private int maxNumNodes;
-    private String[] values;
     private IntVar[] treeStructure;
-    private IntVar[] treeValues;
+    private Atom[] treeValues;
+
+    public Clause(Model model, IntVar assignment, int maxNumNodes) {
+        this.maxNumNodes = maxNumNodes;
+
+        IntVar numNodes = model.intVar(1, maxNumNodes);
+        treeStructure = model.intVarArray(maxNumNodes, 0, maxNumNodes - 1);
+        treeValues = new Atom[maxNumNodes];
+        for (int i = 0; i < maxNumNodes; i++)
+            treeValues[i] = new Atom(model);
+
+        // Tree structure
+        IntVar numTrees = model.intVar(1, maxNumNodes);
+        model.tree(treeStructure, numTrees).post();
+        model.arithm(treeStructure[0], "=", 0).post(); // the 0th element is always a root
+
+        model.arithm(numTrees, "+", numNodes, "=", maxNumNodes + 1).post();
+        model.sort(treeStructure, treeStructure).post();
+
+        for (int i = 0; i < maxNumNodes; i++) {
+            Constraint outsideScope = model.arithm(numNodes, "<=", i);
+            Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
+            Constraint fixValue = model.arithm(treeValues[i].getPredicate(), "=", Token.TRUE.ordinal());
+            Constraint isRestricted = model.arithm(treeStructure[i], "<", numNodes);
+            model.ifThenElse(outsideScope, model.and(mustBeALoop, fixValue), isRestricted);
+        }
+
+        // Tree values
+        for (int i = 0; i < maxNumNodes; i++) {
+            IntVar exactlyZero = model.intVar(0);
+            IntVar exactlyOne = model.intVar(1);
+            IntVar moreThanOne = model.intVar(2, Math.max(maxNumNodes, 2));
+
+            IntVar[] structureWithoutI = new IntVar[maxNumNodes - 1];
+            for (int j = 0; j < i; j++)
+                structureWithoutI[j] = treeStructure[j];
+            for (int j = i + 1; j < maxNumNodes; j++)
+                structureWithoutI[j - 1] = treeStructure[j];
+
+            Constraint isLeaf = model.count(i, structureWithoutI, exactlyZero);
+            Constraint isNegation = model.count(i, structureWithoutI, exactlyOne);
+            Constraint isInternal = model.count(i, structureWithoutI, moreThanOne);
+            Constraint mustBeAConnective = model.member(treeValues[i].getPredicate(),
+                    new int[]{Token.AND.ordinal(), Token.OR.ordinal()});
+
+            // Dividing nodes into predicate nodes, negation nodes, and connective nodes
+            model.ifOnlyIf(isLeaf, model.arithm(treeValues[i].getPredicate(), ">=", Token.TRUE.ordinal()));
+            model.ifOnlyIf(isNegation, model.arithm(treeValues[i].getPredicate(), "=", 0));
+            model.ifOnlyIf(isInternal, mustBeAConnective);
+
+            // 'True' (T) is only acceptable for root nodes
+            if (i > 0) {
+                Constraint notRoot = model.arithm(treeStructure[i], "!=", i);
+                Constraint cannotBeTrue = model.arithm(treeValues[i].getPredicate(), "!=", Token.TRUE.ordinal());
+                model.ifThen(notRoot, cannotBeTrue);
+            }
+        }
+
+        // Disable the clause (restrict it to a unique value) if required
+        Constraint shouldBeDisabled = model.arithm(assignment, "=", GeneratePrograms.PREDICATES.length);
+        Constraint oneNode = model.arithm(numNodes, "=", 1);
+        Constraint alwaysTrue = model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal());
+        model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
+    }
 
     /** A list of predicates featured in this clause. The sign of each predicate denotes whether the predicate is
      * negated or not (after unfolding all the logical connectives). */
@@ -25,7 +88,7 @@ public class Clause {
     }
 
     private List<SignedPredicate> getPredicates(int index) {
-        int valueIndex = treeValues[index].getValue();
+        int valueIndex = treeValues[index].getPredicate().getValue();
         List<SignedPredicate> predicates = new LinkedList<>();
 
         // If the node is T (true)
@@ -69,7 +132,10 @@ public class Clause {
     }
 
     public IntVar[] getDecisionVariables() {
-        return ArrayUtils.concat(treeStructure, treeValues);
+        IntVar[] variables = treeStructure;
+        for (Atom atom : treeValues)
+            variables = ArrayUtils.concat(variables, atom.getDecisionVariables());
+        return variables;
     }
 
     public IntVar[] getTreeStructure() {
@@ -77,7 +143,10 @@ public class Clause {
     }
 
     public IntVar[] getTreeValues() {
-        return treeValues;
+        IntVar[] predicates = new IntVar[treeValues.length];
+        for (int i = 0; i < treeValues.length; i++)
+            predicates[i] = treeValues[i].getPredicate();
+        return predicates;
     }
 
     private List<Integer> getDomainValues(IntVar variable, int toSubtract) {
@@ -97,13 +166,13 @@ public class Clause {
     }
 
     List<Integer> getTreeValueDomainValues(int index) {
-        return getDomainValues(treeValues[index], Token.values().length);
+        return getDomainValues(treeValues[index].getPredicate(), Token.values().length);
     }
 
     private String treeToString(int i) {
-        int value = treeValues[i].getValue();
+        int value = treeValues[i].getPredicate().getValue();
         if (value >= Token.TRUE.ordinal())
-            return values[value];
+            return treeValues[i].toString();
         Token token = Token.values()[value];
         if (token == Token.NOT)
             return token + "(" + treeToString(findFirstChild(i)) + ")";
@@ -123,8 +192,10 @@ public class Clause {
         return output.toString();
     }
 
-    public String simpleToString() {
-        return "structure: " + arrayToString(treeStructure) + "values:    " + arrayToString(treeValues);
+    public void report() {
+        System.out.print("structure: " + arrayToString(treeStructure));
+        System.out.println("values: " + Arrays.toString(treeValues));
+        System.out.println();
     }
 
     private static String arrayToString(IntVar[] array) {
@@ -138,69 +209,5 @@ public class Clause {
     @Override
     public String toString() {
         return treeToString(0) + ".";
-    }
-
-    public Clause(Model model, IntVar assignment, String[] predicates, int maxNumNodes) {
-        this.maxNumNodes = maxNumNodes;
-        values = new String[Token.values().length + predicates.length];
-        for (int i = 0; i < Token.values().length; i++)
-            values[i] = Token.values()[i].toString();
-        System.arraycopy(predicates, 0, values, Token.values().length, predicates.length);
-
-        IntVar numNodes = model.intVar(1, maxNumNodes);
-        treeStructure = model.intVarArray(maxNumNodes, 0, maxNumNodes - 1);
-        treeValues = model.intVarArray(maxNumNodes, 0, values.length - 1);
-
-        // Tree structure
-        IntVar numTrees = model.intVar(1, maxNumNodes);
-        model.tree(treeStructure, numTrees).post();
-        model.arithm(treeStructure[0], "=", 0).post(); // the 0th element is always a root
-
-        model.arithm(numTrees, "+", numNodes, "=", maxNumNodes + 1).post();
-        model.sort(treeStructure, treeStructure).post();
-
-        for (int i = 0; i < maxNumNodes; i++) {
-            Constraint outsideScope = model.arithm(numNodes, "<=", i);
-            Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
-            Constraint fixValue = model.arithm(treeValues[i], "=", Token.TRUE.ordinal());
-            Constraint isRestricted = model.arithm(treeStructure[i], "<", numNodes);
-            model.ifThenElse(outsideScope, model.and(mustBeALoop, fixValue), isRestricted);
-        }
-
-        // Tree values
-        for (int i = 0; i < maxNumNodes; i++) {
-            IntVar exactlyZero = model.intVar(0);
-            IntVar exactlyOne = model.intVar(1);
-            IntVar moreThanOne = model.intVar(2, Math.max(maxNumNodes, 2));
-
-            IntVar[] structureWithoutI = new IntVar[maxNumNodes - 1];
-            for (int j = 0; j < i; j++)
-                structureWithoutI[j] = treeStructure[j];
-            for (int j = i + 1; j < maxNumNodes; j++)
-                structureWithoutI[j - 1] = treeStructure[j];
-
-            Constraint isLeaf = model.count(i, structureWithoutI, exactlyZero);
-            Constraint isNegation = model.count(i, structureWithoutI, exactlyOne);
-            Constraint isInternal = model.count(i, structureWithoutI, moreThanOne);
-            Constraint mustBeAConnective = model.member(treeValues[i], new int[]{1, 2});
-
-            // Dividing nodes into predicate nodes, negation nodes, and connective nodes
-            model.ifOnlyIf(isLeaf, model.arithm(treeValues[i], ">=", Token.TRUE.ordinal()));
-            model.ifOnlyIf(isNegation, model.arithm(treeValues[i], "=", 0));
-            model.ifOnlyIf(isInternal, mustBeAConnective);
-
-            // 'True' (T) is only acceptable for root nodes
-            if (i > 0) {
-                Constraint notRoot = model.arithm(treeStructure[i], "!=", i);
-                Constraint cannotBeTrue = model.arithm(treeValues[i], "!=", Token.TRUE.ordinal());
-                model.ifThen(notRoot, cannotBeTrue);
-            }
-        }
-
-        // Disable the clause (restrict it to a unique value) if required
-        Constraint shouldBeDisabled = model.arithm(assignment, "=", predicates.length);
-        Constraint oneNode = model.arithm(numNodes, "=", 1);
-        Constraint alwaysTrue = model.arithm(treeValues[0], "=", Token.TRUE.ordinal());
-        model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
     }
 }

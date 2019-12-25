@@ -1,6 +1,5 @@
 package main;
 
-import main.Clause;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.iterators.DisposableValueIterator;
 
@@ -44,7 +43,7 @@ public class Mask {
     /** Return a list of size GeneratePrograms.PREDICATES.length of boolean values. True means that the clause's
      * dependence on that variable has been 'masked', i.e., is no longer relevant. */
     private void markInstances(Clause clause, Possibility[] masked) {
-        IntVar[] structure = clause.getTreeStructure();
+/*        IntVar[] structure = clause.getTreeStructure();
         IntVar[] values = clause.getTreeValues();
         Token[] tokens = Token.values();
 
@@ -118,5 +117,6 @@ public class Mask {
             if (clauseAssignments[i].getValue() == predicate)
                 markInstances(clauses[i], masks);
         return masks;
+        */
     }
 }
