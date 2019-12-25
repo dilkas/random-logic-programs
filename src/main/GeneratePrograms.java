@@ -20,11 +20,12 @@ class GeneratePrograms {
 
     private static final String DIRECTORY = "../programs/";
     private static final int NUM_SOLUTIONS = 10000;
-    private static final int MAX_NUM_NODES = 3;
-    private static final int MAX_NUM_CLAUSES = 2;
+    private static final int MAX_NUM_NODES = 4;
+    private static final int MAX_NUM_CLAUSES = 3;
     private static final boolean FORBID_ALL_CYCLES = false;
-    private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
-            1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
+    //private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+    //        1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
+    private static final double[] PROBABILITIES = {1};
 
     static final String[] PREDICATES = {"p", "q"};
     static final int[] ARITIES = {1, 2};
@@ -34,7 +35,6 @@ class GeneratePrograms {
 
     static Tuples arities;
 
-    private static Model model;
     private static IntVar[] clauseAssignments;
     private static Clause[] clauses;
 
@@ -63,7 +63,7 @@ class GeneratePrograms {
         for (int i = 0; i < ARITIES.length; i++)
             arities.add(Token.values().length + i, ARITIES[i]);
 
-        model = new Model();
+        Model model = new Model();
 
         // numbers < PREDICATES.length assign a clause to a predicate, PREDICATES.length is used to discard the clause
         clauseAssignments = model.intVarArray(MAX_NUM_CLAUSES, 0, PREDICATES.length);
