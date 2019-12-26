@@ -20,25 +20,28 @@ class GeneratePrograms {
 
     private static final String DIRECTORY = "../programs/";
     private static final int NUM_SOLUTIONS = 10000;
-    private static final int MAX_NUM_NODES = 4;
-    private static final int MAX_NUM_CLAUSES = 3;
+    private static final int MAX_NUM_NODES = 1;
+    private static final int MAX_NUM_CLAUSES = 2;
     private static final boolean FORBID_ALL_CYCLES = false;
     //private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
     //        1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
     private static final double[] PROBABILITIES = {1};
 
-    static final String[] PREDICATES = {"p", "q"};
-    static final int[] ARITIES = {1, 2};
+    static final String[] PREDICATES = {"p"};
+    static final int[] ARITIES = {1};
     static final String[] VARIABLES = {"X", "Y"};
-    static final String[] CONSTANTS = {};
+    static final String[] CONSTANTS = {"a", "b"};
     static final int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
     static Tuples arities;
 
     private static IntVar[] clauseAssignments;
+    private static Head[] clauseHeads;
     private static Clause[] clauses;
 
+    // The entire clause, i.e., both body and head
     private static String clauseToString(int i, java.util.Random rng) {
+        // Is this clause disabled?
         int predicate = clauseAssignments[i].getValue();
         if (predicate == PREDICATES.length)
             return "";
@@ -50,25 +53,29 @@ class GeneratePrograms {
             probabilityString = PROBABILITIES[probability] + " :: ";
 
         String clause = clauses[i].toString();
+        String head = clauseHeads[i].toString();
         if (clause.equals("T."))
-            return probabilityString + PREDICATES[predicate] + ".\n";
-        return probabilityString + PREDICATES[predicate] + " :- " + clause + "\n";
-        // TODO: will need to update, once I know how I want to represent heads of clauses
+            return probabilityString + head+ ".\n";
+        return probabilityString + head + " :- " + clause + "\n";
     }
 
     public static void main(String[] args) throws IOException {
         arities = new Tuples();
         for (Token t : Token.values())
-            arities.add(t.ordinal(), 0);
+            arities.add(t.ordinal(), 0); // Tokens don't have arities
         for (int i = 0; i < ARITIES.length; i++)
-            arities.add(Token.values().length + i, ARITIES[i]);
+            arities.add(Token.values().length + i, ARITIES[i]); // Predicate arities are predefined
+        arities.add(ARITIES.length + Token.values().length, 0); // This stands for a disabled clause
 
         Model model = new Model();
 
         // numbers < PREDICATES.length assign a clause to a predicate, PREDICATES.length is used to discard the clause
         clauseAssignments = model.intVarArray(MAX_NUM_CLAUSES, 0, PREDICATES.length);
-
         model.sort(clauseAssignments, clauseAssignments).post();
+
+        clauseHeads = new Head[clauseAssignments.length];
+        for (int i = 0; i < clauseHeads.length; i++)
+            clauseHeads[i] = new Head(model, clauseAssignments[i]);
 
         IntVar numDisabledClauses = model.intVar(0, MAX_NUM_CLAUSES - PREDICATES.length);
         model.count(PREDICATES.length, clauseAssignments, numDisabledClauses).post();
@@ -92,6 +99,7 @@ class GeneratePrograms {
         for (int i = 0; i < MAX_NUM_CLAUSES; i++) {
             IntVar[] currentDecisionVariables = clauses[i].getDecisionVariables();
             decisionVariables = ArrayUtils.concat(decisionVariables, currentDecisionVariables);
+            decisionVariables = ArrayUtils.concat(decisionVariables, clauseHeads[i].getDecisionVariables());
             if (i > 0) {
                 Constraint sameClause = model.arithm(clauseAssignments[i], "=", clauseAssignments[i-1]);
                 Constraint lexOrdering = model.lexLessEq(previousDecisionVariables, currentDecisionVariables);
@@ -143,7 +151,7 @@ class GeneratePrograms {
         new Constraint("p is independent of r given q and r", new IndependencePropagator(adjacencyMatrix,
                 clauseAssignments, clauses, 0, 2, qAndR)).post();*/
 
-        // Configure search strategy
+        // Configure the search strategy
         java.util.Random rng = new java.util.Random();
         Solver solver = model.getSolver();
         solver.setSearch(Search.intVarSearch(new Random<>(rng.nextLong()),
