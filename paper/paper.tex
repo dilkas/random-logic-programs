@@ -5,6 +5,15 @@
 \usepackage{fullpage}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+
+\newtheorem{constraint}{Constraint}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+
+\newcommand{\variable}[1]{\texttt{\textup{#1}}}
 
 \author{Paulius Dilkas}
 \title{Using Constraint Programming to Generate Random Logic Programs}
@@ -48,11 +57,133 @@ Motivation:
   different programs there are and check that I'm generating the same number.
 \item Formal definition (here and in the predicate invention paper): two
   predicates are independent if all of their groundings are independent.
+\item Describe: entailment checking for cycles and negative cycles.
 \end{itemize}
 
 Both determined $\implies$ fail(). Both determined but at least is one masked by
 a (probable/determined) mask $\implies$ nothing. One determined $\implies$ the
 other one cannot exist.
+
+\section{Parameters}
+
+Parameters:
+\begin{itemize}
+\item maximum number of solutions
+\item \variable{maxNumNodes} (in the tree representation of a clause)
+\item list of predicates with their variables
+\item maximum number of clauses
+\item option to forbid all cycles or just negative cycles
+\item list of probabilities that are randomly assigned to clauses: $\{ 0.1,
+  0.2, \dots, 0.9, 1, 1, 1, 1, 1, 1 \}$
+\end{itemize}
+
+Decision variables: % TODO: rename these things
+% TODO: specify the decision variables inside clauses and their heads
+\begin{itemize}
+\item \variable{IntVar[] clauseAssignments}: a predicate or disabled
+\item \variable{Clause[] clauses}
+\item \variable{Head[] clauseHeads}
+\end{itemize}
+
+\section{General Constraints}
+
+\begin{constraint}[Each predicate gets at least one clause]
+  \variable{numDisabledClauses} is defined by a \variable{count} constraint.
+  \[
+    \variable{numDistinctValues} =
+    \begin{cases}
+      \variable{numPredicates} + 1 & \text{if } \variable{numDisabledValues} > 0 \\
+      \variable{numPredicates} & \text{otherwise}
+    \end{cases}
+  \]
+  (also constrained using the \variable{nValues} constraint).
+\end{constraint}
+
+\begin{constraint}[\variable{clauseAssignments} are sorted]
+  \[
+    \variable{clauseAssignments}[i-1] = \variable{clauseAssignments}[i] \implies
+    \variable{clause}[i-1] \preceq \variable{clause}[i].
+  \]
+\end{constraint}
+
+\section{Bodies of Clauses}
+
+\begin{definition}
+  The body of a clause is defined by:
+  \begin{itemize}
+  \item \variable{IntVar[] treeStructure}
+    \begin{itemize}
+    \item $\texttt{treeStructure}[i] = i$: the $i$-th node is a root.
+    \item $\texttt{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
+    \end{itemize}
+  \item \variable{IntVar[] treeValues}: $\neg$, $\land$, $\lor$, $\top$, and any
+    predefined predicates with variables.
+  \end{itemize}
+\end{definition}
+% TODO: examples
+% TODO: update the info on treeValues
+
+Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
+\variable{maxNumNodes} \}$.
+
+\subsection{Constraints}
+
+\begin{constraint}
+  \variable{treeStructure} represents \variable{numTrees} trees.
+\end{constraint}
+
+\begin{constraint}
+  $\variable{treeStructure}[0] = 0$.
+\end{constraint}
+
+\begin{constraint}
+  $\variable{numTrees} + \variable{numNodes} = \variable{maxNumNodes} + 1$.
+\end{constraint}
+
+\begin{constraint}
+  \variable{treeStructure} is sorted.
+\end{constraint}
+
+\begin{constraint}
+  For $i = 0, \dots, \variable{maxNumNodes} - 1$, if $\variable{numNodes} \le
+  i$, then
+  \[
+    \variable{treeStructure}[i] = i \quad \text{and} \quad
+    \variable{treeValues}[i] = \top,
+  \]
+  else
+  \[
+    \variable{treeStructure}[i] < \variable{numNodes}.
+  \]
+\end{constraint}
+
+\begin{constraint}
+  For $i = 0, \dots, \variable{maxNumNodes} - 1$,
+  \begin{itemize}
+  \item has 0 children $\iff$ $\variable{treeValues}[i]$ is a predicate;
+  \item has 1 child $\iff$ $\variable{treeValues}[i] = \neg$;
+  \item has $>1$ child $\iff$ $\variable{treeValues}[i] \in \{ \land, \lor \}$.
+  \end{itemize}
+\end{constraint}
+
+\begin{constraint}
+  For $i = 0, \dots, \variable{maxNumNodes} - 1$,
+  \[
+    \variable{treeStructure}[i] \ne i \implies \variable{treeValues}[i] \ne
+    \top.
+  \]
+\end{constraint}
+
+If the clause should be disabled, $\variable{numNodes} = 1$ and
+$\variable{treeValues}[0] = \top$.
+
+\begin{constraint}
+  Adjacency matrix representation:
+  \[
+    A[i][j] = 0 \iff \nexists k: \variable{clauseAssignments}[k] = j \text{ and }
+    i \in \variable{clauses}[k].\variable{treeValues}
+  \]
+\end{constraint}
 
 \section{The Independence Constraint}
 
@@ -60,6 +191,19 @@ A dependency is an algebraic data type that is either determined (in which case
 it holds only the index of the predicate) or undetermined (in which case it also
 holds the indices of the source and target vertices, corresponding to the edge
 responsible for making the dependency undetermined).
+
+Propagation for independence:
+\begin{itemize}
+\item Two types of dependencies: determined and
+  one-undetermined-edge-away-from-being-determined.
+\item Look up the dependencies of both predicates. For each pair of
+  matching dependencies:
+  \begin{itemize}
+  \item If both are determined, fail.
+  \item If one is determined, the selected edge of the other must not
+    exist.
+  \end{itemize}
+\end{itemize}
 
 \begin{algorithm}
   \SetKwFunction{getDependencies}{getDependencies}
@@ -136,31 +280,31 @@ responsible for making the dependency undetermined).
   \caption{Computing the dependencies of a predicate}
 \end{algorithm}
 
-\section{Conditional Independence}
+% \section{Conditional Independence}
 
-\begin{algorithm}
-  \SetKwProg{Fn}{Function}{:}{}
-  \SetKwFunction{potentialRoots}{potentialRoots}
-  \SetKwFunction{getTreeValues}{getTreeValues}
-  \SetKwFunction{getTreeStructureDomainValues}{getTreeStructureDomainValues}
-  \SetKwData{clause}{clause}
-  \KwData{connective $c$, a set of predicates $P$}
-  \Fn{\potentialRoots{\clause, $i$}} {
-    $R \gets \emptyset$\;
-    $V \gets \clause.\getTreeValues{$i$}$\;
-    \For{$v \in V$}{
-      \uIf{$v = c$}{
-        $R \gets R \cup \{ (i, |V| = 1) \}$\;
-      }
-      \ElseIf{$v \in P$}{
-        $R' \gets \clause.\getTreeStructureDomainValues{$i$}$\;
-        $R \gets R \cup \{ (r, |R'| = 1) \mid r \in R' \}$\;
-      }
-    }
-    \Return{$R$}\;
-  }
-  \caption{Potential root nodes of the required expression, assuming that the
-    node at index $i$ is part of the expression}
-\end{algorithm}
+% \begin{algorithm}
+%   \SetKwProg{Fn}{Function}{:}{}
+%   \SetKwFunction{potentialRoots}{potentialRoots}
+%   \SetKwFunction{getTreeValues}{getTreeValues}
+%   \SetKwFunction{getTreeStructureDomainValues}{getTreeStructureDomainValues}
+%   \SetKwData{clause}{clause}
+%   \KwData{connective $c$, a set of predicates $P$}
+%   \Fn{\potentialRoots{\clause, $i$}} {
+%     $R \gets \emptyset$\;
+%     $V \gets \clause.\getTreeValues{$i$}$\;
+%     \For{$v \in V$}{
+%       \uIf{$v = c$}{
+%         $R \gets R \cup \{ (i, |V| = 1) \}$\;
+%       }
+%       \ElseIf{$v \in P$}{
+%         $R' \gets \clause.\getTreeStructureDomainValues{$i$}$\;
+%         $R \gets R \cup \{ (r, |R'| = 1) \mid r \in R' \}$\;
+%       }
+%     }
+%     \Return{$R$}\;
+%   }
+%   \caption{Potential root nodes of the required expression, assuming that the
+%     node at index $i$ is part of the expression}
+% \end{algorithm}
 
 \end{document}
