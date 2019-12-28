@@ -1,16 +1,14 @@
-\documentclass{article}
-\usepackage[UKenglish]{babel}
-\usepackage[UKenglish]{isodate}
-\usepackage[utf8]{inputenc}
-\usepackage{fullpage}
+\documentclass[runningheads]{llncs}
+\usepackage{graphicx}
+%\usepackage[UKenglish]{babel}
+%\usepackage[UKenglish]{isodate}
+%\usepackage[utf8]{inputenc}
 \usepackage[ruled,vlined]{algorithm2e}
-\usepackage{amsmath}
-\usepackage{amsthm}
 \usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage[capitalise]{cleveref}
 
 \newtheorem{constraint}{Constraint}
-\theoremstyle{definition}
-\newtheorem{definition}{Definition}
 
 \newcommand{\variable}[1]{\texttt{\textup{#1}}}
 \newcommand{\predicates}{\mathcal{P}}
@@ -18,15 +16,29 @@
 \newcommand{\constants}{\mathcal{C}}
 \newcommand{\tokens}{\mathcal{T}}
 \newcommand{\arities}{\mathcal{A}}
-\newcommand{\maxArity}{\textsc{max\_arity}}
-\newcommand{\maxNumNodes}{\textsc{max\_num\_nodes}}
-\newcommand{\maxNumClauses}{\textsc{max\_num\_clauses}}
-
-\author{Paulius Dilkas}
-\title{Generating Random Logic Programs Using Constraint Programming}
+\newcommand{\maxArity}{\mathcal{M}_{\mathcal{A}}}
+\newcommand{\maxNumNodes}{\mathcal{M}_{\mathcal{N}}}
+\newcommand{\maxNumClauses}{\mathcal{M}_{\mathcal{C}}}
 
 \begin{document}
+
+\title{Generating Random Logic Programs Using Constraint Programming}
+\author{Paulius Dilkas\orcidID{0000-1111-2222-3333}}
+\authorrunning{P. Dilkas}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+
+\institute{University of Edinburgh, Edinburgh, UK\\
+\email{p.dilkas@sms.ed.ac.uk}}
 \maketitle
+
+\begin{abstract}
+The abstract should briefly summarize the contents of the paper in
+150--250 words.
+
+\keywords{Constraint Programming \and Logic Programming \and Probabilistic Logic
+  Programming.}
+\end{abstract}
 
 \section{Introduction}
 
@@ -40,60 +52,73 @@ Motivation:
 \end{itemize}
 
 We will often use $\Box$ as a special domain value to indicate some kind of
-exception.
+exception. We also use Choco \cite{choco}. This works with both Prolog
+\cite{DBLP:books/daglib/0041598} and ProbLog \cite{DBLP:conf/ijcai/RaedtKT07}.
+Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
+
+Inference options to explore. Logspace vs normal space. Symbolic vs
+non-symbolic. Propagate evidence (might be irrelevant)? Propagate weights?
+Supported knowledge compilation techniques: sdd, sddx, bdd, nnf, ddnnf, kbest,
+fsdd, fbdd.
 
 \section{TODO}
 
 \begin{itemize}
-\item Make negative cycle detection use the graph representation.
-\item Show that the set of all ProbLog programs is equal to the set of programs
-  I can generate (alternatively, show that, given any ProbLog program, there are
-  parameter values high enough to generate it).
 \item Given fixed parameters, use combinatorial arguments to calculate how many
   different programs there are and check that I'm generating the same number.
 \item Formal definition (here and in the predicate invention paper): two
   predicates are independent if all of their groundings are independent.
-\item Describe: entailment checking for cycles and negative cycles.
 \item A constraint for logical equivalence.
-\item Rename everything into something more appropriate.
+\item Show that the set of all ProbLog programs is equal to the set of programs
+  I can generate (alternatively, show that, given any ProbLog program, there are
+  parameter values high enough to generate it).
+\item Perhaps negative cycle detection could use the same graph as the
+  independence propagator? If we extend each domain to {-1, 0, 1}, but that
+  might make propagation weaker or slower.
 \end{itemize}
-
-Both determined $\implies$ fail(). Both determined but at least is one masked by
-a (probable/determined) mask $\implies$ nothing. One determined $\implies$ the
-other one cannot exist.
 
 \section{Parameters}
 
 Parameters:
 \begin{itemize}
-\item maximum number of solutions
-\item \maxNumNodes{} (in the tree representation of a clause)
-\item \maxNumClauses{}
-\item option to forbid all cycles or just negative cycles
-\item a list of probabilities that are randomly assigned to clauses: $\{ 0.1,
-  0.2, \dots, 0.9, 1, 1, 1, 1, 1, 1 \}$.
+\item maximum number of solutions,
+\item $\maxNumNodes{}$: maximum number of nodes in the tree representation of a
+  clause,
+\item $\maxNumClauses{}$: maximum number of clauses in a program,
+\item option to forbid all cycles or just negative cycles,
+\item a list of probabilities that are randomly assigned to clauses,
 \item a list of predicates $\predicates{}$,
 \item a list of their arities $\arities{}$,
   \begin{itemize}
-  \item $\maxArity{} = \max \arities{}$.
+  \item maximum arity $\maxArity{} \coloneqq \max \arities{}$.
   \end{itemize}
 \item a list of variables $\variables{}$,
 \item and a list of constants $\constants{}$.
 \end{itemize}
 
-We also define $\tokens{} = \{ \neg, \land, \lor, \top \}$.
-
-Decision variables:
-% TODO: specify the decision variables inside clauses and their heads
+We also define $\tokens{} = \{ \neg, \land, \lor, \top \}$. All decision
+variables of the model are contained in two arrays of length $\maxNumClauses{}$:
 \begin{itemize}
 \item \variable{Body[] bodiesOfClauses}
-\item \variable{Head[] headsOfClauses}: a list of length \maxNumClauses{}
+\item \variable{Head[] headsOfClauses}
 \end{itemize}
 
 \section{General Constraints}
 
-\begin{constraint}[Each predicate gets at least one clause]
-  Let $P = \{ h.\variable{predicate} \mid h \in \variable{clauseHeads} \}$. Then
+\begin{constraint}
+  For $i = 0, \dots, \maxNumClauses - 1$, let $p_i =
+  \variable{headsOfClauses}[i].\variable{predicate}$. Then
+  \[
+    \variable{sort}((p_i)_{i=0}^{\maxNumClauses - 1}, (p_i)_{i=0}^{\maxNumClauses
+      - 1}),
+  \]
+  i.e., all clauses describing the same predicate are listed together and
+  sorted.
+\end{constraint}
+
+\begin{constraint}
+  Each predicate gets at least one clause. Let $P = \{ h.\variable{predicate}
+  \mid h \in \variable{clauseHeads} \}$. Then
   \[
     \variable{nValues}(P) =
     \begin{cases}
@@ -106,12 +131,12 @@ Decision variables:
 \begin{constraint}
   Let $\prec$ be any total order defined over bodies of clauses, and let
   $\preceq$ be its extension with equality (in the same way as $\le$ extends
-  $<$).
+  $<$). If
   \[
     \variable{headsOfClauses}[i-1].\variable{predicate} =
-    \variable{headsOfClauses}[i].\variable{predicate} \implies
-    \variable{bodiesOfClauses}[i-1] \preceq \variable{bodiesOfClauses}[i].
+    \variable{headsOfClauses}[i].\variable{predicate},
   \]
+  then $\variable{bodiesOfClauses}[i-1] \preceq \variable{bodiesOfClauses}[i]$.
 \end{constraint}
 For example, $\preceq$ can be implemented as \variable{lexLessEq} over the
 decision variables of each body.
@@ -119,9 +144,9 @@ decision variables of each body.
 
 \section{Atoms}
 
-\begin{definition}
+\begin{definition} \label{def:atom}
   An \emph{atom} is a $\variable{predicate} \in \tokens{} \cup \predicates{}$ and a
-  list of \variable{arguments} of length \maxArity{} in $\variables{} \cup
+  list of \variable{arguments} of length $\maxArity{}$ in $\variables{} \cup
   \constants{} \cup \{ \Box \}$, where $\Box$ means the position is either
   reserved for a variable, or disabled. The atom's \variable{arity} is a number
   in $[0, \maxArity{}]$ defined by a \variable{table} constraint,
@@ -140,13 +165,13 @@ decision variables of each body.
 \begin{definition}
   The body of a clause is defined by:
   \begin{itemize}
-  \item \variable{treeStructure}: list of length \maxNumNodes{} with
-    domain $[0, \maxNumNodes{}]$.
+  \item \variable{treeStructure}: list of length $\maxNumNodes{}$ with
+    domain $[0, \maxNumNodes{} - 1]$.
     \begin{itemize}
     \item $\variable{treeStructure}[i] = i$: the $i$-th node is a root.
     \item $\variable{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
     \end{itemize}
-  \item \variable{treeValues}: \maxNumNodes{} atoms.
+  \item \variable{treeValues}: $\maxNumNodes{}$ atoms.
   \end{itemize}
 \end{definition}
 % TODO: examples
@@ -157,7 +182,9 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
 \subsection{Constraints}
 
 \begin{constraint}
-  \variable{treeStructure} represents \variable{numTrees} trees.
+  $\variable{tree}(\variable{treeStructure}, \variable{numTrees})$, i.e.,
+  \variable{treeStructure} represents \variable{numTrees} trees (dominator-based
+  filtering \cite{DBLP:conf/cp/FagesL11}).
 \end{constraint}
 
 \begin{constraint}
@@ -169,6 +196,7 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
 \end{constraint}
 
 \begin{constraint}
+  $\variable{sort}(\variable{treeStructure}, \variable{treeStructure})$, i.e.,
   \variable{treeStructure} is sorted.
 \end{constraint}
 
@@ -217,6 +245,8 @@ $\variable{treeValues}[0].\variable{predicate} = \top$.
 
 \section{Head of a Clause}
 
+Our definition of a head of a clause is more restrictive than \cref{def:atom}.
+
 \begin{definition} % TODO: variables are always ordered, constants are not.
   The \emph{head} of a clause is defined by two lists:
   \begin{itemize}
@@ -233,7 +263,7 @@ $\variable{treeValues}[0].\variable{predicate} = \top$.
 \end{definition}
 
 \begin{constraint}
-  For each variable $v \in \variable{variables}$, $v \le \variable{arity}$.
+  For each $v \in \variable{variables}$, $v \le \variable{arity}$.
 \end{constraint}
 
 \begin{constraint}
@@ -243,9 +273,12 @@ $\variable{treeValues}[0].\variable{predicate} = \top$.
   \]
 \end{constraint}
 
-\begin{constraint}[Connecting the two lists]
-  $\sum_{v \in \variable{variables}} v = \variable{count}(\Box,
-  \variable{constants}) + \variable{arity} - \maxArity{}$.
+\begin{constraint}
+  Connecting the two lists:
+  \[
+    \sum_{v \in \variable{variables}} v = \variable{count}(\Box,
+    \variable{constants}) + \variable{arity} - \maxArity{}.
+  \]
 \end{constraint}
 
 In \variable{variables}, all zeros must go after all non-zeros. For example,
@@ -354,6 +387,25 @@ Propagation for independence:
   \caption{Computing the dependencies of a predicate}
 \end{algorithm}
 
+\section{Entailment Checking for Negative/All Cycles}
+
+\begin{enumerate}
+\item Let $C$ be a set of clauses such that their bodies and predicates in their
+  heads are fully determined.
+\item If $C = \emptyset$, return UNDEFINED.
+\item Construct an adjacency list representation of a graph where vertices
+  represent predicates. Each edge is either \emph{positive} or \emph{negative}.
+  There is an edge from $p$ to $q$ if $q$ appears in the body of a predicate
+  with $p$ as its head. The edge is negative if, when traversing the tree to
+  reach some instance of $q$, we pass through a $\neg$ node. Otherwise, it's
+  positive.
+\item Run a modified cycle detection algorithm that detects all cycles that have
+  at least one negative edge.
+\item If we found a cycle, return FALSE.
+\item If $C$ encompasses all clauses, return TRUE.
+\item Return UNDEFINED.
+\end{enumerate}
+
 % \section{Conditional Independence}
 
 % Finish the propagation algorithm for conditional independence. The
@@ -361,6 +413,10 @@ Propagation for independence:
 %  potential or definite. Masking happens in two stages: first, we mask
 %  expressions within formulas, and then predicates. Masking algorithm uses an
 %  algorithm for perfect bipartite matching.
+
+% Both determined $\implies$ fail(). Both determined but at least is one masked by
+% a (probable/determined) mask $\implies$ nothing. One determined $\implies$ the
+% other one cannot exist.
 
 % \begin{algorithm}
 %   \SetKwProg{Fn}{Function}{:}{}
@@ -386,5 +442,15 @@ Propagation for independence:
 %   \caption{Potential root nodes of the required expression, assuming that the
 %     node at index $i$ is part of the expression}
 % \end{algorithm}
+
+\section*{Acknowledgments}
+
+The author would like to thank Vaishak Belle for his comments. This work was
+supported by the EPSRC Centre for Doctoral Training in Robotics and Autonomous
+Systems, funded by the UK Engineering and Physical Sciences Research Council
+(grant EP/S023208/1).
+
+\bibliographystyle{splncs04}
+\bibliography{paper}
 
 \end{document}

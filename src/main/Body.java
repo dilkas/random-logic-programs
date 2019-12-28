@@ -21,7 +21,7 @@ public class Body {
     public Body(Model model, IntVar assignment, int maxNumNodes) {
         this.maxNumNodes = maxNumNodes;
 
-        IntVar numNodes = model.intVar(1, maxNumNodes);
+        IntVar numNodes = model.intVar(1, maxNumNodes); // number of nodes in the main tree
         treeStructure = model.intVarArray(maxNumNodes, 0, maxNumNodes - 1);
         treeValues = new Atom[maxNumNodes];
         for (int i = 0; i < maxNumNodes; i++)
