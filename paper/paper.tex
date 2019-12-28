@@ -12,11 +12,18 @@
 \theoremstyle{definition}
 \newtheorem{definition}{Definition}
 
-
 \newcommand{\variable}[1]{\texttt{\textup{#1}}}
+\newcommand{\predicates}{\mathcal{P}}
+\newcommand{\variables}{\mathcal{V}}
+\newcommand{\constants}{\mathcal{C}}
+\newcommand{\tokens}{\mathcal{T}}
+\newcommand{\arities}{\mathcal{A}}
+\newcommand{\maxArity}{\textsc{max\_arity}}
+\newcommand{\maxNumNodes}{\textsc{max\_num\_nodes}}
+\newcommand{\maxNumClauses}{\textsc{max\_num\_clauses}}
 
 \author{Paulius Dilkas}
-\title{Using Constraint Programming to Generate Random Logic Programs}
+\title{Generating Random Logic Programs Using Constraint Programming}
 
 \begin{document}
 \maketitle
@@ -30,26 +37,15 @@ Motivation:
 \item Learning: how this can be used for (targeted) learning, when (atomic)
   probabilities can be assigned based on counting and we can have extra
   constraints. A more primitive angle: generate structures, learn weights.
-\item Describe how the trees work with many examples.
-\item Have a 'Constraint' environment.
 \end{itemize}
+
+We will often use $\Box$ as a special domain value to indicate some kind of
+exception.
 
 \section{TODO}
 
 \begin{itemize}
-\item Support for constants and multiple variables.
-  \begin{itemize}
-  \item Each clause is defined for each predicate with standard variable names
-    (X, Y, etc.).
-  \item There is a list of constants and a list of predicates with their
-    arities. Maybe also a list of variables.
-  \end{itemize}
 \item Make negative cycle detection use the graph representation.
-\item Finish the propagation algorithm for conditional independence. The
-  propagation algorithm for independence is extended with masks that are either
-  potential or definite. Masking happens in two stages: first, we mask
-  expressions within formulas, and then predicates. Masking algorithm uses an
-  algorithm for perfect bipartite matching.
 \item Show that the set of all ProbLog programs is equal to the set of programs
   I can generate (alternatively, show that, given any ProbLog program, there are
   parameter values high enough to generate it).
@@ -58,6 +54,8 @@ Motivation:
 \item Formal definition (here and in the predicate invention paper): two
   predicates are independent if all of their groundings are independent.
 \item Describe: entailment checking for cycles and negative cycles.
+\item A constraint for logical equivalence.
+\item Rename everything into something more appropriate.
 \end{itemize}
 
 Both determined $\implies$ fail(). Both determined but at least is one masked by
@@ -69,40 +67,71 @@ other one cannot exist.
 Parameters:
 \begin{itemize}
 \item maximum number of solutions
-\item \variable{maxNumNodes} (in the tree representation of a clause)
-\item list of predicates with their variables
-\item maximum number of clauses
+\item \maxNumNodes{} (in the tree representation of a clause)
+\item \maxNumClauses{}
 \item option to forbid all cycles or just negative cycles
-\item list of probabilities that are randomly assigned to clauses: $\{ 0.1,
-  0.2, \dots, 0.9, 1, 1, 1, 1, 1, 1 \}$
+\item a list of probabilities that are randomly assigned to clauses: $\{ 0.1,
+  0.2, \dots, 0.9, 1, 1, 1, 1, 1, 1 \}$.
+\item a list of predicates $\predicates{}$,
+\item a list of their arities $\arities{}$,
+  \begin{itemize}
+  \item $\maxArity{} = \max \arities{}$.
+  \end{itemize}
+\item a list of variables $\variables{}$,
+\item and a list of constants $\constants{}$.
 \end{itemize}
 
-Decision variables: % TODO: rename these things
+We also define $\tokens{} = \{ \neg, \land, \lor, \top \}$.
+
+Decision variables:
 % TODO: specify the decision variables inside clauses and their heads
 \begin{itemize}
-\item \variable{IntVar[] clauseAssignments}: a predicate or disabled
-\item \variable{Clause[] clauses}
-\item \variable{Head[] clauseHeads}
+\item \variable{Body[] bodiesOfClauses}
+\item \variable{Head[] headsOfClauses}: a list of length \maxNumClauses{}
 \end{itemize}
 
 \section{General Constraints}
 
 \begin{constraint}[Each predicate gets at least one clause]
-  \variable{numDisabledClauses} is defined by a \variable{count} constraint.
+  Let $P = \{ h.\variable{predicate} \mid h \in \variable{clauseHeads} \}$. Then
   \[
-    \variable{numDistinctValues} =
+    \variable{nValues}(P) =
     \begin{cases}
-      \variable{numPredicates} + 1 & \text{if } \variable{numDisabledValues} > 0 \\
-      \variable{numPredicates} & \text{otherwise}
+      \variable{numPredicates} + 1 & \text{if } \variable{count}(\Box, P) > 0 \\
+      \variable{numPredicates} & \text{otherwise.}
     \end{cases}
   \]
-  (also constrained using the \variable{nValues} constraint).
 \end{constraint}
 
-\begin{constraint}[\variable{clauseAssignments} are sorted]
+\begin{constraint}
+  Let $\prec$ be any total order defined over bodies of clauses, and let
+  $\preceq$ be its extension with equality (in the same way as $\le$ extends
+  $<$).
   \[
-    \variable{clauseAssignments}[i-1] = \variable{clauseAssignments}[i] \implies
-    \variable{clause}[i-1] \preceq \variable{clause}[i].
+    \variable{headsOfClauses}[i-1].\variable{predicate} =
+    \variable{headsOfClauses}[i].\variable{predicate} \implies
+    \variable{bodiesOfClauses}[i-1] \preceq \variable{bodiesOfClauses}[i].
+  \]
+\end{constraint}
+For example, $\preceq$ can be implemented as \variable{lexLessEq} over the
+decision variables of each body.
+% TODO: might need to include clause heads as well.
+
+\section{Atoms}
+
+\begin{definition}
+  An \emph{atom} is a $\variable{predicate} \in \tokens{} \cup \predicates{}$ and a
+  list of \variable{arguments} of length \maxArity{} in $\variables{} \cup
+  \constants{} \cup \{ \Box \}$, where $\Box$ means the position is either
+  reserved for a variable, or disabled. The atom's \variable{arity} is a number
+  in $[0, \maxArity{}]$ defined by a \variable{table} constraint,
+  according to the \variable{predicate}.
+\end{definition}
+
+\begin{constraint}
+  For $i = 0, \dots, \maxArity{} - 1$,
+  \[
+    i \ge \variable{arity} \implies \variable{arguments}[i] = 0.
   \]
 \end{constraint}
 
@@ -111,20 +140,19 @@ Decision variables: % TODO: rename these things
 \begin{definition}
   The body of a clause is defined by:
   \begin{itemize}
-  \item \variable{IntVar[] treeStructure}
+  \item \variable{treeStructure}: list of length \maxNumNodes{} with
+    domain $[0, \maxNumNodes{}]$.
     \begin{itemize}
-    \item $\texttt{treeStructure}[i] = i$: the $i$-th node is a root.
-    \item $\texttt{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
+    \item $\variable{treeStructure}[i] = i$: the $i$-th node is a root.
+    \item $\variable{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
     \end{itemize}
-  \item \variable{IntVar[] treeValues}: $\neg$, $\land$, $\lor$, $\top$, and any
-    predefined predicates with variables.
+  \item \variable{treeValues}: \maxNumNodes{} atoms.
   \end{itemize}
 \end{definition}
 % TODO: examples
-% TODO: update the info on treeValues
 
 Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
-\variable{maxNumNodes} \}$.
+\maxNumNodes{} \}$.
 
 \subsection{Constraints}
 
@@ -137,7 +165,7 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
 \end{constraint}
 
 \begin{constraint}
-  $\variable{numTrees} + \variable{numNodes} = \variable{maxNumNodes} + 1$.
+  $\variable{numTrees} + \variable{numNodes} = \maxNumNodes{} + 1$.
 \end{constraint}
 
 \begin{constraint}
@@ -145,11 +173,11 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
 \end{constraint}
 
 \begin{constraint}
-  For $i = 0, \dots, \variable{maxNumNodes} - 1$, if $\variable{numNodes} \le
+  For $i = 0, \dots, \maxNumNodes{} - 1$, if $\variable{numNodes} \le
   i$, then
   \[
     \variable{treeStructure}[i] = i \quad \text{and} \quad
-    \variable{treeValues}[i] = \top,
+    \variable{treeValues}[i].\variable{predicate} = \top,
   \]
   else
   \[
@@ -158,30 +186,76 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
 \end{constraint}
 
 \begin{constraint}
-  For $i = 0, \dots, \variable{maxNumNodes} - 1$,
+  For $i = 0, \dots, \maxNumNodes{} - 1$,
   \begin{itemize}
-  \item has 0 children $\iff$ $\variable{treeValues}[i]$ is a predicate;
-  \item has 1 child $\iff$ $\variable{treeValues}[i] = \neg$;
-  \item has $>1$ child $\iff$ $\variable{treeValues}[i] \in \{ \land, \lor \}$.
+  \item has 0 children $\iff$ $\variable{treeValues}[i].\variable{predicate} \in
+    \predicates{}$;
+  \item has 1 child $\iff$ $\variable{treeValues}[i].\variable{predicate} = \neg$;
+  \item has $>1$ child $\iff$ $\variable{treeValues}[i].\variable{predicate} \in
+    \{ \land, \lor \}$.
   \end{itemize}
 \end{constraint}
 
 \begin{constraint}
-  For $i = 0, \dots, \variable{maxNumNodes} - 1$,
+  For $i = 0, \dots, \maxNumNodes{} - 1$,
   \[
-    \variable{treeStructure}[i] \ne i \implies \variable{treeValues}[i] \ne
-    \top.
+    \variable{treeStructure}[i] \ne i \implies
+    \variable{treeValues}[i].\variable{predicate} \ne \top.
   \]
 \end{constraint}
 
 If the clause should be disabled, $\variable{numNodes} = 1$ and
-$\variable{treeValues}[0] = \top$.
+$\variable{treeValues}[0].\variable{predicate} = \top$.
 
 \begin{constraint}
   Adjacency matrix representation:
+  \begin{align*}
+    A[i][j] = 0 \iff &\nexists k: \variable{headsOfClauses}[k].\variable{predicate} = j \text{ and } \\
+    &i \in \{ a.\variable{predicate} \mid a \in \variable{bodiesOfClauses}[k].\variable{treeValues} \}.
+  \end{align*}
+\end{constraint}
+
+\section{Head of a Clause}
+
+\begin{definition} % TODO: variables are always ordered, constants are not.
+  The \emph{head} of a clause is defined by two lists:
+  \begin{itemize}
+  \item $\variable{predicate} \in \predicates \cup \{ \Box \}$, where $\Box$
+    denotes a disabled clause.
+  \item \variable{variables} of length $|\variables{}|$ and with domain
+    $[0, \maxArity{}]$: how many times each variable appears in the head atom.
+  \item \variable{constants} of length $\maxArity{}$ and with domain
+    $\constants{} \cup \{ \Box \}$, where $\Box$ denotes that the position is
+    reserved for a variable.
+  \end{itemize}
+  We also define the predicate's \variable{arity} using the same
+  \variable{table} constraint.
+\end{definition}
+
+\begin{constraint}
+  For each variable $v \in \variable{variables}$, $v \le \variable{arity}$.
+\end{constraint}
+
+\begin{constraint}
+  For $i = 0, \dots, \maxArity{} - 1$,
   \[
-    A[i][j] = 0 \iff \nexists k: \variable{clauseAssignments}[k] = j \text{ and }
-    i \in \variable{clauses}[k].\variable{treeValues}
+    i \ge \variable{arity} \implies \variable{constants}[i] = 0.
+  \]
+\end{constraint}
+
+\begin{constraint}[Connecting the two lists]
+  $\sum_{v \in \variable{variables}} v = \variable{count}(\Box,
+  \variable{constants}) + \variable{arity} - \maxArity{}$.
+\end{constraint}
+
+In \variable{variables}, all zeros must go after all non-zeros. For example,
+if we have to pick one variable out of two, we must pick the first one.
+\begin{constraint}
+  For $i = 0, \dots, |\variables{}| - 2$, and $j = i + 1, \dots,
+  |\variables{}| - 1$,
+  \[
+    \variable{variables}[i] \ne 0 \quad \text{or} \quad \variable{variables}[j]
+    = 0.
   \]
 \end{constraint}
 
@@ -281,6 +355,12 @@ Propagation for independence:
 \end{algorithm}
 
 % \section{Conditional Independence}
+
+% Finish the propagation algorithm for conditional independence. The
+%  propagation algorithm for independence is extended with masks that are either
+%  potential or definite. Masking happens in two stages: first, we mask
+%  expressions within formulas, and then predicates. Masking algorithm uses an
+%  algorithm for perfect bipartite matching.
 
 % \begin{algorithm}
 %   \SetKwProg{Fn}{Function}{:}{}

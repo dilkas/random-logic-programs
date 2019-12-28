@@ -16,9 +16,6 @@ class Atom {
         predicate = model.intVar(0, GeneratePrograms.PREDICATES.length + Token.values().length - 1);
         arguments = model.intVarArray(GeneratePrograms.MAX_ARITY, 0, numPossibleArguments - 1);
 
-        //if (headAtom)
-        //    model.arithm(predicate, ">=", Token.values().length).post();
-
         // Restrict the number of arguments to the right arity.
         // This also takes care of nullifying the arguments of tokens
         arity = model.intVar(0, GeneratePrograms.MAX_ARITY);
@@ -29,9 +26,6 @@ class Atom {
             Constraint fixArgument = model.arithm(arguments[i], "=", 0);
             model.ifThen(iGTEQArity, fixArgument);
         }
-
-        // TODO: Add constants to head atoms. In a head atom, all variables (but not constants) should be ordered and
-        //  start with 0. All entries that satisfy a condition (are small enough) must be ordered.
     }
 
     IntVar getPredicate() {

@@ -14,6 +14,7 @@ class Head {
     // A map from positions to constants, where 0 means that either that position is disabled or occupied by a variable
     private IntVar[] constants;
 
+    // Auxiliary variables
     private IntVar sumOfVars;
     private IntVar countVariables;
     private IntVar negRemainingArity;
@@ -21,7 +22,6 @@ class Head {
     Head(Model model, IntVar predicate) {
         this.predicate = predicate;
 
-        // TODO: what if the predicate is disabled?
         IntVar indexToTable = model.intOffsetView(predicate, Token.values().length);
         arity = model.intVar(0, GeneratePrograms.MAX_ARITY);
         model.table(indexToTable, arity, GeneratePrograms.arities).post();
@@ -46,6 +46,18 @@ class Head {
         negRemainingArity = model.intVar(-GeneratePrograms.MAX_ARITY, 0);
         model.arithm(negRemainingArity, "=", arity, "-", GeneratePrograms.MAX_ARITY).post();
         model.arithm(sumOfVars, "=", countVariables, "+", negRemainingArity).post();
+
+        // All zeros go after all non-zeros
+        // v[i] = 0 /\ v[j] != 0 => j < i
+        // j < i \/ v[i] != 0 \/ v[j] = 0
+        // For j > i, v[i] != 0 \/ v[j] = 0
+        for (int i = 0; i < variables.length - 1; i++) {
+            for (int j = i + 1; j < variables.length; j++) {
+                Constraint iNotZero = model.arithm(variables[i], "!=", 0);
+                Constraint jIsZero = model.arithm(variables[j], "=", 0);
+                model.or(iNotZero, jIsZero).post();
+            }
+        }
     }
 
     public IntVar[] getDecisionVariables() {

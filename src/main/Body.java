@@ -12,13 +12,13 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Clause {
+public class Body {
 
     private int maxNumNodes;
     private IntVar[] treeStructure;
     private Atom[] treeValues;
 
-    public Clause(Model model, IntVar assignment, int maxNumNodes) {
+    public Body(Model model, IntVar assignment, int maxNumNodes) {
         this.maxNumNodes = maxNumNodes;
 
         IntVar numNodes = model.intVar(1, maxNumNodes);

@@ -1,6 +1,6 @@
 package propagators;
 
-import main.Clause;
+import main.Body;
 import main.Mask;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -20,7 +20,7 @@ public class IndependencePropagator extends Propagator<IntVar> {
 
     // Fields specific to conditional independence
     private IntVar[] clauseAssignments;
-    private Clause[] clauses;
+    private Body[] bodies;
     private Mask mask;
 
     public IndependencePropagator(IntVar[][] adjacencyMatrix, int predicate1, int predicate2) {
@@ -30,15 +30,15 @@ public class IndependencePropagator extends Propagator<IntVar> {
         this.predicate2 = predicate2;
     }
 
-    public IndependencePropagator(IntVar[][] adjacencyMatrix, IntVar[] clauseAssignments, Clause[] clauses,
+    public IndependencePropagator(IntVar[][] adjacencyMatrix, IntVar[] clauseAssignments, Body[] bodies,
                            int predicate1, int predicate2,  Mask mask) {
         super(ArrayUtils.concat(ArrayUtils.flatten(adjacencyMatrix),
-                NegativeCyclePropagator.constructDecisionVariables(clauseAssignments, clauses)));
+                NegativeCyclePropagator.constructDecisionVariables(clauseAssignments, bodies)));
         this.adjacencyMatrix = adjacencyMatrix;
         this.predicate1 = predicate1;
         this.predicate2 = predicate2;
         this.clauseAssignments = clauseAssignments;
-        this.clauses = clauses;
+        this.bodies = bodies;
         this.mask = mask;
     }
 
@@ -102,7 +102,7 @@ public class IndependencePropagator extends Propagator<IntVar> {
                 // The only difference between conditional and unconditional independence
                 /*Possibility[] masked = new Possibility[adjacencyMatrix.length];
                 if (mask != null) {
-                    masked = mask.applyMask(clauses, clauseAssignments, dependency.getPredicate());
+                    masked = mask.applyMask(bodies, clauseAssignments, dependency.getPredicate());
                 } else {
                     for (int i = 0; i < adjacencyMatrix.length; i++)
                         masked[i] = Possibility.NO;

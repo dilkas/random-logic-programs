@@ -18,8 +18,8 @@ public class Mask {
 
     /** Return the set of indices where the head of the AND/OR expression could be, according to the information at
      * index `index' (which could be the head or one of the elements inside the AND/OR expression). */
-    private Set<PotentialValue> potentialRoots(Clause clause, int index) {
-        IntVar treeValue = clause.getTreeValues()[index];
+    private Set<PotentialValue> potentialRoots(Body body, int index) {
+        IntVar treeValue = body.getTreeValues()[index];
         DisposableValueIterator it = treeValue.getValueIterator(true);
         Set<PotentialValue> possibleMasks = new HashSet<>();
         while ( it.hasNext()) {
@@ -27,7 +27,7 @@ public class Mask {
             if (value == connective.ordinal()) {
                 possibleMasks.add(new PotentialValue(index, treeValue.getDomainSize() == 1));
             } else if (predicates.contains(value)) {
-                List<Integer> potentialHeads = clause.getTreeStructureDomainValues(index);
+                List<Integer> potentialHeads = body.getTreeStructureDomainValues(index);
                 if (potentialHeads.size() == 1) {
                     possibleMasks.add(new PotentialValue(potentialHeads.get(0), true));
                 } else {
@@ -42,9 +42,9 @@ public class Mask {
 
     /** Return a list of size GeneratePrograms.PREDICATES.length of boolean values. True means that the clause's
      * dependence on that variable has been 'masked', i.e., is no longer relevant. */
-    private void markInstances(Clause clause, Possibility[] masked) {
-/*        IntVar[] structure = clause.getTreeStructure();
-        IntVar[] values = clause.getTreeValues();
+    private void markInstances(Body body, Possibility[] masked) {
+/*        IntVar[] structure = body.getTreeStructure();
+        IntVar[] values = body.getTreeValues();
         Token[] tokens = Token.values();
 
         // Old stuff
@@ -53,12 +53,12 @@ public class Mask {
             predicatesPerMask.add(new HashSet<>());
         List<Set<PotentialValue>> masksPerIndex = new ArrayList<>();
         for (int i = 0; i < structure.length; i++) {
-            Set<PotentialValue> iMasks = potentialRoots(clause, i);
+            Set<PotentialValue> iMasks = potentialRoots(body, i);
             masksPerIndex.add(iMasks);
             for (PotentialValue mask : iMasks) {
                 if (mask.getValue() == i)
                     continue;
-                List<Integer> potentialPredicates = clause.getTreeValueDomainValues(i);
+                List<Integer> potentialPredicates = body.getTreeValueDomainValues(i);
                 predicatesPerMask.get(mask.getValue()).add(new PotentialPredicate(potentialPredicates, predicates));
             }
         }
@@ -110,7 +110,7 @@ public class Mask {
     }
 
     // TODO: describe
-    public Possibility[] applyMask(Clause[] clauses, IntVar[] clauseAssignments, int predicate) {
+    public Possibility[] applyMask(Body[] clauses, IntVar[] clauseAssignments, int predicate) {
         Possibility[] masks = new Possibility[GeneratePrograms.PREDICATES.length];
         Arrays.fill(masks, Possibility.NO);
         for (int i = 0; i < clauses.length; i++)

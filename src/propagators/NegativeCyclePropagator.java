@@ -1,6 +1,6 @@
 package propagators;
 
-import main.Clause;
+import main.Body;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -15,21 +15,21 @@ import java.util.List;
 public class NegativeCyclePropagator extends Propagator<IntVar> {
 
     private IntVar[] clauseAssignments;
-    private Clause[] clauses;
+    private Body[] bodies;
     private boolean forbidAllCycles;
     private List<List<SignedPredicate>> adjacencyList;
 
-    static IntVar[] constructDecisionVariables(IntVar[] clauseAssignments, Clause[] clauses) {
+    static IntVar[] constructDecisionVariables(IntVar[] clauseAssignments, Body[] bodies) {
         IntVar[] decisionVariables = clauseAssignments;
-        for (Clause clause : clauses)
-            decisionVariables = ArrayUtils.concat(decisionVariables, clause.getDecisionVariables());
+        for (Body body : bodies)
+            decisionVariables = ArrayUtils.concat(decisionVariables, body.getDecisionVariables());
         return decisionVariables;
     }
 
-    public NegativeCyclePropagator(IntVar[] clauseAssignments, Clause[] clauses, boolean forbidAllCycles) {
-        super(constructDecisionVariables(clauseAssignments, clauses));
+    public NegativeCyclePropagator(IntVar[] clauseAssignments, Body[] bodies, boolean forbidAllCycles) {
+        super(constructDecisionVariables(clauseAssignments, bodies));
         this.clauseAssignments = clauseAssignments;
-        this.clauses = clauses;
+        this.bodies = bodies;
         this.forbidAllCycles = forbidAllCycles;
     }
 
@@ -67,11 +67,11 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
     public ESat isEntailed() {
         // Find all clauses that are completely determined (including their assignments)
         List<Integer> determinedClauses = new LinkedList<>();
-        for (int i = 0; i < clauses.length; i++) {
+        for (int i = 0; i < bodies.length; i++) {
             if (clauseAssignments[i].getDomainSize() != 1)
                 continue;
             boolean determined = true;
-            for (IntVar v : clauses[i].getDecisionVariables()) {
+            for (IntVar v : bodies[i].getDecisionVariables()) {
                 if (v.getDomainSize() != 1) {
                     determined = false;
                     break;
@@ -98,7 +98,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
         for (int i = 0; i < predicates.size(); i++)
             adjacencyList.add(new LinkedList<>());
         for (int i : determinedClauses) {
-            for (SignedPredicate predicate : clauses[i].getPredicates()) {
+            for (SignedPredicate predicate : bodies[i].getPredicates()) {
                 int index1 = predicates.indexOf(clauseAssignments[i].getValue());
                 int index2 = predicates.indexOf(predicate.getIndex());
                 if (index2 == -1)
@@ -118,7 +118,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
 
         // If there is no negative cycle and the program is fully determined, then (and only then) can we say that
         // the constraint is satisfied
-        if (determinedClauses.size() == clauses.length) {
+        if (determinedClauses.size() == bodies.length) {
             return ESat.TRUE;
         }
         return ESat.UNDEFINED;

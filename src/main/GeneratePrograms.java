@@ -21,23 +21,23 @@ class GeneratePrograms {
     private static final String DIRECTORY = "../programs/";
     private static final int NUM_SOLUTIONS = 10000;
     private static final int MAX_NUM_NODES = 1;
-    private static final int MAX_NUM_CLAUSES = 2;
+    private static final int MAX_NUM_CLAUSES = 1;
     private static final boolean FORBID_ALL_CYCLES = false;
     //private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
     //        1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
     private static final double[] PROBABILITIES = {1};
 
     static final String[] PREDICATES = {"p"};
-    static final int[] ARITIES = {1};
+    static final int[] ARITIES = {2};
     static final String[] VARIABLES = {"X", "Y"};
-    static final String[] CONSTANTS = {"a", "b"};
+    static final String[] CONSTANTS = {};
     static final int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
     static Tuples arities;
 
     private static IntVar[] clauseAssignments;
     private static Head[] clauseHeads;
-    private static Clause[] clauses;
+    private static Body[] bodies;
 
     // The entire clause, i.e., both body and head
     private static String clauseToString(int i, java.util.Random rng) {
@@ -52,11 +52,11 @@ class GeneratePrograms {
         if (PROBABILITIES[probability] < 1)
             probabilityString = PROBABILITIES[probability] + " :: ";
 
-        String clause = clauses[i].toString();
+        String body = bodies[i].toString();
         String head = clauseHeads[i].toString();
-        if (clause.equals("T."))
+        if (body.equals("T."))
             return probabilityString + head+ ".\n";
-        return probabilityString + head + " :- " + clause + "\n";
+        return probabilityString + head + " :- " + body + "\n";
     }
 
     public static void main(String[] args) throws IOException {
@@ -89,15 +89,15 @@ class GeneratePrograms {
         Constraint allButOne = model.arithm(numDistinctValues, "=", PREDICATES.length);
         model.ifThenElse(containsDisabledClause, allValues, allButOne);
 
-        clauses = new Clause[MAX_NUM_CLAUSES];
+        bodies = new Body[MAX_NUM_CLAUSES];
         for (int i = 0; i < MAX_NUM_CLAUSES; i++)
-            clauses[i] = new Clause(model, clauseAssignments[i], MAX_NUM_NODES);
+            bodies[i] = new Body(model, clauseAssignments[i], MAX_NUM_NODES);
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
         IntVar[] decisionVariables = clauseAssignments;
         IntVar[] previousDecisionVariables = null;
         for (int i = 0; i < MAX_NUM_CLAUSES; i++) {
-            IntVar[] currentDecisionVariables = clauses[i].getDecisionVariables();
+            IntVar[] currentDecisionVariables = bodies[i].getDecisionVariables();
             decisionVariables = ArrayUtils.concat(decisionVariables, currentDecisionVariables);
             decisionVariables = ArrayUtils.concat(decisionVariables, clauseHeads[i].getDecisionVariables());
             if (i > 0) {
@@ -114,11 +114,11 @@ class GeneratePrograms {
         for (int i = 0; i < PREDICATES.length; i++) {
             for (int j = 0; j < PREDICATES.length; j++) {
                 Constraint noEdge = model.arithm(adjacencyMatrix[i][j], "=", 0);
-                Constraint[] clausesAssignedToJHaveNoI = new Constraint[clauses.length];
-                for (int k = 0; k < clauses.length; k++) {
+                Constraint[] clausesAssignedToJHaveNoI = new Constraint[bodies.length];
+                for (int k = 0; k < bodies.length; k++) {
                     Constraint notAssignedToJ = model.arithm(clauseAssignments[k], "!=", j);
                     Constraint hasNoI = model.count(i + Token.values().length,
-                            clauses[k].getTreeValues(), zero);
+                            bodies[k].getTreeValues(), zero);
                     clausesAssignedToJHaveNoI[k] = model.or(notAssignedToJ, hasNoI);
                 }
                 // A[i][j] = 0 iff there are no clauses such that clauseAssignments[k] = j
@@ -129,12 +129,12 @@ class GeneratePrograms {
 
         // My own constraints
         new Constraint("NoNegativeCycles",
-                new NegativeCyclePropagator(clauseAssignments, clauses, FORBID_ALL_CYCLES)).post();
+                new NegativeCyclePropagator(clauseAssignments, bodies, FORBID_ALL_CYCLES)).post();
 
         // Extra conditions.
         /*model.arithm(clauseAssignments[0], "=", 0).post();
-        IntVar[] treeStructure = clauses[0].getTreeStructure();
-        IntVar[] treeValues = clauses[0].getTreeValues();
+        IntVar[] treeStructure = bodies[0].getTreeStructure();
+        IntVar[] treeValues = bodies[0].getTreeValues();
         model.arithm(treeValues[0], "=", 1).post();
         model.arithm(treeStructure[1], "=", 0).post();
         model.arithm(treeStructure[2], "=", 0).post();
@@ -147,9 +147,9 @@ class GeneratePrograms {
         predicates.add(2);
         Mask qAndR = new Mask(Token.AND, predicates);
         new Constraint("p is independent of q given q and r", new IndependencePropagator(adjacencyMatrix,
-                clauseAssignments, clauses, 0, 1, qAndR)).post();
+                clauseAssignments, bodies, 0, 1, qAndR)).post();
         new Constraint("p is independent of r given q and r", new IndependencePropagator(adjacencyMatrix,
-                clauseAssignments, clauses, 0, 2, qAndR)).post();*/
+                clauseAssignments, bodies, 0, 2, qAndR)).post();*/
 
         // Configure the search strategy
         java.util.Random rng = new java.util.Random();
@@ -164,7 +164,7 @@ class GeneratePrograms {
             StringBuilder program = new StringBuilder();
             for (int j = 0; j < MAX_NUM_CLAUSES; j++) {
                 program.append(clauseToString(j, rng));
-                clauses[j].report();
+                bodies[j].report();
             }
 
             BufferedWriter writer = new BufferedWriter(new FileWriter(DIRECTORY + i + ".pl"));
