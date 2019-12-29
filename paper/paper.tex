@@ -142,15 +142,17 @@ For example, $\preceq$ can be implemented as \variable{lexLessEq} over the
 decision variables of each body.
 % TODO: might need to include clause heads as well.
 
-\section{Atoms}
+\section{Atoms} % TODO: rename to 'nodes'
+
+%, where $\Box$ means the position is either
+%  reserved for a variable, or disabled
 
 \begin{definition} \label{def:atom}
-  An \emph{atom} is a $\variable{predicate} \in \tokens{} \cup \predicates{}$ and a
-  list of \variable{arguments} of length $\maxArity{}$ in $\variables{} \cup
-  \constants{} \cup \{ \Box \}$, where $\Box$ means the position is either
-  reserved for a variable, or disabled. The atom's \variable{arity} is a number
-  in $[0, \maxArity{}]$ defined by a \variable{table} constraint,
-  according to the \variable{predicate}.
+  An \emph{atom} is a $\variable{predicate} \in \tokens{} \cup \predicates{}$
+  and a list of \variable{arguments} of length $\maxArity{}$ in $\variables{}
+  \cup \constants{}$. The atom's \variable{arity} is a number in $[0,
+  \maxArity{}]$ defined by a \variable{table} constraint, according to the
+  \variable{predicate}.
 \end{definition}
 
 \begin{constraint}
@@ -291,6 +293,71 @@ if we have to pick one variable out of two, we must pick the first one.
     = 0.
   \]
 \end{constraint}
+
+\section{Counting Programs}
+
+Let $p_a$ be the number of predicates in $\predicates{}$ with arity $a \in
+\arities{}$.
+
+Number of atoms:
+\[
+  A = \sum_{a \in \arities{}} p_a(|\variables{}| + |\constants{}|)^a
+\]
+
+Number of clauses:
+\[
+  C = 1 + \sum_{n=1}^{\maxNumNodes{}} T(n),
+\]
+where $T(n)$ is defined recursively as:
+\[
+  T(1) = A
+\]
+and
+\[
+  T(n) = T(n-1) + 2\sum_{\substack{\text{ordered partitions}\\
+      c_1 + \dots + c_k = n - 1,\\
+      k \ge 2}} \prod_{i=1}^k T(c_i).
+\]
+
+Example of ordered partitions:
+\[
+  3 = 2 + 1 = 2 + 1 = 1 + 1 + 1,
+\]
+so for $n=4$, the sum would have three terms.
+
+Number of heads for a specific predicate with arity $a \in \arities{}$:
+\[
+  H_a = \sum_{v=1}^a \binom{a}{v} |\constants{}|^{a-v}
+  \sum_{k=0}^{|\variables{}|-1} \binom{v-1}{k}.
+\]
+First, select the $v$ positions dedicated for variables. The remaining $a-v$
+constants can then be filled in $|\constants{}|^{a-v}$ ways. Filling $v$
+positions with $k+1$ variables in a non-decreasing manner (without skipping any
+variables) can be seen as putting $k$ `bars' in the $v-1$ spaces between $v$
+positions. Each bar represents switching to the next variable.
+% TODO: the equation is not always defined
+
+Number of programs:
+\[
+  \left( C^{|\predicates{}|} \prod_{\mathsf{P}/a \in \predicates{}} H_a \right)
+  \left( \sum_{n=0}^{\maxNumClauses{} - |\predicates{}|} \left( C
+    \sum_{a \in \arities{}} p_aH_a \right)^n \right)
+\]
+The first half of the equation represents setting up a single clause for every
+predicate, i.e., we select its body and its head. The second half iterates over
+the number of clauses that could be added. For each of the $n$ additional
+clauses, we choose its body and its head (defined by a predicate and its arity).
+
+Parameters that affect this:
+\begin{itemize}
+\item $\arities{}$ and $(p_a)_{a \in \arities{}}$. Consider even zero arity.
+\item $|\predicates{}| = \sum_{a \in \arities{}} p_a$
+\item $|\variables{}|$
+\item $|\constants{}|$. Consider no variables and no constants.
+\item $\maxNumNodes{} \ge 1$
+\item $\maxNumClauses{} \ge |\predicates{}|$
+\end{itemize}
+% TODO: this is without any kind of cycle detection and without probabilities
 
 \section{The Independence Constraint}
 
