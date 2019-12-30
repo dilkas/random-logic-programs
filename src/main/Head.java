@@ -66,7 +66,7 @@ class Head {
 
     @Override
     public String toString() {
-        System.out.println("Predicate: " + predicate.getValue());
+        /*System.out.println("Predicate: " + predicate.getValue());
         System.out.println("Arity: " + arity.getValue());
         System.out.print("Variables: ");
         for (IntVar variable : variables)
@@ -78,7 +78,7 @@ class Head {
         System.out.println("\n");
         System.out.println("sum of variables: " + sumOfVars.getValue());
         System.out.println("number of variables: " + countVariables.getValue());
-        System.out.println("negated remaining arity: " + negRemainingArity.getValue() + "\n");
+        System.out.println("negated remaining arity: " + negRemainingArity.getValue() + "\n");*/
 
         StringBuilder s = new StringBuilder();
         s.append(GeneratePrograms.PREDICATES[predicate.getValue()]).append("(");

@@ -1,12 +1,10 @@
 package main;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
+import java.util.List;
 
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.search.strategy.Search;
@@ -16,30 +14,35 @@ import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 import propagators.NegativeCyclePropagator;
 
+import static java.util.stream.Collectors.toList;
+
 class GeneratePrograms {
 
     private static final String DIRECTORY = "../programs/";
     private static final int NUM_SOLUTIONS = 10000;
-    private static final int MAX_NUM_NODES = 1;
-    private static final int MAX_NUM_CLAUSES = 1;
+    private static int MAX_NUM_NODES = 1;
+    private static int MAX_NUM_CLAUSES = 1;
     private static final boolean FORBID_ALL_CYCLES = false;
     //private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
     //        1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
     private static final double[] PROBABILITIES = {1};
 
-    static final String[] PREDICATES = {"p"};
-    static final int[] ARITIES = {2};
-    static final String[] VARIABLES = {"X", "Y"};
-    static final String[] CONSTANTS = {};
-    static final int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
+    static String[] PREDICATES = {"p"};
+    static int[] ARITIES = {2};
+    static String[] VARIABLES = {"X", "Y"};
+    static String[] CONSTANTS = {};
+    static int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
     static Tuples arities;
 
-    private static IntVar[] clauseAssignments;
-    private static Head[] clauseHeads;
-    private static Body[] bodies;
+    private static Model model;
+    private static IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
+    private static Head[] clauseHeads; // full heads (predicates, variables, constants)
+    private static Body[] bodies; // the body of each clause
+    private static IntVar[] decisionVariables; // all decision variables relevant to the problem
+    private static java.util.Random rng;
 
-    // The entire clause, i.e., both body and head
+    /** The entire clause, i.e., both body and head */
     private static String clauseToString(int i, java.util.Random rng) {
         // Is this clause disabled?
         int predicate = clauseAssignments[i].getValue();
@@ -59,7 +62,8 @@ class GeneratePrograms {
         return probabilityString + head + " :- " + body + "\n";
     }
 
-    public static void main(String[] args) throws IOException {
+    /** Set up all the variables and constraints. */
+    private static void setUp() {
         arities = new Tuples();
         for (Token t : Token.values())
             arities.add(t.ordinal(), 0); // Tokens don't have arities
@@ -67,7 +71,8 @@ class GeneratePrograms {
             arities.add(Token.values().length + i, ARITIES[i]); // Predicate arities are predefined
         arities.add(ARITIES.length + Token.values().length, 0); // This stands for a disabled clause
 
-        Model model = new Model();
+        model = new Model();
+        rng = new java.util.Random();
 
         // numbers < PREDICATES.length assign a clause to a predicate, PREDICATES.length is used to discard the clause
         clauseAssignments = model.intVarArray(MAX_NUM_CLAUSES, 0, PREDICATES.length);
@@ -94,7 +99,7 @@ class GeneratePrograms {
             bodies[i] = new Body(model, clauseAssignments[i], MAX_NUM_NODES);
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
-        IntVar[] decisionVariables = clauseAssignments;
+        decisionVariables = clauseAssignments;
         IntVar[] previousDecisionVariables = null;
         for (int i = 0; i < MAX_NUM_CLAUSES; i++) {
             IntVar[] currentDecisionVariables = bodies[i].getDecisionVariables();
@@ -127,7 +132,9 @@ class GeneratePrograms {
             }
         }
 
-        // My own constraints
+    }
+
+    private static void setUpExtraConditions() {
         new Constraint("NoNegativeCycles",
                 new NegativeCyclePropagator(clauseAssignments, bodies, FORBID_ALL_CYCLES)).post();
 
@@ -150,16 +157,16 @@ class GeneratePrograms {
                 clauseAssignments, bodies, 0, 1, qAndR)).post();
         new Constraint("p is independent of r given q and r", new IndependencePropagator(adjacencyMatrix,
                 clauseAssignments, bodies, 0, 2, qAndR)).post();*/
+    }
 
-        // Configure the search strategy
-        java.util.Random rng = new java.util.Random();
-        Solver solver = model.getSolver();
-        solver.setSearch(Search.intVarSearch(new Random<>(rng.nextLong()),
+    private static void configureSearchStrategy() {
+        model.getSolver().setSearch(Search.intVarSearch(new Random<>(rng.nextLong()),
                 new IntDomainRandom(rng.nextLong()), decisionVariables));
         //solver.setRestartOnSolutions(); // takes much longer, but solutions are more random
+    }
 
-        // Write generated programs to files
-        for (int i = 0; i < NUM_SOLUTIONS && solver.solve(); i++) {
+    private static void saveProgramsToFiles() throws IOException {
+        for (int i = 0; i < NUM_SOLUTIONS && model.getSolver().solve(); i++) {
             System.out.println("========== " + i + " ==========");
             StringBuilder program = new StringBuilder();
             for (int j = 0; j < MAX_NUM_CLAUSES; j++) {
@@ -171,5 +178,64 @@ class GeneratePrograms {
             writer.write(program.toString());
             writer.close();
         }
+    }
+
+    public static void main(String[] args) throws IOException {
+        /*setUp();
+        setUpExtraConditions();
+        configureSearchStrategy();
+        saveProgramsToFiles();*/
+
+        BufferedReader reader = new BufferedReader(new FileReader("../program_counts.csv"));
+        String row;
+        while ((row = reader.readLine()) != null) {
+            // Read each line of the CSV file into fields
+            String[] data = row.split(";");
+            List<Integer> arities = Arrays.stream(data[0].substring(1, data[0].length() - 1).split(","))
+                    .map(Integer::parseInt).collect(toList());
+            List<Integer> predicatesWithArity = Arrays.stream(data[1].substring(1, data[1].length() - 1)
+                    .split(",")).map(Integer::parseInt).collect(toList());
+
+            int numPredicates = predicatesWithArity.stream().reduce(0, Integer::sum);
+            PREDICATES = new String[numPredicates];
+            Arrays.fill(PREDICATES, "p"); // Names don't matter
+            ARITIES = new int[numPredicates];
+            int k = 0;
+            for (int i = 0; i < arities.size(); i++)
+                for (int j = 0; j < predicatesWithArity.get(i); j++)
+                    ARITIES[k++] = arities.get(i);
+
+            VARIABLES = new String[Integer.parseInt(data[2])];
+            Arrays.fill(VARIABLES, "X");
+            CONSTANTS = new String[Integer.parseInt(data[3])];
+            Arrays.fill(CONSTANTS, "a");
+            MAX_NUM_NODES = Integer.parseInt(data[4]);
+            MAX_NUM_CLAUSES = Integer.parseInt(data[5]);
+            MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
+            int predictedProgramCount = Integer.parseInt(data[6]);
+
+            // Set up to run the CP solver
+            setUp();
+            configureSearchStrategy();
+
+            // Count the number of solutions
+            int i = 0;
+            System.out.println("========================================");
+            while (model.getSolver().solve()) {
+                System.out.println("=====Program=====");
+                i++;
+                StringBuilder program = new StringBuilder();
+                for (int j = 0; j < MAX_NUM_CLAUSES; j++) {
+                    program.append(clauseToString(j, rng));
+                    //bodies[j].report();
+                }
+                System.out.println(program);
+            }
+            if (i != predictedProgramCount) {
+                System.out.println("Parameters: " + row);
+                System.out.println("Number of programs: " + i);
+            }
+        }
+        reader.close();
     }
 }

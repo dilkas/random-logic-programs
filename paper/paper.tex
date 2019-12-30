@@ -52,14 +52,9 @@ Motivation:
 \end{itemize}
 
 We will often use $\Box$ as a special domain value to indicate some kind of
-exception. We also use Choco \cite{choco}. This works with both Prolog
+exception. We also use Choco~4.10.2 \cite{choco}. This works with both Prolog
 \cite{DBLP:books/daglib/0041598} and ProbLog \cite{DBLP:conf/ijcai/RaedtKT07}.
 Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
-
-Inference options to explore. Logspace vs normal space. Symbolic vs
-non-symbolic. Propagate evidence (might be irrelevant)? Propagate weights?
-Supported knowledge compilation techniques: sdd, sddx, bdd, nnf, ddnnf, kbest,
-fsdd, fbdd.
 
 \section{TODO}
 
@@ -75,6 +70,16 @@ fsdd, fbdd.
 \item Perhaps negative cycle detection could use the same graph as the
   independence propagator? If we extend each domain to {-1, 0, 1}, but that
   might make propagation weaker or slower.
+\item Could investigate how uniform the generated distribution of programs is.
+  Distributions of individual parameters will often favour larger values
+  because, e.g., there are more 5-tuples than 4-tuples.
+\item Inference options to explore. Logspace vs normal space. Symbolic vs
+  non-symbolic. Propagate evidence (might be irrelevant)? Propagate weights?
+  Supported knowledge compilation techniques: sdd, sddx, bdd, nnf, ddnnf, kbest,
+  fsdd, fbdd.
+\item Mention the random heuristic. Mention that restarting gives better
+  randomness, but duplicates become possible. Restarting after each run is
+  expensive. Periodic restarts could be an option.
 \end{itemize}
 
 \section{Parameters}
@@ -108,12 +113,7 @@ variables of the model are contained in two arrays of length $\maxNumClauses{}$:
 \begin{constraint}
   For $i = 0, \dots, \maxNumClauses - 1$, let $p_i =
   \variable{headsOfClauses}[i].\variable{predicate}$. Then
-  \[
-    \variable{sort}((p_i)_{i=0}^{\maxNumClauses - 1}, (p_i)_{i=0}^{\maxNumClauses
-      - 1}),
-  \]
-  i.e., all clauses describing the same predicate are listed together and
-  sorted.
+  $(p_i)_{i=0}^{\maxNumClauses - 1}$ is sorted.
 \end{constraint}
 
 \begin{constraint}
@@ -198,7 +198,6 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
 \end{constraint}
 
 \begin{constraint}
-  $\variable{sort}(\variable{treeStructure}, \variable{treeStructure})$, i.e.,
   \variable{treeStructure} is sorted.
 \end{constraint}
 
@@ -335,18 +334,16 @@ constants can then be filled in $|\constants{}|^{a-v}$ ways. Filling $v$
 positions with $k+1$ variables in a non-decreasing manner (without skipping any
 variables) can be seen as putting $k$ `bars' in the $v-1$ spaces between $v$
 positions. Each bar represents switching to the next variable.
-% TODO: the equation is not always defined
 
-Number of programs:
+Let us order the elements of $\predicates{}$, and let $a_i$ be the arity of the
+$i$-th predicate. The number of programs is then:
 \[
-  \left( C^{|\predicates{}|} \prod_{\mathsf{P}/a \in \predicates{}} H_a \right)
-  \left( \sum_{n=0}^{\maxNumClauses{} - |\predicates{}|} \left( C
-    \sum_{a \in \arities{}} p_aH_a \right)^n \right)
+  \sum_{\substack{ \sum_{i=1}^{|\predicates{}|} h_i = n,\\
+%      h_1 + \dots + h_{|\predicates{}|} = n,\\
+      |\predicates{}| \le n \le \maxNumClauses,\\
+      h_i \ge 1 \text{ for all } i}} \prod_{i=1}^{|\predicates{}|}
+  \binom{C}{h_i} H_{a_i}^{h_i}
 \]
-The first half of the equation represents setting up a single clause for every
-predicate, i.e., we select its body and its head. The second half iterates over
-the number of clauses that could be added. For each of the $n$ additional
-clauses, we choose its body and its head (defined by a predicate and its arity).
 
 Parameters that affect this:
 \begin{itemize}
@@ -358,6 +355,7 @@ Parameters that affect this:
 \item $\maxNumClauses{} \ge |\predicates{}|$
 \end{itemize}
 % TODO: this is without any kind of cycle detection and without probabilities
+% describe the parameters of the test cases
 
 \section{The Independence Constraint}
 
