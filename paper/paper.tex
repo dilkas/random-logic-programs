@@ -73,8 +73,6 @@ Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
 
 \begin{itemize}
 \item Heads are too restrictive: $\variable{P}(X, Y, X)$ should be allowed.
-\item Formal definition (here and in the predicate invention paper): two
-  predicates are independent if all of their groundings are independent.
 \item A constraint for logical equivalence.
 \item Perhaps negative cycle detection could use the same graph as the
   independence propagator? If we extend each domain to {-1, 0, 1}, but that
@@ -213,19 +211,23 @@ latter counts the number of trees in total.
     \draw[gray] (and) -- (Q);
     \draw[gray] (and) -- (R);
   \end{tikzpicture}
-  \label{fig:example_tree}
   \caption{A tree representation of the formula from \cref{example:formula}}
+  \label{fig:example_tree}
 \end{figure}
 
-\begin{example} \label{example:formula} % TODO: describe (and refer to the figure)
+\begin{example} \label{example:formula}
   Let $\maxNumNodes{} = 8$. Then $\neg\variable{P}(X) \lor (\variable{Q}(X)
-  \land \variable{P}(X))$...
+  \land \variable{P}(X))$ corresponds to the tree in \cref{fig:example_tree} and
+  can be encoded as:
   \begin{alignat*}{8}
     \variable{treeStructure} &= [0, &&0, &&0, &&1, &&2, &&2, &&6, &&7],\\
     \variable{treeValues} &= [{\lor}, &&{\neg}, &&{\land}, \variable{P}(&&X), \variable{Q}(&&X), \variable{P}(&&X), &&\top, &&\top],\\
     \variable{numNodes} &= 6, && && && && && && &&\\
     \variable{numTrees} &= 3. && && && && && && &&
   \end{alignat*}
+  In the rest of this section, we will describe how the elements of
+  $\variable{treeValues}$ are encoded and list a series of constraints that make
+  this representation unique.
 \end{example}
 
 \subsection{Nodes}
@@ -266,9 +268,12 @@ latter counts the number of trees in total.
 \subsection{Constraints}
 
 \begin{constraint}
-  $\variable{tree}(\variable{treeStructure}, \variable{numTrees})$, i.e.,
-  \variable{treeStructure} represents \variable{numTrees} trees (dominator-based
-  filtering \cite{DBLP:conf/cp/FagesL11}).
+  \variable{treeStructure} represents \variable{numTrees} trees, i.e.,
+  \[
+    \variable{tree}(\variable{treeStructure}, \variable{numTrees})\footnote{This
+      constraint uses dominator-based filtering by Fages and Lorca
+      \cite{DBLP:conf/cp/FagesL11}.}.
+  \]
 \end{constraint}
 
 \begin{constraint}
@@ -422,6 +427,10 @@ This is without any kind of cycle detection and without probabilities.
 % TODO: describe what parameter values were used to test the model.
 
 \section{The Independence Constraint}
+
+% TODO: define independence of predicates
+% Formal definition (here and in the predicate invention paper): two
+% predicates are independent if all of their groundings are independent.
 
 A dependency is an algebraic data type that is either determined (in which case
 it holds only the index of the predicate) or undetermined (in which case it also
