@@ -11,6 +11,8 @@
 \newtheorem{constraint}{Constraint}
 
 \newcommand{\variable}[1]{\texttt{\textup{#1}}}
+\newcommand{\arrayd}[3]{\variable{{#1}[}{#2}\variable{]} \in {#3}}
+\newcommand{\arrayt}[3]{\variable{{#3}[}{#2}\variable{] {#1}}}
 \newcommand{\predicates}{\mathcal{P}}
 \newcommand{\variables}{\mathcal{V}}
 \newcommand{\constants}{\mathcal{C}}
@@ -54,7 +56,13 @@ Motivation:
 \end{itemize}
 
 We will often use $\Box$ as a special domain value to indicate some kind of
-exception. We also use Choco~4.10.2 \cite{choco}. This works with both Prolog
+exception. We write $\arrayd{a}{b}{c}$ to mean that
+$\variable{a}$ is an array of variables of length $b$ such that each element of
+$\variable{a}$ has domain $c$. Similarly, we write $\arrayt{a}{b}{c}$ to denote
+an array $\variable{a}$ of length $b$ such that each element of $\variable{a}$
+has type $\variable{c}$.
+
+We also use Choco~4.10.2 \cite{choco}. This works with both Prolog
 \cite{DBLP:books/daglib/0041598} and ProbLog \cite{DBLP:conf/ijcai/RaedtKT07}.
 Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
 
@@ -104,10 +112,10 @@ Parameters:
 \end{itemize}
 
 We also define $\tokens{} = \{ \neg, \land, \lor, \top \}$. All decision
-variables of the model are contained in two arrays of length $\maxNumClauses{}$:
+variables of the model are contained in two arrays:
 \begin{itemize}
-\item \variable{Body[] bodiesOfClauses}
-\item \variable{Head[] headsOfClauses}
+\item $\arrayt{bodiesOfClauses}{\maxNumClauses{}}{Body}$,
+\item $\arrayt{headsOfClauses}{\maxNumClauses{}}{Head}$
 \end{itemize}
 
 \section{General Constraints}
@@ -120,7 +128,7 @@ variables of the model are contained in two arrays of length $\maxNumClauses{}$:
 
 \begin{constraint}
   Each predicate gets at least one clause. Let $P = \{ h.\variable{predicate}
-  \mid h \in \variable{clauseHeads} \}$. Then
+  \mid h \in \variable{headsOfClauses} \}$. Then
   \[
     \variable{nValues}(P) =
     \begin{cases}
@@ -144,17 +152,41 @@ For example, $\preceq$ can be implemented as \variable{lexLessEq} over the
 decision variables of each body.
 % TODO: might need to include clause heads as well.
 
-\section{Atoms} % TODO: rename to 'nodes'
+\section{Bodies of Clauses}
 
+\begin{definition}
+  The body of a clause is defined by:
+  \begin{itemize}
+  \item $\arrayd{treeStructure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ such
+    that:
+    \begin{itemize}
+    \item $\variable{treeStructure}[i] = i$: the $i$-th node is a root.
+    \item $\variable{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
+    \end{itemize}
+  \item $\arrayt{treeValues}{\maxNumNodes{}}{Node}$.
+  \end{itemize}
+\end{definition}
+% TODO: examples
+
+Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
+\maxNumNodes{} \}$.
+
+\subsection{Nodes}
 %, where $\Box$ means the position is either
 %  reserved for a variable, or disabled
 
-\begin{definition} \label{def:atom}
-  An \emph{atom} is a $\variable{predicate} \in \tokens{} \cup \predicates{}$
-  and a list of \variable{arguments} of length $\maxArity{}$ in $\variables{}
-  \cup \constants{}$. The atom's \variable{arity} is a number in $[0,
-  \maxArity{}]$ defined by a \variable{table} constraint, according to the
-  \variable{predicate}.
+\begin{definition} \label{def:node}
+  A \emph{node} has a $\variable{name} \in \tokens{} \cup \predicates{}$ and
+  $\arrayd{arguments}{\maxArity{}}{\variables{} \cup \constants{}}$. The node's
+  \variable{arity} is a number in $[0, \maxArity{}]$ defined by a
+  \variable{table} constraint as
+  \[
+    \variable{arity} = \begin{cases}
+      \text{the arity of } \variable{name} & \text{if } \variable{name} \in
+      \predicates{}\\
+      0 & \text{otherwise.}
+    \end{cases}
+  \]
 \end{definition}
 
 \begin{constraint}
@@ -163,25 +195,6 @@ decision variables of each body.
     i \ge \variable{arity} \implies \variable{arguments}[i] = 0.
   \]
 \end{constraint}
-
-\section{Bodies of Clauses}
-
-\begin{definition}
-  The body of a clause is defined by:
-  \begin{itemize}
-  \item \variable{treeStructure}: list of length $\maxNumNodes{}$ with
-    domain $[0, \maxNumNodes{} - 1]$.
-    \begin{itemize}
-    \item $\variable{treeStructure}[i] = i$: the $i$-th node is a root.
-    \item $\variable{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
-    \end{itemize}
-  \item \variable{treeValues}: $\maxNumNodes{}$ atoms.
-  \end{itemize}
-\end{definition}
-% TODO: examples
-
-Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
-\maxNumNodes{} \}$.
 
 \subsection{Constraints}
 
@@ -208,7 +221,7 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
   i$, then
   \[
     \variable{treeStructure}[i] = i \quad \text{and} \quad
-    \variable{treeValues}[i].\variable{predicate} = \top,
+    \variable{treeValues}[i].\variable{name} = \top,
   \]
   else
   \[
@@ -219,10 +232,10 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
 \begin{constraint}
   For $i = 0, \dots, \maxNumNodes{} - 1$,
   \begin{itemize}
-  \item has 0 children $\iff$ $\variable{treeValues}[i].\variable{predicate} \in
+  \item has 0 children $\iff$ $\variable{treeValues}[i].\variable{name} \in
     \predicates{}$;
-  \item has 1 child $\iff$ $\variable{treeValues}[i].\variable{predicate} = \neg$;
-  \item has $>1$ child $\iff$ $\variable{treeValues}[i].\variable{predicate} \in
+  \item has 1 child $\iff$ $\variable{treeValues}[i].\variable{name} = \neg$;
+  \item has $>1$ child $\iff$ $\variable{treeValues}[i].\variable{name} \in
     \{ \land, \lor \}$.
   \end{itemize}
 \end{constraint}
@@ -231,38 +244,43 @@ Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
   For $i = 0, \dots, \maxNumNodes{} - 1$,
   \[
     \variable{treeStructure}[i] \ne i \implies
-    \variable{treeValues}[i].\variable{predicate} \ne \top.
+    \variable{treeValues}[i].\variable{name} \ne \top.
   \]
 \end{constraint}
 
 If the clause should be disabled, $\variable{numNodes} = 1$ and
-$\variable{treeValues}[0].\variable{predicate} = \top$.
+$\variable{treeValues}[0].\variable{name} = \top$.
 
 \begin{constraint}
   Adjacency matrix representation:
   \begin{align*}
     A[i][j] = 0 \iff &\nexists k: \variable{headsOfClauses}[k].\variable{predicate} = j \text{ and } \\
-    &i \in \{ a.\variable{predicate} \mid a \in \variable{bodiesOfClauses}[k].\variable{treeValues} \}.
+    &i \in \{ a.\variable{name} \mid a \in \variable{bodiesOfClauses}[k].\variable{treeValues} \}.
   \end{align*}
 \end{constraint}
 
-\section{Head of a Clause}
+\section{Heads of Clauses}
 
-Our definition of a head of a clause is more restrictive than \cref{def:atom}.
+Our definition of a head of a clause is more restrictive than \cref{def:node}.
 
 \begin{definition} % mention: variables are always ordered, constants are not.
-  The \emph{head} of a clause is defined by two lists:
+  The \emph{head} of a clause is composed of:
   \begin{itemize}
   \item $\variable{predicate} \in \predicates \cup \{ \Box \}$, where $\Box$
     denotes a disabled clause.
-  \item \variable{variables} of length $|\variables{}|$ and with domain
-    $[0, \maxArity{}]$: how many times each variable appears in the head atom.
-  \item \variable{constants} of length $\maxArity{}$ and with domain
-    $\constants{} \cup \{ \Box \}$, where $\Box$ denotes that the position is
-    reserved for a variable.
+  \item $\arrayd{variables}{|\variables{}|}{[0, \maxArity{}]}$: how many times
+    each variable appears in the head atom.
+  \item $\arrayd{constants}{\maxArity{}}{\constants{} \cup \{ \Box \}}$, where
+    $\Box$ denotes that the position is reserved for a variable.
   \end{itemize}
-  We also define the predicate's \variable{arity} using the same
-  \variable{table} constraint.
+  We also define the \variable{predicate}'s \variable{arity} using the same
+  \variable{table} constraint as
+  \[
+    \variable{arity} = \begin{cases}
+      0 & \text{if } \variable{predicate} = \Box\\
+      \text{the arity of } \variable{predicate} & \text{otherwise.}
+    \end{cases}
+  \]
 \end{definition}
 
 \begin{constraint}
@@ -303,7 +321,7 @@ if we have to pick one variable out of two, we must pick the first one.
 Let $p_a$ be the number of predicates in $\predicates{}$ with arity $a \in
 \arities{}$.
 
-Number of atoms:
+Number of atoms (leaves of the tree):
 \[
   A = \sum_{a \in \arities{}} p_a(|\variables{}| + |\constants{}|)^a
 \]
@@ -318,9 +336,9 @@ where $T(n)$ is defined recursively as:
 \]
 and
 \[
-  T(n) = T(n-1) + 2\sum_{\substack{\text{ordered partitions}\\
-      c_1 + \dots + c_k = n - 1,\\
-      k \ge 2}} \prod_{i=1}^k T(c_i).
+  T(n) = T(n-1) + 2\sum_{\substack{c_1 + \dots + c_k = n - 1,\\
+      k \ge 2,\\
+      c_i \ge 1 \text{ for all } i}} \prod_{i=1}^k T(c_i).
 \]
 
 Example of ordered partitions:

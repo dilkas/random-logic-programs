@@ -5,13 +5,13 @@ import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
-class Atom {
+class Node {
 
     private IntVar predicate; // tokens first, then predicates
     private IntVar[] arguments; // variables first, then constants
     private IntVar arity;
 
-    Atom(Model model) {
+    Node(Model model) {
         int numPossibleArguments = GeneratePrograms.VARIABLES.length + GeneratePrograms.CONSTANTS.length;
         predicate = model.intVar(0, GeneratePrograms.PREDICATES.length + Token.values().length - 1);
         arguments = model.intVarArray(GeneratePrograms.MAX_ARITY, 0, numPossibleArguments - 1);

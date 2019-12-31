@@ -16,16 +16,16 @@ public class Body {
 
     private int maxNumNodes;
     private IntVar[] treeStructure;
-    private Atom[] treeValues;
+    private Node[] treeValues;
 
     public Body(Model model, IntVar assignment, int maxNumNodes) {
         this.maxNumNodes = maxNumNodes;
 
         IntVar numNodes = model.intVar(1, maxNumNodes); // number of nodes in the main tree
         treeStructure = model.intVarArray(maxNumNodes, 0, maxNumNodes - 1);
-        treeValues = new Atom[maxNumNodes];
+        treeValues = new Node[maxNumNodes];
         for (int i = 0; i < maxNumNodes; i++)
-            treeValues[i] = new Atom(model);
+            treeValues[i] = new Node(model);
 
         // Tree structure
         IntVar numTrees = model.intVar(1, maxNumNodes);
@@ -133,8 +133,8 @@ public class Body {
 
     public IntVar[] getDecisionVariables() {
         IntVar[] variables = treeStructure;
-        for (Atom atom : treeValues)
-            variables = ArrayUtils.concat(variables, atom.getDecisionVariables());
+        for (Node node : treeValues)
+            variables = ArrayUtils.concat(variables, node.getDecisionVariables());
         return variables;
     }
 
