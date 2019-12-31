@@ -16,7 +16,7 @@ class Head {
 
     // Auxiliary variables
     private IntVar sumOfVars;
-    private IntVar countVariables;
+    private IntVar variableCount;
     private IntVar negRemainingArity;
 
     Head(Model model, IntVar predicate) {
@@ -33,19 +33,23 @@ class Head {
         constants = model.intVarArray(GeneratePrograms.MAX_ARITY, 0, GeneratePrograms.CONSTANTS.length);
         for (int i = 0; i < constants.length; i++) {
             Constraint iGeArity = model.arithm(arity, "<=", i);
-            Constraint isZero = model.arithm(constants[i], "=", 0);
-            model.ifThen(iGeArity, isZero);
+            Constraint isDisabled = model.arithm(constants[i], "=", GeneratePrograms.CONSTANTS.length);
+            model.ifThen(iGeArity, isDisabled);
         }
 
         // Connecting the two arrays
         // countZeros - (MAX_ARITY - arity) = sumOfVars
-        countVariables = model.intVar(0, constants.length);
-        model.count(GeneratePrograms.CONSTANTS.length, constants, countVariables).post();
+        variableCount = model.intVar(0, constants.length);
+        Constraint clauseIsDisabled = model.arithm(predicate, "=", GeneratePrograms.PREDICATES.length);
+        Constraint countVariables = model.count(GeneratePrograms.CONSTANTS.length, constants, variableCount);
+        Constraint zeroVariables = model.arithm(variableCount, "=", GeneratePrograms.MAX_ARITY);
+        model.ifThenElse(clauseIsDisabled, zeroVariables, countVariables);
+
         sumOfVars = model.intVar(0, GeneratePrograms.MAX_ARITY);
         model.sum(variables, "=", sumOfVars).post();
         negRemainingArity = model.intVar(-GeneratePrograms.MAX_ARITY, 0);
         model.arithm(negRemainingArity, "=", arity, "-", GeneratePrograms.MAX_ARITY).post();
-        model.arithm(sumOfVars, "=", countVariables, "+", negRemainingArity).post();
+        model.arithm(sumOfVars, "=", variableCount, "+", negRemainingArity).post();
 
         // All zeros go after all non-zeros
         // v[i] = 0 /\ v[j] != 0 => j < i

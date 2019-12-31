@@ -20,6 +20,8 @@
 \newcommand{\maxNumNodes}{\mathcal{M}_{\mathcal{N}}}
 \newcommand{\maxNumClauses}{\mathcal{M}_{\mathcal{C}}}
 
+\def\multiset#1#2{\ensuremath{\left(\kern-.3em\left(\genfrac{}{}{0pt}{}{#1}{#2}\right)\kern-.3em\right)}}
+
 \begin{document}
 
 \title{Generating Random Logic Programs Using Constraint Programming}
@@ -248,7 +250,7 @@ $\variable{treeValues}[0].\variable{predicate} = \top$.
 
 Our definition of a head of a clause is more restrictive than \cref{def:atom}.
 
-\begin{definition} % TODO: variables are always ordered, constants are not.
+\begin{definition} % mention: variables are always ordered, constants are not.
   The \emph{head} of a clause is defined by two lists:
   \begin{itemize}
   \item $\variable{predicate} \in \predicates \cup \{ \Box \}$, where $\Box$
@@ -270,15 +272,18 @@ Our definition of a head of a clause is more restrictive than \cref{def:atom}.
 \begin{constraint}
   For $i = 0, \dots, \maxArity{} - 1$,
   \[
-    i \ge \variable{arity} \implies \variable{constants}[i] = 0.
+    i \ge \variable{arity} \implies \variable{constants}[i] = \Box.
   \]
 \end{constraint}
 
 \begin{constraint}
   Connecting the two lists:
   \[
-    \sum_{v \in \variable{variables}} v = \variable{count}(\Box,
-    \variable{constants}) + \variable{arity} - \maxArity{}.
+    \maxArity{} - \variable{arity} + \sum_{v \in \variable{variables}} v
+    = \begin{cases}
+      \maxArity{} & \text{if } \variable{predicate} = \Box \\
+      \variable{count}(\Box, \variable{constants}) & \text{otherwise}.
+      \end{cases}
   \]
 \end{constraint}
 
@@ -326,7 +331,7 @@ so for $n=4$, the sum would have three terms.
 
 Number of heads for a specific predicate with arity $a \in \arities{}$:
 \[
-  H_a = \sum_{v=1}^a \binom{a}{v} |\constants{}|^{a-v}
+  H_a = |\constants{}|^a + \sum_{v=1}^a \binom{a}{v} |\constants{}|^{a-v}
   \sum_{k=0}^{|\variables{}|-1} \binom{v-1}{k}.
 \]
 First, select the $v$ positions dedicated for variables. The remaining $a-v$
@@ -342,7 +347,11 @@ $i$-th predicate. The number of programs is then:
 %      h_1 + \dots + h_{|\predicates{}|} = n,\\
       |\predicates{}| \le n \le \maxNumClauses,\\
       h_i \ge 1 \text{ for all } i}} \prod_{i=1}^{|\predicates{}|}
-  \binom{C}{h_i} H_{a_i}^{h_i}
+  \multiset{C}{h_i} H_{a_i}^{h_i},
+\]
+where
+\[
+  \multiset{n}{k} = \binom{n + k - 1}{k}.
 \]
 
 Parameters that affect this:

@@ -21,16 +21,16 @@ class GeneratePrograms {
     private static final String DIRECTORY = "../programs/";
     private static final int NUM_SOLUTIONS = 10000;
     private static int MAX_NUM_NODES = 1;
-    private static int MAX_NUM_CLAUSES = 1;
+    private static int MAX_NUM_CLAUSES = 2;
     private static final boolean FORBID_ALL_CYCLES = false;
     //private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
     //        1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
     private static final double[] PROBABILITIES = {1};
 
     static String[] PREDICATES = {"p"};
-    static int[] ARITIES = {2};
-    static String[] VARIABLES = {"X", "Y"};
-    static String[] CONSTANTS = {};
+    static int[] ARITIES = {1};
+    static String[] VARIABLES = {"X"};
+    static String[] CONSTANTS = {"a"};
     static int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
     static Tuples arities;
@@ -64,12 +64,13 @@ class GeneratePrograms {
 
     /** Set up all the variables and constraints. */
     private static void setUp() {
+        assert(PREDICATES.length == ARITIES.length);
         arities = new Tuples();
         for (Token t : Token.values())
             arities.add(t.ordinal(), 0); // Tokens don't have arities
         for (int i = 0; i < ARITIES.length; i++)
             arities.add(Token.values().length + i, ARITIES[i]); // Predicate arities are predefined
-        arities.add(ARITIES.length + Token.values().length, 0); // This stands for a disabled clause
+        arities.add(PREDICATES.length + Token.values().length, 0); // This stands for a disabled clause
 
         model = new Model();
         rng = new java.util.Random();
@@ -169,10 +170,9 @@ class GeneratePrograms {
         for (int i = 0; i < NUM_SOLUTIONS && model.getSolver().solve(); i++) {
             System.out.println("========== " + i + " ==========");
             StringBuilder program = new StringBuilder();
-            for (int j = 0; j < MAX_NUM_CLAUSES; j++) {
+            for (int j = 0; j < MAX_NUM_CLAUSES; j++)
                 program.append(clauseToString(j, rng));
-                bodies[j].report();
-            }
+            System.out.println(program);
 
             BufferedWriter writer = new BufferedWriter(new FileWriter(DIRECTORY + i + ".pl"));
             writer.write(program.toString());
@@ -182,7 +182,7 @@ class GeneratePrograms {
 
     public static void main(String[] args) throws IOException {
         /*setUp();
-        setUpExtraConditions();
+        //setUpExtraConditions();
         configureSearchStrategy();
         saveProgramsToFiles();*/
 
@@ -222,14 +222,13 @@ class GeneratePrograms {
             int i = 0;
             System.out.println("========================================");
             while (model.getSolver().solve()) {
-                System.out.println("=====Program=====");
                 i++;
+                /*System.out.println("=====Program=====");
                 StringBuilder program = new StringBuilder();
                 for (int j = 0; j < MAX_NUM_CLAUSES; j++) {
                     program.append(clauseToString(j, rng));
-                    //bodies[j].report();
                 }
-                System.out.println(program);
+                System.out.println(program);*/
             }
             if (i != predictedProgramCount) {
                 System.out.println("Parameters: " + row);
