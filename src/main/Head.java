@@ -3,104 +3,70 @@ package main;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
-import org.chocosolver.util.tools.ArrayUtils;
+import org.chocosolver.solver.variables.SetVar;
 
 /** The head of a clause */
 class Head {
 
     private IntVar predicate; // PREDICATES.length means that the clause is disabled
+    private IntVar[] arguments;
     private IntVar arity;
-    private IntVar[] variables; // How many times each variable should be included as an argument
-    // A map from positions to constants, where 0 means that either that position is disabled or occupied by a variable
-    private IntVar[] constants;
-
-    // Auxiliary variables
-    private IntVar sumOfVars;
-    private IntVar variableCount;
-    private IntVar negRemainingArity;
 
     Head(Model model, IntVar predicate) {
         this.predicate = predicate;
 
+        // Define arity
         IntVar indexToTable = model.intOffsetView(predicate, Token.values().length);
         arity = model.intVar(0, GeneratePrograms.MAX_ARITY);
         model.table(indexToTable, arity, GeneratePrograms.arities).post();
 
-        variables = model.intVarArray(GeneratePrograms.VARIABLES.length, 0, GeneratePrograms.MAX_ARITY);
-        for (IntVar variable : variables)
-            model.arithm(variable, "<=", arity).post();
-
-        constants = model.intVarArray(GeneratePrograms.MAX_ARITY, 0, GeneratePrograms.CONSTANTS.length);
-        for (int i = 0; i < constants.length; i++) {
+        // Arity regulates how many arguments the predicate has
+        arguments = model.intVarArray(GeneratePrograms.MAX_ARITY, 0,
+                GeneratePrograms.CONSTANTS.length + GeneratePrograms.VARIABLES.length - 1);
+        for (int i = 0; i < arguments.length; i++) {
             Constraint iGeArity = model.arithm(arity, "<=", i);
-            Constraint isDisabled = model.arithm(constants[i], "=", GeneratePrograms.CONSTANTS.length);
+            Constraint isDisabled = model.arithm(arguments[i], "=", GeneratePrograms.CONSTANTS.length);
             model.ifThen(iGeArity, isDisabled);
         }
 
-        // Connecting the two arrays
-        // countZeros - (MAX_ARITY - arity) = sumOfVars
-        variableCount = model.intVar(0, constants.length);
-        Constraint clauseIsDisabled = model.arithm(predicate, "=", GeneratePrograms.PREDICATES.length);
-        Constraint countVariables = model.count(GeneratePrograms.CONSTANTS.length, constants, variableCount);
-        Constraint zeroVariables = model.arithm(variableCount, "=", GeneratePrograms.MAX_ARITY);
-        model.ifThenElse(clauseIsDisabled, zeroVariables, countVariables);
+        int[] possibleIndices = new int[GeneratePrograms.MAX_ARITY];
+        for (int i = 0; i < GeneratePrograms.MAX_ARITY; i++)
+            possibleIndices[i] = i;
+        // For each variable, we store the set of indices where it occurs
+        SetVar[] occurrences = model.setVarArray(GeneratePrograms.VARIABLES.length, new int[0], possibleIndices);
+        model.setsIntsChanneling(occurrences, arguments).post();
 
-        sumOfVars = model.intVar(0, GeneratePrograms.MAX_ARITY);
-        model.sum(variables, "=", sumOfVars).post();
-        negRemainingArity = model.intVar(-GeneratePrograms.MAX_ARITY, 0);
-        model.arithm(negRemainingArity, "=", arity, "-", GeneratePrograms.MAX_ARITY).post();
-        model.arithm(sumOfVars, "=", variableCount, "+", negRemainingArity).post();
-
-        // All zeros go after all non-zeros
-        // v[i] = 0 /\ v[j] != 0 => j < i
-        // j < i \/ v[i] != 0 \/ v[j] = 0
-        // For j > i, v[i] != 0 \/ v[j] = 0
-        for (int i = 0; i < variables.length - 1; i++) {
-            for (int j = i + 1; j < variables.length; j++) {
-                Constraint iNotZero = model.arithm(variables[i], "!=", 0);
-                Constraint jIsZero = model.arithm(variables[j], "=", 0);
-                model.or(iNotZero, jIsZero).post();
-            }
+        // Information about occurrences that we're going to sort
+        IntVar[][] occurrenceCardAndMin = model.intVarMatrix(GeneratePrograms.VARIABLES.length, 2, 0,
+                GeneratePrograms.MAX_ARITY);
+        for (int i = 0; i < GeneratePrograms.VARIABLES.length; i++) {
+            occurrenceCardAndMin[i][0] = occurrences[i].getCard();
+            model.min(occurrences[i], occurrenceCardAndMin[i][1], false).post();
+            SetVar[] occurrencesAtI = new SetVar[1];
+            occurrencesAtI[0] = occurrences[i];
+            Constraint noOccurrences = model.nbEmpty(occurrencesAtI, 1);
+            Constraint fixMinOccurrence = model.arithm(occurrenceCardAndMin[i][1], "=", 0);
+            model.ifThen(noOccurrences, fixMinOccurrence);
         }
+        model.lexChainLessEq(occurrenceCardAndMin).post();
     }
 
     public IntVar[] getDecisionVariables() {
-        return ArrayUtils.concat(variables, constants);
+        return arguments;
     }
 
     @Override
     public String toString() {
-        /*System.out.println("Predicate: " + predicate.getValue());
-        System.out.println("Arity: " + arity.getValue());
-        System.out.print("Variables: ");
-        for (IntVar variable : variables)
-            System.out.print(variable.getValue() + " ");
-        System.out.println();
-        System.out.print("Constants: ");
-        for (IntVar constant : constants)
-            System.out.print(constant.getValue() + " ");
-        System.out.println("\n");
-        System.out.println("sum of variables: " + sumOfVars.getValue());
-        System.out.println("number of variables: " + countVariables.getValue());
-        System.out.println("negated remaining arity: " + negRemainingArity.getValue() + "\n");*/
-
         StringBuilder s = new StringBuilder();
         s.append(GeneratePrograms.PREDICATES[predicate.getValue()]).append("(");
-        int variableIndex = 0; // Which variable to pick next?
-        int variablesBeenUsed = 0; // How many times have we used this variable already?
         for (int i = 0; i < arity.getValue(); i++) {
-            int argument = constants[i].getValue();
+            if (i > 0)
+                s.append(", ");
+            int argument = arguments[i].getValue();
             if (argument < GeneratePrograms.CONSTANTS.length) {
                 s.append(GeneratePrograms.CONSTANTS[argument]);
             } else {
-                while (variables[variableIndex].getValue() <= variablesBeenUsed) {
-                    variablesBeenUsed = 0;
-                    variableIndex++;
-                }
-                variablesBeenUsed++;
-                if (i > 0)
-                    s.append(", ");
-                s.append(GeneratePrograms.VARIABLES[variableIndex]);
+                s.append(GeneratePrograms.VARIABLES[argument - GeneratePrograms.CONSTANTS.length]);
             }
         }
         s.append(")");

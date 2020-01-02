@@ -8,6 +8,7 @@
 \usepackage{mathtools}
 \usepackage[capitalise]{cleveref}
 \usepackage{tikz}
+\usepackage{mathrsfs}
 
 \newtheorem{constraint}{Constraint}
 
@@ -23,6 +24,8 @@
 \newcommand{\maxNumNodes}{\mathcal{M}_{\mathcal{N}}}
 \newcommand{\maxNumClauses}{\mathcal{M}_{\mathcal{C}}}
 
+%\relpenalty=10000
+%\binoppenalty=10000
 \def\multiset#1#2{\ensuremath{\left(\kern-.3em\left(\genfrac{}{}{0pt}{}{#1}{#2}\right)\kern-.3em\right)}}
 
 \begin{document}
@@ -63,7 +66,7 @@ $\variable{a}$ has domain $c$. Similarly, we write $\arrayt{a}{b}{c}$ to denote
 an array $\variable{a}$ of length $b$ such that each element of $\variable{a}$
 has type $\variable{c}$. All constraint variables in the model are integer
 variables, but, e.g., if the integer $i$ refers to a logical variable $X$, we
-will use $i$ and $X$ interchangeably.
+will use $i$ and $X$ interchangeably. All indices start at zero.
 
 We also use Choco~4.10.2 \cite{choco}. This works with both Prolog
 \cite{DBLP:books/daglib/0041598} and ProbLog \cite{DBLP:conf/ijcai/RaedtKT07}.
@@ -72,8 +75,9 @@ Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
 \subsection{TODO}
 
 \begin{itemize}
-\item Heads are too restrictive: $\variable{P}(X, Y, X)$ should be allowed.
-\item A constraint for logical equivalence.
+\item Heads are too restrictive: $\mathsf{P}(X, Y, X)$ should be allowed.
+\item A constraint for logical equivalence. An algorithm to reduce each tree to
+  some kind of normal form.
 \item Perhaps negative cycle detection could use the same graph as the
   independence propagator? If we extend each domain to {-1, 0, 1}, but that
   might make propagation weaker or slower.
@@ -121,21 +125,21 @@ variables of the model are contained in two arrays:
 
 \section{Heads of Clauses}
 
-Our definition is slightly more involved because we want to impose some
-additional constraints, namely, that the variables in the atom are consecutive 
+Our definition is slightly more involved because we want to eliminate some
+symmetries.
 
-\begin{definition} % mention: variables are always ordered, constants are not.
+\begin{definition}
   The \emph{head} of a clause is composed of:
   \begin{itemize}
-  \item $\variable{predicate} \in \predicates \cup \{ \Box \}$, where $\Box$
-    denotes a disabled clause.
-  \item $\arrayd{variables}{|\variables{}|}{[0, \maxArity{}]}$: how many times
-    each variable appears in the head atom.
-  \item $\arrayd{constants}{\maxArity{}}{\constants{} \cup \{ \Box \}}$, where
-    $\Box$ denotes that the position is reserved for a variable.
+  \item a $\variable{predicate} \in \predicates \cup \{ \Box \}$, where $\Box$
+    denotes a disabled clause,
+  \item and $\arrayd{arguments}{\maxArity{}}{\constants{} \cup \variables{}}$.
   \end{itemize}
-  We define the \variable{predicate}'s \variable{arity} using the
-  \variable{table} constraint as
+\end{definition}
+
+\begin{definition}
+  The \variable{predicate}'s $\variable{arity} \in [0, \maxArity{}]$ can then be
+  defined using the \variable{table} constraint as
   \[
     \variable{arity} = \begin{cases}
       0 & \text{if } \variable{predicate} = \Box\\
@@ -145,37 +149,64 @@ additional constraints, namely, that the variables in the atom are consecutive
 \end{definition}
 
 \begin{constraint}
-  For each $v \in \variable{variables}$, $v \le \variable{arity}$.
-\end{constraint}
-
-\begin{constraint}
   For $i = 0, \dots, \maxArity{} - 1$,
   \[
-    i \ge \variable{arity} \implies \variable{constants}[i] = \Box.
+    i \ge \variable{arity} \implies \variable{arguments}[i] = 0.
   \]
 \end{constraint}
 
-\begin{constraint}
-  Connecting the two lists:
+\begin{definition} We define an array \variable{occurrences} of $|\variables{}|$
+  sets such that, for all $v \in \variables{}$, $\variable{occurrences}[v]$ is a
+  subset of $\{ 0, \dots, \maxArity{} - 1\}$ that stores the indices of
+  \variable{arguments} at which $v$ is located. It is defined by the
+  \variable{setsIntsChanneling} constraint equivalent to the following
+  condition: for $i = 0, \dots, \maxArity{} - 1$ and $v \in \variables{}$,
   \[
-    \maxArity{} - \variable{arity} + \sum_{v \in \variable{variables}} v
-    = \begin{cases}
-      \maxArity{} & \text{if } \variable{predicate} = \Box \\
-      \variable{count}(\Box, \variable{constants}) & \text{otherwise}.
-      \end{cases}
+    \variable{arguments}[i] = v \quad \iff \quad i \in \variable{occurrences}[v].
+  \]
+\end{definition}
+
+\begin{definition}
+  We define a $|\variables{}| \times 2$ matrix $\mathbf{M}$ with domain $[0,
+  \maxArity{}]$ such that for $v = 0, \dots, |\variables{}| - 1$,
+  \begin{align*}
+    \mathbf{M}_{v,0} &= |\variable{occurrences}[v]|.\\
+    \mathbf{M}_{v,1} &= \begin{cases}
+      \min \variable{occurrences}[v] & \text{if } \variable{occurrences}[v] \ne \emptyset\\
+      0\footnotemark & \text{otherwise.}
+    \end{cases}
+  \end{align*}
+\end{definition}
+\footnotetext{This could be any fixed value in the domain.}
+
+\begin{constraint}
+  We can then impose the \variable{lexChainLessEq} constraint on $\mathbf{M}$
+  which means that for $v = 1, \dots, |\variables{}| - 1$,
+  \[
+    |\variable{occurrences}[v - 1]| \le |\variable{occurrences}[v]|,
+  \]
+  and if $|\variable{occurrences}[v - 1]| = |\variable{occurrences}[v]| > 0$,
+  then
+  \[
+    \min \variable{occurrences}[v - 1] \le \min \variable{occurrences}[v].
   \]
 \end{constraint}
 
-In \variable{variables}, all zeros must go after all non-zeros. For example,
-if we have to pick one variable out of two, we must pick the first one.
-\begin{constraint}
-  For $i = 0, \dots, |\variables{}| - 2$, and $j = i + 1, \dots,
-  |\variables{}| - 1$,
-  \[
-    \variable{variables}[i] \ne 0 \quad \text{or} \quad \variable{variables}[j]
-    = 0.
-  \]
-\end{constraint}
+\begin{example}
+  Let $\maxArity{} = 4$, $\mathsf{P} \in \predicates{}$, $\variables{} = \{
+  X, Y, Z \}$. Then $\mathsf{P}(Z, Y, Z)$ would be represented as:
+  \begin{align*}
+    \variable{predicate} &= \mathsf{P},\\
+    \variable{arguments} &= [Z, Y, Z, 0],\\
+    \variable{arity} &= 3,\\
+    \variable{occurrences} &= [\emptyset, \{ 1 \}, \{ 0, 2 \}],\\
+    \mathbf{M} &= \begin{bmatrix}
+      0 & 0\\
+      1 & 1\\
+      2 & 0
+    \end{bmatrix}.
+  \end{align*}
+\end{example}
 
 \section{Bodies of Clauses}
 
@@ -201,10 +232,10 @@ latter counts the number of trees in total.
   \begin{tikzpicture}
     \node[draw,circle,gray,text=black] (or) at (0, 0) {$\lor$};
     \node[draw,circle,gray,text=black] (not) at (-1, -1) {$\neg$};
-    \node (P) at (-1, -2) {$\variable{P}(X)$};
+    \node (P) at (-1, -2) {$\mathsf{P}(X)$};
     \node[draw,circle,gray,text=black] (and) at (1, -1) {$\land$};
-    \node (Q) at (0, -2) {$\variable{Q}(X)$};
-    \node (R) at (2, -2) {$\variable{P}(X)$};
+    \node (Q) at (0, -2) {$\mathsf{Q}(X)$};
+    \node (R) at (2, -2) {$\mathsf{P}(X)$};
     \draw[gray] (or) -- (not);
     \draw[gray] (or) -- (and);
     \draw[gray] (not) -- (P);
@@ -216,12 +247,12 @@ latter counts the number of trees in total.
 \end{figure}
 
 \begin{example} \label{example:formula}
-  Let $\maxNumNodes{} = 8$. Then $\neg\variable{P}(X) \lor (\variable{Q}(X)
-  \land \variable{P}(X))$ corresponds to the tree in \cref{fig:example_tree} and
+  Let $\maxNumNodes{} = 8$. Then $\neg\mathsf{P}(X) \lor (\mathsf{Q}(X)
+  \land \mathsf{P}(X))$ corresponds to the tree in \cref{fig:example_tree} and
   can be encoded as:
   \begin{alignat*}{8}
     \variable{treeStructure} &= [0, &&0, &&0, &&1, &&2, &&2, &&6, &&7],\\
-    \variable{treeValues} &= [{\lor}, &&{\neg}, &&{\land}, \variable{P}(&&X), \variable{Q}(&&X), \variable{P}(&&X), &&\top, &&\top],\\
+    \variable{treeValues} &= [{\lor}, &&{\neg}, &&{\land}, \mathsf{P}(&&X), \mathsf{Q}(&&X), \mathsf{P}(&&X), &&\top, &&\top],\\
     \variable{numNodes} &= 6, && && && && && && &&\\
     \variable{numTrees} &= 3. && && && && && && &&
   \end{alignat*}
@@ -255,11 +286,11 @@ latter counts the number of trees in total.
 \end{constraint}
 
 \begin{example}
-  Let $\maxArity{} = 2$, $\predicates{} = [\variable{P}, \dots]$, $\arities{}
+  Let $\maxArity{} = 2$, $\predicates{} = [\mathsf{P}, \dots]$, $\arities{}
   = [1, \dots]$, and $X \in \variables{}$. Then the node representing atom
-  $\variable{P}(X)$ has:
+  $\mathsf{P}(X)$ has:
   \begin{align*}
-    \variable{name} &= \variable{P},\\
+    \variable{name} &= \mathsf{P},\\
     \variable{arguments} &= [X, 0],\\
     \variable{arity} &= 1.
   \end{align*}
@@ -335,8 +366,11 @@ $\variable{treeValues}[0].\variable{name} = \top$.
 \end{constraint}
 
 \begin{constraint}
-  Each predicate gets at least one clause. Let $P = \{ h.\variable{predicate}
-  \mid h \in \variable{headsOfClauses} \}$. Then
+  Each predicate gets at least one clause. Let
+  \[
+    P = \{ h.\variable{predicate} \mid h \in \variable{headsOfClauses} \}.
+  \]
+  Then
   \[
     \variable{nValues}(P) =
     \begin{cases}
@@ -344,6 +378,7 @@ $\variable{treeValues}[0].\variable{name} = \top$.
       \variable{numPredicates} & \text{otherwise.}
     \end{cases}
   \]
+  Here, $\variable{nValues}(P)$ counts the number of unique values in $P$.
 \end{constraint}
 
 \begin{constraint}
@@ -357,7 +392,7 @@ $\variable{treeValues}[0].\variable{name} = \top$.
   then $\variable{bodiesOfClauses}[i-1] \preceq \variable{bodiesOfClauses}[i]$.
 \end{constraint}
 For example, $\preceq$ can be implemented as \variable{lexLessEq} over the
-decision variables of each body.
+decision variables of each body. % TODO: can this be turned into lexChainLessEq?
 
 \begin{constraint}
   Adjacency matrix representation:
@@ -368,6 +403,7 @@ decision variables of each body.
 \end{constraint}
 
 \section{Counting Programs}
+% TODO: update to account for the new definition of head
 
 Let $p_a$ be the number of predicates in $\predicates{}$ with arity $a \in
 \arities{}$.
@@ -426,11 +462,32 @@ where
 This is without any kind of cycle detection and without probabilities.
 % TODO: describe what parameter values were used to test the model.
 
-\section{The Independence Constraint}
+\section{Predicate Independence}
 
-% TODO: define independence of predicates
-% Formal definition (here and in the predicate invention paper): two
-% predicates are independent if all of their groundings are independent.
+\begin{definition}
+  Let $\mathscr{P}$ be a probabilistic logic program. Its \emph{predicate
+    dependency graph} is a directed graph $G_{\mathscr{P}} = (V, E)$ with the
+  set of nodes $V$ consisting of all predicates in $\mathscr{P}$. We add an edge
+  from predicate $\mathsf{P}$ to predicate $\mathsf{Q}$ if there is a clause in
+  $\mathscr{P}$ with $\mathsf{Q}$ as the head and $\mathsf{P}$ mentioned in the
+  body.
+\end{definition}
+
+\begin{definition}
+  Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The
+  \emph{dependencies} of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such
+  that:
+  \begin{itemize}
+  \item $\mathsf{P} \in D_{\mathsf{P}}$,
+  \item for every $\mathsf{Q} \in D_{\mathsf{P}}$, the nodes with arrows to
+    $\mathsf{Q}$ in $G_{\mathscr{P}}$ are all in $D_{\mathsf{P}}$.
+  \end{itemize}
+\end{definition}
+
+\begin{definition}
+  Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are \emph{independent} if
+  $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
+\end{definition}
 
 A dependency is an algebraic data type that is either determined (in which case
 it holds only the index of the predicate) or undetermined (in which case it also

@@ -27,6 +27,10 @@ public class Body {
         for (int i = 0; i < maxNumNodes; i++)
             treeValues[i] = new Node(model);
 
+        // Convenient for testing purposes
+        // TODO: comment it out!
+        model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal()).post();
+
         // Tree structure
         IntVar numTrees = model.intVar(1, maxNumNodes);
         model.tree(treeStructure, numTrees).post();

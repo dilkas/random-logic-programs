@@ -21,16 +21,16 @@ class GeneratePrograms {
     private static final String DIRECTORY = "../programs/";
     private static final int NUM_SOLUTIONS = 10000;
     private static int MAX_NUM_NODES = 1;
-    private static int MAX_NUM_CLAUSES = 2;
+    private static int MAX_NUM_CLAUSES = 1;
     private static final boolean FORBID_ALL_CYCLES = false;
     //private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
     //        1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
     private static final double[] PROBABILITIES = {1};
 
     static String[] PREDICATES = {"p"};
-    static int[] ARITIES = {1};
-    static String[] VARIABLES = {"X"};
-    static String[] CONSTANTS = {"a"};
+    static int[] ARITIES = {3};
+    static String[] VARIABLES = {"X", "Y", "Z"};
+    static String[] CONSTANTS = {};
     static int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
     static Tuples arities;
@@ -168,7 +168,7 @@ class GeneratePrograms {
 
     private static void saveProgramsToFiles() throws IOException {
         for (int i = 0; i < NUM_SOLUTIONS && model.getSolver().solve(); i++) {
-            System.out.println("========== " + i + " ==========");
+            //System.out.println("========== " + i + " ==========");
             StringBuilder program = new StringBuilder();
             for (int j = 0; j < MAX_NUM_CLAUSES; j++)
                 program.append(clauseToString(j, rng));
@@ -180,12 +180,7 @@ class GeneratePrograms {
         }
     }
 
-    public static void main(String[] args) throws IOException {
-        /*setUp();
-        //setUpExtraConditions();
-        configureSearchStrategy();
-        saveProgramsToFiles();*/
-
+    private static void checkNumPrograms() throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader("../program_counts.csv"));
         String row;
         while ((row = reader.readLine()) != null) {
@@ -236,5 +231,12 @@ class GeneratePrograms {
             }
         }
         reader.close();
+    }
+
+    public static void main(String[] args) throws IOException {
+        setUp();
+        //setUpExtraConditions();
+        configureSearchStrategy();
+        saveProgramsToFiles();
     }
 }
