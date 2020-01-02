@@ -8,7 +8,6 @@ import org.chocosolver.util.tools.ArrayUtils;
 import propagators.Sign;
 import propagators.SignedPredicate;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -28,8 +27,7 @@ public class Body {
             treeValues[i] = new Node(model);
 
         // Convenient for testing purposes
-        // TODO: comment it out!
-        model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal()).post();
+        //model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal()).post();
 
         // Tree structure
         IntVar numTrees = model.intVar(1, maxNumNodes);
@@ -194,20 +192,6 @@ public class Body {
             }
         }
         return output.toString();
-    }
-
-    public void report() {
-        System.out.print("structure: " + arrayToString(treeStructure));
-        System.out.println("values: " + Arrays.toString(treeValues));
-        System.out.println();
-    }
-
-    private static String arrayToString(IntVar[] array) {
-        StringBuilder builder = new StringBuilder();
-        for (IntVar i : array)
-            builder.append(i.getValue()).append(" ");
-        builder.append("\n");
-        return builder.toString();
     }
 
     @Override

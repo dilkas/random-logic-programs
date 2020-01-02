@@ -75,9 +75,11 @@ Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
 \subsection{TODO}
 
 \begin{itemize}
-\item Heads are too restrictive: $\mathsf{P}(X, Y, X)$ should be allowed.
+\item Construct matrix M for variables that don't participate in the head. Have
+  a variable variablesThatParticipateInTheHead that separates the set of
+  variables.
 \item A constraint for logical equivalence. An algorithm to reduce each tree to
-  some kind of normal form.
+  some kind of normal form. Not doing this on purpose. Leaving for further work.
 \item Perhaps negative cycle detection could use the same graph as the
   independence propagator? If we extend each domain to {-1, 0, 1}, but that
   might make propagation weaker or slower.
@@ -151,55 +153,26 @@ symmetries.
 \begin{constraint}
   For $i = 0, \dots, \maxArity{} - 1$,
   \[
-    i \ge \variable{arity} \implies \variable{arguments}[i] = 0.
+    i \ge \variable{arity} \implies \variable{arguments}[i] = |\constants{}| +
+    |\variables{}| - 1.
   \]
 \end{constraint}
+In other words, we fix the unused arguments to be the last variable in
+$\variables{}$ if there are any, and a constant otherwise. Because of the way
+constants and variables are ordered, this is the only constant value in $\{ 0,
+\dots, |\constants{}| + |\variables{}| - 1 \}$ that satisfies all other
+constraints on the head.
 
-\begin{definition} We define an array \variable{occurrences} of $|\variables{}|$
-  sets such that, for all $v \in \variables{}$, $\variable{occurrences}[v]$ is a
-  subset of $\{ 0, \dots, \maxArity{} - 1\}$ that stores the indices of
-  \variable{arguments} at which $v$ is located. It is defined by the
-  \variable{setsIntsChanneling} constraint equivalent to the following
-  condition: for $i = 0, \dots, \maxArity{} - 1$ and $v \in \variables{}$,
-  \[
-    \variable{arguments}[i] = v \quad \iff \quad i \in \variable{occurrences}[v].
-  \]
-\end{definition}
-
-\begin{definition}
-  We define a $|\variables{}| \times 2$ matrix $\mathbf{M}$ with domain $[0,
-  \maxArity{}]$ such that for $v = 0, \dots, |\variables{}| - 1$,
-  \begin{align*}
-    \mathbf{M}_{v,0} &= |\variable{occurrences}[v]|.\\
-    \mathbf{M}_{v,1} &= \begin{cases}
-      \min \variable{occurrences}[v] & \text{if } \variable{occurrences}[v] \ne \emptyset\\
-      0\footnotemark & \text{otherwise.}
-    \end{cases}
-  \end{align*}
-\end{definition}
-\footnotetext{This could be any fixed value in the domain.}
-
-\begin{constraint}
-  We can then impose the \variable{lexChainLessEq} constraint on $\mathbf{M}$
-  which means that for $v = 1, \dots, |\variables{}| - 1$,
-  \[
-    |\variable{occurrences}[v - 1]| \le |\variable{occurrences}[v]|,
-  \]
-  and if $|\variable{occurrences}[v - 1]| = |\variable{occurrences}[v]| > 0$,
-  then
-  \[
-    \min \variable{occurrences}[v - 1] \le \min \variable{occurrences}[v].
-  \]
-\end{constraint}
-
+% TODO: will need to be updated
 \begin{example}
-  Let $\maxArity{} = 4$, $\mathsf{P} \in \predicates{}$, $\variables{} = \{
-  X, Y, Z \}$. Then $\mathsf{P}(Z, Y, Z)$ would be represented as:
+  Let $\maxArity{} = 4$, $\mathsf{P} \in \predicates{}$, $\constants{} = \{ a
+  \}$, $\variables{} = \{X, Y, Z \}$. Then $\mathsf{P}(Z, Y, Z)$ would be
+  represented as:
   \begin{align*}
     \variable{predicate} &= \mathsf{P},\\
     \variable{arguments} &= [Z, Y, Z, 0],\\
     \variable{arity} &= 3,\\
-    \variable{occurrences} &= [\emptyset, \{ 1 \}, \{ 0, 2 \}],\\
+    \variable{occurrences} &= [\emptyset, \emptyset, \{ 1 \}, \{ 0, 2 \}],\\
     \mathbf{M} &= \begin{bmatrix}
       0 & 0\\
       1 & 1\\
@@ -354,10 +327,61 @@ multiple children, respectively.
   \]
 \end{constraint}
 
-If the clause should be disabled, $\variable{numNodes} = 1$ and
-$\variable{treeValues}[0].\variable{name} = \top$.
+\begin{constraint}
+  For $i = 0, \dots, \maxNumClauses{} - 1$, if
+  $\variable{headsOfClauses}[i].\variable{predicate} = \Box$, then
+  \[
+    \variable{bodiesOfClauses}[i].\variable{numNodes} = 1,
+  \]
+  and
+  \[
+    \variable{bodiesOfClauses}[i].\variable{treeValues}[0].\variable{name} =
+    \top.
+  \]
+\end{constraint}
 
-\section{Managing Clauses}
+\section{Eliminating Variable Symmetries}
+% TODO: the matrix should include two more columns for bodies
+
+\begin{definition} We define an array \variable{occurrences} of $|\constants{}|
+  + |\variables{}|$ sets such that, for all $t \in \constants{} \cup
+  \variables{}$, $\variable{occurrences}[t]$ is a subset of $\{ 0, \dots,
+  \maxArity{} - 1\}$ that stores the indices of \variable{arguments} at which
+  $t$ is located. It is defined by the \variable{setsIntsChanneling} constraint
+  equivalent to the following condition: for $i = 0, \dots, \maxArity{} - 1$ and
+  $t \in \constants{} \cup \variables{}$,
+  \[
+    \variable{arguments}[i] = t \quad \iff \quad i \in \variable{occurrences}[t].
+  \]
+\end{definition}
+
+\begin{definition}
+  We define a $|\variables{}| \times 2$ matrix $\mathbf{M}$ with domain $[0,
+  \maxArity{}]$ such that for $v = 0, \dots, |\variables{}| - 1$,
+  \begin{align*}
+    M_{v,0} &= |\variable{occurrences}[v]|.\\
+    M_{v,1} &= \begin{cases}
+      \min \variable{occurrences}[v] & \text{if } \variable{occurrences}[v] \ne \emptyset\\
+      0\footnotemark & \text{otherwise.}
+    \end{cases}
+  \end{align*}
+\end{definition}
+\footnotetext{This could be any fixed value in the domain.}
+
+\begin{constraint}
+  We can then impose the \variable{lexChainLessEq} constraint on $\mathbf{M}$
+  which means that for $v = 1, \dots, |\variables{}| - 1$,
+  \[
+    |\variable{occurrences}[v - 1]| \le |\variable{occurrences}[v]|,
+  \]
+  and if $|\variable{occurrences}[v - 1]| = |\variable{occurrences}[v]| > 0$,
+  then
+  \[
+    \min \variable{occurrences}[v - 1] \le \min \variable{occurrences}[v].
+  \]
+\end{constraint}
+
+\section{Interactions Between Clauses}
 
 \begin{constraint}
   For $i = 0, \dots, \maxNumClauses - 1$, let $p_i =
@@ -392,15 +416,8 @@ $\variable{treeValues}[0].\variable{name} = \top$.
   then $\variable{bodiesOfClauses}[i-1] \preceq \variable{bodiesOfClauses}[i]$.
 \end{constraint}
 For example, $\preceq$ can be implemented as \variable{lexLessEq} over the
-decision variables of each body. % TODO: can this be turned into lexChainLessEq?
-
-\begin{constraint}
-  Adjacency matrix representation:
-  \begin{align*}
-    A[i][j] = 0 \iff &\nexists k: \variable{headsOfClauses}[k].\variable{predicate} = j \text{ and } \\
-    &i \in \{ a.\variable{name} \mid a \in \variable{bodiesOfClauses}[k].\variable{treeValues} \}.
-  \end{align*}
-\end{constraint}
+decision variables of each body.
+% TODO: turn this into lexChainLessEq. But before: update the counting section.
 
 \section{Counting Programs}
 % TODO: update to account for the new definition of head
@@ -428,22 +445,14 @@ and
       c_i \ge 1 \text{ for all } i}} \prod_{i=1}^k T(c_i).
 \]
 
-Example of ordered partitions:
-\[
-  3 = 2 + 1 = 2 + 1 = 1 + 1 + 1,
-\]
-so for $n=4$, the sum would have three terms.
-
+% TODO: does it work? explain why it works
 Number of heads for a specific predicate with arity $a \in \arities{}$:
 \[
-  H_a = |\constants{}|^a + \sum_{v=1}^a \binom{a}{v} |\constants{}|^{a-v}
-  \sum_{k=0}^{|\variables{}|-1} \binom{v-1}{k}.
+  H_a = \sum_{v = 0}^a |\constants{}|^{a-v} \sum_{k=1}^{\min\{|\variables{}|,
+    a\}} p_k(a),
 \]
-First, select the $v$ positions dedicated for variables. The remaining $a-v$
-constants can then be filled in $|\constants{}|^{a-v}$ ways. Filling $v$
-positions with $k+1$ variables in a non-decreasing manner (without skipping any
-variables) can be seen as putting $k$ `bars' in the $v-1$ spaces between $v$
-positions. Each bar represents switching to the next variable.
+where $p_k(a)$ denotes the number of ways to partition integer $a$ into exactly
+$k$ parts.
 
 Let us order the elements of $\predicates{}$, and let $a_i$ be the arity of the
 $i$-th predicate. The number of programs is then:
@@ -487,6 +496,15 @@ This is without any kind of cycle detection and without probabilities.
 \begin{definition}
   Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are \emph{independent} if
   $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
+\end{definition}
+
+\begin{definition}[Adjacency matrix representation]
+  An $|\predicates{}| \times |\predicates{}|$ adjacency matrix $\mathbf{A}$
+  defined by
+  \begin{align*}
+    A_{i,j} = 0 \iff &\nexists k: \variable{headsOfClauses}[k].\variable{predicate} = j \text{ and } \\
+    &i \in \{ a.\variable{name} \mid a \in \variable{bodiesOfClauses}[k].\variable{treeValues} \}.
+  \end{align*}
 \end{definition}
 
 A dependency is an algebraic data type that is either determined (in which case

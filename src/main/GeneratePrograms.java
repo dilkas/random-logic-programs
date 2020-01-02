@@ -28,8 +28,8 @@ class GeneratePrograms {
     private static final double[] PROBABILITIES = {1};
 
     static String[] PREDICATES = {"p"};
-    static int[] ARITIES = {3};
-    static String[] VARIABLES = {"X", "Y", "Z"};
+    static int[] ARITIES = {1};
+    static String[] VARIABLES = {"Z", "Y", "X"};
     static String[] CONSTANTS = {};
     static int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
@@ -139,7 +139,6 @@ class GeneratePrograms {
         new Constraint("NoNegativeCycles",
                 new NegativeCyclePropagator(clauseAssignments, bodies, FORBID_ALL_CYCLES)).post();
 
-        // Extra conditions.
         /*model.arithm(clauseAssignments[0], "=", 0).post();
         IntVar[] treeStructure = bodies[0].getTreeStructure();
         IntVar[] treeValues = bodies[0].getTreeValues();
@@ -238,5 +237,7 @@ class GeneratePrograms {
         //setUpExtraConditions();
         configureSearchStrategy();
         saveProgramsToFiles();
+
+        //checkNumPrograms();
     }
 }
