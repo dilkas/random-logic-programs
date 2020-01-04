@@ -11,6 +11,7 @@ import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
 import org.chocosolver.solver.search.strategy.selectors.variables.Random;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.solver.variables.SetVar;
 import org.chocosolver.util.tools.ArrayUtils;
 import propagators.NegativeCyclePropagator;
 
@@ -29,8 +30,8 @@ class GeneratePrograms {
 
     static String[] PREDICATES = {"p"};
     static int[] ARITIES = {1};
-    static String[] VARIABLES = {"Z", "Y", "X"};
-    static String[] CONSTANTS = {};
+    static String[] VARIABLES = {"X", "Y", "Z"};
+    static String[] CONSTANTS = {"a"};
     static int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
     static Tuples arities;
@@ -40,10 +41,24 @@ class GeneratePrograms {
     private static Head[] clauseHeads; // full heads (predicates, variables, constants)
     private static Body[] bodies; // the body of each clause
     private static IntVar[] decisionVariables; // all decision variables relevant to the problem
+    private static IntVar[][][] M; // a tensor for eliminating variable symmetries
     private static java.util.Random rng;
 
     /** The entire clause, i.e., both body and head */
     private static String clauseToString(int i, java.util.Random rng) {
+        // Print M
+        for (int j = 0; j < M[i].length; j++) {
+            for (int k = 0; k < M[i][j].length; k++)
+                System.out.print(M[i][j][k].getValue() + " ");
+            System.out.println();
+        }
+
+        System.out.print("Occurrences of variables in the body: ");
+        SetVar[] bodyOccurrences = bodies[i].getOccurrences();
+        for (int j = 0; j < bodyOccurrences.length; j++)
+            System.out.print(bodyOccurrences[j].getValue() + " ");
+        System.out.println();
+
         // Is this clause disabled?
         int predicate = clauseAssignments[i].getValue();
         if (predicate == PREDICATES.length)
@@ -133,6 +148,25 @@ class GeneratePrograms {
             }
         }
 
+        // Remove variable symmetries
+        M = new IntVar[MAX_NUM_CLAUSES][][];
+        for (int i = 0; i < M.length; i++) {
+            M[i] = model.intVarMatrix(VARIABLES.length, 2, 0, MAX_NUM_NODES * MAX_ARITY);
+            for (int v = 0; v < VARIABLES.length; v++) {
+                setCardinalities(M[i], clauseHeads[i].getOccurrences(), v, CONSTANTS.length, 0);
+                setCardinalities(M[i], bodies[i].getOccurrences(), v, 0, 1);
+            }
+            model.lexChainLessEq(M[i]).post();
+        }
+    }
+
+    private static void setCardinalities(IntVar[][] M, SetVar[] occurrences, int i, int offset, int MOffset) {
+        model.min(occurrences[i + offset], M[i][MOffset], false).post();
+        SetVar[] occurrencesAtI = new SetVar[1];
+        occurrencesAtI[0] = occurrences[i + offset];
+        Constraint noOccurrences = model.nbEmpty(occurrencesAtI, 1);
+        Constraint fixMinOccurrence = model.arithm(M[i][MOffset], "=", MAX_NUM_NODES * MAX_ARITY);
+        model.ifThen(noOccurrences, fixMinOccurrence);
     }
 
     private static void setUpExtraConditions() {

@@ -3,6 +3,7 @@ package main;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.solver.variables.SetVar;
 import org.chocosolver.util.iterators.DisposableValueIterator;
 import org.chocosolver.util.tools.ArrayUtils;
 import propagators.Sign;
@@ -16,6 +17,7 @@ public class Body {
     private int maxNumNodes;
     private IntVar[] treeStructure;
     private Node[] treeValues;
+    private SetVar[] occurrences;
 
     public Body(Model model, IntVar assignment, int maxNumNodes) {
         this.maxNumNodes = maxNumNodes;
@@ -81,6 +83,22 @@ public class Body {
         Constraint oneNode = model.arithm(numNodes, "=", 1);
         Constraint alwaysTrue = model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal());
         model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
+
+        int numIndices = treeValues.length * GeneratePrograms.MAX_ARITY;
+        IntVar[] arguments = new IntVar[numIndices];
+        for (int i = 0; i < treeValues.length; i++)
+            System.arraycopy(treeValues[i].getArguments(), 0, arguments, i * GeneratePrograms.MAX_ARITY,
+                    GeneratePrograms.MAX_ARITY);
+        int[] possibleIndices = new int[numIndices];
+        for (int i = 0; i < numIndices; i++)
+            possibleIndices[i] = i;
+        occurrences = model.setVarArray(GeneratePrograms.VARIABLES.length + GeneratePrograms.CONSTANTS.length + 1,
+                new int[0], possibleIndices);
+        model.setsIntsChanneling(occurrences, arguments).post();
+    }
+
+    SetVar[] getOccurrences() {
+        return occurrences;
     }
 
     /** A list of predicates featured in this clause. The sign of each predicate denotes whether the predicate is

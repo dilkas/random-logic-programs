@@ -12,7 +12,7 @@ class Node {
     private IntVar arity;
 
     Node(Model model) {
-        int numPossibleArguments = GeneratePrograms.VARIABLES.length + GeneratePrograms.CONSTANTS.length;
+        int numPossibleArguments = GeneratePrograms.VARIABLES.length + GeneratePrograms.CONSTANTS.length + 1;
         predicate = model.intVar(0, GeneratePrograms.PREDICATES.length + Token.values().length - 1);
         arguments = model.intVarArray(GeneratePrograms.MAX_ARITY, 0, numPossibleArguments - 1);
 
@@ -21,10 +21,11 @@ class Node {
         arity = model.intVar(0, GeneratePrograms.MAX_ARITY);
         model.table(predicate, arity, GeneratePrograms.arities).post();
         for (int i = 0; i < arguments.length; i++) {
-            // If i >= arity, then arguments[i] must be zero
+            // If i >= arity, then arguments[i] must be undefined
             Constraint iGTEQArity = model.arithm(arity, "<=", i);
-            Constraint fixArgument = model.arithm(arguments[i], "=", 0);
-            model.ifThen(iGTEQArity, fixArgument);
+            Constraint fixArgument = model.arithm(arguments[i], "=", numPossibleArguments - 1);
+            Constraint notDisabled = model.arithm(arguments[i], "!=", numPossibleArguments - 1);
+            model.ifThenElse(iGTEQArity, fixArgument, notDisabled);
         }
     }
 
@@ -34,6 +35,10 @@ class Node {
 
     IntVar[] getDecisionVariables() {
         return ArrayUtils.concat(arguments, predicate);
+    }
+
+    IntVar[] getArguments() {
+        return arguments;
     }
 
     @Override
@@ -54,11 +59,6 @@ class Node {
             }
         }
         atom.append(")");
-
-        /*atom.append(" (");
-        atom.append(arity.getValue());
-        atom.append(")");*/
-
         return atom.toString();
     }
 }

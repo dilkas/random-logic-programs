@@ -75,9 +75,6 @@ Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
 \subsection{TODO}
 
 \begin{itemize}
-\item Construct matrix M for variables that don't participate in the head. Have
-  a variable variablesThatParticipateInTheHead that separates the set of
-  variables.
 \item A constraint for logical equivalence. An algorithm to reduce each tree to
   some kind of normal form. Not doing this on purpose. Leaving for further work.
 \item Perhaps negative cycle detection could use the same graph as the
@@ -163,24 +160,6 @@ constants and variables are ordered, this is the only constant value in $\{ 0,
 \dots, |\constants{}| + |\variables{}| - 1 \}$ that satisfies all other
 constraints on the head.
 
-% TODO: will need to be updated
-\begin{example}
-  Let $\maxArity{} = 4$, $\mathsf{P} \in \predicates{}$, $\constants{} = \{ a
-  \}$, $\variables{} = \{X, Y, Z \}$. Then $\mathsf{P}(Z, Y, Z)$ would be
-  represented as:
-  \begin{align*}
-    \variable{predicate} &= \mathsf{P},\\
-    \variable{arguments} &= [Z, Y, Z, 0],\\
-    \variable{arity} &= 3,\\
-    \variable{occurrences} &= [\emptyset, \emptyset, \{ 1 \}, \{ 0, 2 \}],\\
-    \mathbf{M} &= \begin{bmatrix}
-      0 & 0\\
-      1 & 1\\
-      2 & 0
-    \end{bmatrix}.
-  \end{align*}
-\end{example}
-
 \section{Bodies of Clauses}
 
 \begin{definition}
@@ -238,7 +217,9 @@ latter counts the number of trees in total.
 
 \begin{definition} \label{def:node}
   A \emph{node} has a $\variable{name} \in \tokens{} \cup \predicates{}$ and
-  $\arrayd{arguments}{\maxArity{}}{\variables{} \cup \constants{}}$. The node's
+  $\arrayd{arguments}{\maxArity{}}{\variables{} \cup \constants{} \cup \{ \Box
+    \}}$, where $\Box$ denotes a disabled argument (the reason why this value is
+  needed will become clear in \cref{sec:variable_symmetry}). The node's
   $\variable{arity} \in [0, \maxArity{}]$ is defined by a \variable{table}
   constraint as
   \[
@@ -251,11 +232,8 @@ latter counts the number of trees in total.
 \end{definition}
 
 \begin{constraint}
-  For $i = 0, \dots, \maxArity{} - 1$,
-  \[
-    i \ge \variable{arity} \implies \variable{arguments}[i] = 0\footnote{Zero
-      here represents the first variable or constant, regardless of what it is.}.
-  \]
+  For $i = 0, \dots, \maxArity{} - 1$, if $i \ge \variable{arity}$, then
+  $\variable{arguments}[i] = \Box$, else $\variable{arguments}[i] \ne \Box$.
 \end{constraint}
 
 \begin{example}
@@ -264,7 +242,7 @@ latter counts the number of trees in total.
   $\mathsf{P}(X)$ has:
   \begin{align*}
     \variable{name} &= \mathsf{P},\\
-    \variable{arguments} &= [X, 0],\\
+    \variable{arguments} &= [X, \Box],\\
     \variable{arity} &= 1.
   \end{align*}
 \end{example}
@@ -340,33 +318,57 @@ multiple children, respectively.
   \]
 \end{constraint}
 
-\section{Eliminating Variable Symmetries}
-% TODO: the matrix should include two more columns for bodies
+\section{Eliminating Variable Symmetries} \label{sec:variable_symmetry}
 
-\begin{definition} We define an array \variable{occurrences} of $|\constants{}|
-  + |\variables{}|$ sets such that, for all $t \in \constants{} \cup
-  \variables{}$, $\variable{occurrences}[t]$ is a subset of $\{ 0, \dots,
-  \maxArity{} - 1\}$ that stores the indices of \variable{arguments} at which
-  $t$ is located. It is defined by the \variable{setsIntsChanneling} constraint
-  equivalent to the following condition: for $i = 0, \dots, \maxArity{} - 1$ and
-  $t \in \constants{} \cup \variables{}$,
+Given any clause, we can permute the variables in it without changing the
+meaning of the clause or the entire program. Thus, we want to fix an order on
+variables to eliminate unnecessary symmetries. Informally, we can say that
+variable $X$ goes before variable $Y$ if its first occurrence in either the head
+or the body of the clause is before the first occurrence of $Y$.
+
+\begin{definition}
+  Head:
+
+  size: $|\constants{}| + |\variables{}|$
+
+  domain: $\{ 0, \dots, \maxArity{} - 1\}$
+
+  condition: for $i = 0, \dots, \maxArity{} - 1$ and $t \in \constants{} \cup \variables{}$,
   \[
     \variable{arguments}[i] = t \quad \iff \quad i \in \variable{occurrences}[t].
   \]
+
+  Body:
+
+  size: $|\constants{}| + |\variables{}| + 1$
+
+  domain: $\maxNumNodes{} \times \maxArity{}$
+
+  condition: for $i = 0, \dots, \maxNumNodes{} - 1$, $j = 0, \dots, \maxArity{}
+  - 1$, $t \in \constants{} \cup \variables{} \cup \{ \Box \}$,
+  \[
+    \variable{treeValues}[i].\variable{arguments}[j] = t \quad \iff \quad i
+    \times \maxNumNodes{} + j \in \variable{occurrences}[t]
+  \]
+
+  We define an array \variable{occurrences} of  sets such that, for all $t \in
+  \constants{} \cup \variables{}$, $\variable{occurrences}[t]$ is a subset of
+  that stores the indices of \variable{arguments} at which $t$ is located. It is
+  defined by the \variable{setsIntsChanneling} constraint equivalent to the
+  following condition:
 \end{definition}
 
 \begin{definition}
   We define a $|\variables{}| \times 2$ matrix $\mathbf{M}$ with domain $[0,
-  \maxArity{}]$ such that for $v = 0, \dots, |\variables{}| - 1$,
+  \maxNumNodes{} \times \maxArity{}]$ such that for $v = 0, \dots, |\variables{}| - 1$,
   \begin{align*}
     M_{v,0} &= |\variable{occurrences}[v]|.\\
     M_{v,1} &= \begin{cases}
       \min \variable{occurrences}[v] & \text{if } \variable{occurrences}[v] \ne \emptyset\\
-      0\footnotemark & \text{otherwise.}
+      \maxNumNodes{} \times \maxArity{} & \text{otherwise.}
     \end{cases}
   \end{align*}
 \end{definition}
-\footnotetext{This could be any fixed value in the domain.}
 
 \begin{constraint}
   We can then impose the \variable{lexChainLessEq} constraint on $\mathbf{M}$
@@ -380,6 +382,23 @@ multiple children, respectively.
     \min \variable{occurrences}[v - 1] \le \min \variable{occurrences}[v].
   \]
 \end{constraint}
+
+\begin{example}
+  Let $\maxArity{} = 4$, $\mathsf{P} \in \predicates{}$, $\constants{} = \{ a
+  \}$, $\variables{} = \{X, Y, Z \}$. Then $\mathsf{P}(Z, Y, Z)$ would be
+  represented as:
+  \begin{align*}
+    \variable{predicate} &= \mathsf{P},\\
+    \variable{arguments} &= [Z, Y, Z, 0],\\
+    \variable{arity} &= 3,\\
+    \variable{occurrences} &= [\emptyset, \emptyset, \{ 1 \}, \{ 0, 2 \}],\\
+    \mathbf{M} &= \begin{bmatrix}
+      0 & 0\\
+      1 & 1\\
+      2 & 0
+    \end{bmatrix}.
+  \end{align*}
+\end{example}
 
 \section{Interactions Between Clauses}
 
@@ -417,7 +436,7 @@ multiple children, respectively.
 \end{constraint}
 For example, $\preceq$ can be implemented as \variable{lexLessEq} over the
 decision variables of each body.
-% TODO: turn this into lexChainLessEq. But before: update the counting section.
+% TODO: turn this into lexChainLessEq
 
 \section{Counting Programs}
 % TODO: update to account for the new definition of head
@@ -445,7 +464,7 @@ and
       c_i \ge 1 \text{ for all } i}} \prod_{i=1}^k T(c_i).
 \]
 
-% TODO: does it work? explain why it works
+% TODO: explain how it works
 Number of heads for a specific predicate with arity $a \in \arities{}$:
 \[
   H_a = \sum_{v = 0}^a |\constants{}|^{a-v} \sum_{k=1}^{\min\{|\variables{}|,
@@ -458,7 +477,6 @@ Let us order the elements of $\predicates{}$, and let $a_i$ be the arity of the
 $i$-th predicate. The number of programs is then:
 \[
   \sum_{\substack{ \sum_{i=1}^{|\predicates{}|} h_i = n,\\
-%      h_1 + \dots + h_{|\predicates{}|} = n,\\
       |\predicates{}| \le n \le \maxNumClauses,\\
       h_i \ge 1 \text{ for all } i}} \prod_{i=1}^{|\predicates{}|}
   \multiset{C}{h_i} H_{a_i}^{h_i},
@@ -469,7 +487,7 @@ where
 \]
 
 This is without any kind of cycle detection and without probabilities.
-% TODO: describe what parameter values were used to test the model.
+% TODO: describe what parameter values were used to test the model (or... not).
 
 \section{Predicate Independence}
 

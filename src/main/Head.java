@@ -11,6 +11,7 @@ class Head {
     private IntVar predicate; // PREDICATES.length means that the clause is disabled
     private IntVar[] arguments;
     private IntVar arity;
+    private SetVar[] occurrences;
 
     Head(Model model, IntVar predicate) {
         this.predicate = predicate;
@@ -34,24 +35,13 @@ class Head {
         for (int i = 0; i < GeneratePrograms.MAX_ARITY; i++)
             possibleIndices[i] = i;
         // For each variable, we store the set of indices where it occurs
-        SetVar[] occurrences = model.setVarArray(GeneratePrograms.CONSTANTS.length +
+        occurrences = model.setVarArray(GeneratePrograms.CONSTANTS.length +
                 GeneratePrograms.VARIABLES.length, new int[0], possibleIndices);
         model.setsIntsChanneling(occurrences, arguments).post();
+    }
 
-        // Information about occurrences that we're going to sort
-        IntVar[][] occurrenceCardAndMin = model.intVarMatrix(GeneratePrograms.VARIABLES.length, 2, 0,
-                GeneratePrograms.MAX_ARITY);
-        for (int i = 0; i < GeneratePrograms.VARIABLES.length; i++) {
-            occurrenceCardAndMin[i][0] = occurrences[GeneratePrograms.CONSTANTS.length + i].getCard();
-            model.min(occurrences[GeneratePrograms.CONSTANTS.length + i], occurrenceCardAndMin[i][1],
-                    false).post();
-            SetVar[] occurrencesAtI = new SetVar[1];
-            occurrencesAtI[0] = occurrences[GeneratePrograms.CONSTANTS.length + i];
-            Constraint noOccurrences = model.nbEmpty(occurrencesAtI, 1);
-            Constraint fixMinOccurrence = model.arithm(occurrenceCardAndMin[i][1], "=", 0);
-            model.ifThen(noOccurrences, fixMinOccurrence);
-        }
-        model.lexChainLessEq(occurrenceCardAndMin).post();
+    SetVar[] getOccurrences() {
+        return occurrences;
     }
 
     public IntVar[] getDecisionVariables() {
