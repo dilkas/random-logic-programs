@@ -41,23 +41,28 @@ class GeneratePrograms {
     private static Head[] clauseHeads; // full heads (predicates, variables, constants)
     private static Body[] bodies; // the body of each clause
     private static IntVar[] decisionVariables; // all decision variables relevant to the problem
-    private static IntVar[][][] M; // a tensor for eliminating variable symmetries
+    private static IntVar[][] termsPerClause; // a flattened-out view of the term positions in each clause
+    private static SetVar[][] occurrences; // for each clause and variable, a set of positions with that variable
+    private static IntVar[][] M; // for eliminating variable symmetries
     private static java.util.Random rng;
 
     /** The entire clause, i.e., both body and head */
     private static String clauseToString(int i, java.util.Random rng) {
-        // Print M
-        for (int j = 0; j < M[i].length; j++) {
-            for (int k = 0; k < M[i][j].length; k++)
-                System.out.print(M[i][j][k].getValue() + " ");
-            System.out.println();
-        }
+        for (int j = 0; j < termsPerClause[i].length; j++)
+            System.out.print(termsPerClause[i][j].getValue() + " ");
+        System.out.println();
+        for (int j = 0; j < occurrences[i].length; j++)
+            System.out.print(occurrences[i][j].getValue() + " ");
+        System.out.println();
+        for (int j = 0; j < M[i].length; j++)
+            System.out.print(M[i][j].getValue() + " ");
+        System.out.println();
 
-        System.out.print("Occurrences of variables in the body: ");
+        /*System.out.print("Occurrences of variables in the body: ");
         SetVar[] bodyOccurrences = bodies[i].getOccurrences();
         for (int j = 0; j < bodyOccurrences.length; j++)
             System.out.print(bodyOccurrences[j].getValue() + " ");
-        System.out.println();
+        System.out.println();*/
 
         // Is this clause disabled?
         int predicate = clauseAssignments[i].getValue();
@@ -148,25 +153,38 @@ class GeneratePrograms {
             }
         }
 
-        // Remove variable symmetries
-        M = new IntVar[MAX_NUM_CLAUSES][][];
-        for (int i = 0; i < M.length; i++) {
-            M[i] = model.intVarMatrix(VARIABLES.length, 2, 0, MAX_NUM_NODES * MAX_ARITY);
-            for (int v = 0; v < VARIABLES.length; v++) {
-                setCardinalities(M[i], clauseHeads[i].getOccurrences(), v, CONSTANTS.length, 0);
-                setCardinalities(M[i], bodies[i].getOccurrences(), v, 0, 1);
-            }
-            model.lexChainLessEq(M[i]).post();
+        // Set up termsPerClause to keep track of all variables and constants across each clause
+        int numIndices = (MAX_NUM_NODES + 1) * MAX_ARITY;
+        // a concatenation of all terms in each clause (both head and body) (dimension 1 - clauses, dimension 2 - positions)
+        termsPerClause = new IntVar[MAX_NUM_CLAUSES][numIndices];
+        for (int i = 0; i < MAX_NUM_CLAUSES; i++) {
+            System.arraycopy(clauseHeads[i].getArguments(), 0, termsPerClause[i], 0, MAX_ARITY);
+            System.arraycopy(bodies[i].getArguments(), 0, termsPerClause[i], MAX_ARITY, MAX_NUM_NODES * MAX_ARITY);
         }
-    }
 
-    private static void setCardinalities(IntVar[][] M, SetVar[] occurrences, int i, int offset, int MOffset) {
-        model.min(occurrences[i + offset], M[i][MOffset], false).post();
-        SetVar[] occurrencesAtI = new SetVar[1];
-        occurrencesAtI[0] = occurrences[i + offset];
-        Constraint noOccurrences = model.nbEmpty(occurrencesAtI, 1);
-        Constraint fixMinOccurrence = model.arithm(M[i][MOffset], "=", MAX_NUM_NODES * MAX_ARITY);
-        model.ifThen(noOccurrences, fixMinOccurrence);
+        // Set up occurrences
+        int maxValue = CONSTANTS.length + VARIABLES.length;
+        int[] possibleIndices = new int[numIndices];
+        for (int i = 0; i < numIndices; i++)
+            possibleIndices[i] = i;
+        occurrences = model.setVarMatrix(MAX_NUM_CLAUSES, maxValue + 1, new int[0], possibleIndices);
+        for (int i = 0; i < MAX_NUM_CLAUSES; i++)
+            model.setsIntsChanneling(occurrences[i], termsPerClause[i]).post();
+
+        // Set up M
+        M = new IntVar[MAX_NUM_CLAUSES][];
+        for (int i = 0; i < MAX_NUM_CLAUSES; i++) {
+            M[i] = model.intVarArray(VARIABLES.length, 0, numIndices);
+            for (int v = 0; v < VARIABLES.length; v++) {
+                model.min(occurrences[i][v], M[i][v], false).post();
+                SetVar[] occurrencesAtI = new SetVar[1];
+                occurrencesAtI[0] = occurrences[i][v];
+                Constraint noOccurrences = model.nbEmpty(occurrencesAtI, 1);
+                Constraint fixMinOccurrence = model.arithm(M[i][v], "=", numIndices);
+                model.ifThen(noOccurrences, fixMinOccurrence);
+            }
+            model.sort(M[i], M[i]).post();
+        }
     }
 
     private static void setUpExtraConditions() {
