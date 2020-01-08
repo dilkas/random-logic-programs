@@ -24,8 +24,7 @@ class Node {
             // If i >= arity, then arguments[i] must be undefined
             Constraint iGTEQArity = model.arithm(arity, "<=", i);
             Constraint fixArgument = model.arithm(arguments[i], "=", numPossibleArguments - 1);
-            Constraint notDisabled = model.arithm(arguments[i], "!=", numPossibleArguments - 1);
-            model.ifThenElse(iGTEQArity, fixArgument, notDisabled);
+            model.ifOnlyIf(iGTEQArity, fixArgument);
         }
     }
 

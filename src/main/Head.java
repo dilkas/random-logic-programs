@@ -25,8 +25,7 @@ class Head {
         for (int i = 0; i < arguments.length; i++) {
             Constraint iGeArity = model.arithm(arity, "<=", i);
             Constraint isDisabled = model.arithm(arguments[i], "=", numValues);
-            Constraint notDisabled = model.arithm(arguments[i], "!=", numValues);
-            model.ifThenElse(iGeArity, isDisabled, notDisabled);
+            model.ifOnlyIf(iGeArity, isDisabled);
         }
 
     }

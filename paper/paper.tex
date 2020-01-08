@@ -37,7 +37,8 @@
 % If there are more than two authors, 'et al.' is used.
 
 \institute{University of Edinburgh, Edinburgh, UK\\
-\email{p.dilkas@sms.ed.ac.uk}}
+  Heriot-Watt University, Edinburgh, UK\\
+  \email{p.dilkas@sms.ed.ac.uk}}
 \maketitle
 
 \begin{abstract}
@@ -123,6 +124,8 @@ variables of the model are contained in two arrays:
 \end{itemize}
 
 \section{Heads of Clauses}
+% TODO: section for clauses. define heads & bodies, then separate subsections
+% for head and body constraints
 
 Our definition is slightly more involved because we want to eliminate some
 symmetries.
@@ -130,10 +133,11 @@ symmetries.
 \begin{definition}
   The \emph{head} of a clause is composed of:
   \begin{itemize}
-  \item a $\variable{predicate} \in \predicates \cup \{ \Box \}$, where $\Box$
-    denotes a disabled clause,
-  \item and $\arrayd{arguments}{\maxArity{}}{\constants{} \cup \variables{}}$.
+  \item a $\variable{predicate} \in \predicates \cup \{ \Box \}$.
+  \item and $\arrayd{arguments}{\maxArity{}}{\constants{} \cup \variables{}}
+    \cup \{ \Box \}$
   \end{itemize}
+  In both cases, $\Box$ is the disabled value.
 \end{definition}
 
 \begin{definition}
@@ -150,15 +154,9 @@ symmetries.
 \begin{constraint}
   For $i = 0, \dots, \maxArity{} - 1$,
   \[
-    i \ge \variable{arity} \implies \variable{arguments}[i] = |\constants{}| +
-    |\variables{}| - 1.
+    \variable{arguments}[i] = \Box \iff i \ge \variable{arity}.
   \]
 \end{constraint}
-In other words, we fix the unused arguments to be the last variable in
-$\variables{}$ if there are any, and a constant otherwise. Because of the way
-constants and variables are ordered, this is the only constant value in $\{ 0,
-\dots, |\constants{}| + |\variables{}| - 1 \}$ that satisfies all other
-constraints on the head.
 
 \section{Bodies of Clauses}
 
@@ -232,9 +230,12 @@ latter counts the number of trees in total.
 \end{definition}
 
 \begin{constraint}
-  For $i = 0, \dots, \maxArity{} - 1$, if $i \ge \variable{arity}$, then
-  $\variable{arguments}[i] = \Box$, else $\variable{arguments}[i] \ne \Box$.
+  For $i = 0, \dots, \maxArity{} - 1$,
+  \[
+  \variable{arguments}[i] = \Box \quad \iff \quad i \ge \variable{arity}.
+  \]
 \end{constraint}
+% TODO: this could merged into a single constraint for termsPerClause
 
 \begin{example}
   Let $\maxArity{} = 2$, $\predicates{} = [\mathsf{P}, \dots]$, $\arities{}
@@ -358,8 +359,6 @@ or the body of the clause is before the first occurrence of $Y$.
   following condition:
 \end{definition}
 
-% TODO: heads also have the 'disabled' variable/constant value. and if/then
-% becomes if/then/else.
 \begin{definition}
   We define a $|\variables{}| \times 2$ matrix $\mathbf{M}$ with domain $[0,
   \maxNumNodes{} \times \maxArity{}]$ such that for $v = 0, \dots, |\variables{}| - 1$,
@@ -405,12 +404,6 @@ or the body of the clause is before the first occurrence of $Y$.
 \section{Interactions Between Clauses}
 
 \begin{constraint}
-  For $i = 0, \dots, \maxNumClauses - 1$, let $p_i =
-  \variable{headsOfClauses}[i].\variable{predicate}$. Then
-  $(p_i)_{i=0}^{\maxNumClauses - 1}$ is sorted.
-\end{constraint}
-
-\begin{constraint}
   Each predicate gets at least one clause. Let
   \[
     P = \{ h.\variable{predicate} \mid h \in \variable{headsOfClauses} \}.
@@ -427,53 +420,40 @@ or the body of the clause is before the first occurrence of $Y$.
 \end{constraint}
 
 \begin{constraint}
-  Let $\prec$ be any total order defined over bodies of clauses, and let
-  $\preceq$ be its extension with equality (in the same way as $\le$ extends
-  $<$). If
-  \[
-    \variable{headsOfClauses}[i-1].\variable{predicate} =
-    \variable{headsOfClauses}[i].\variable{predicate},
-  \]
-  then $\variable{bodiesOfClauses}[i-1] \preceq \variable{bodiesOfClauses}[i]$.
+  Clauses are sorted.
 \end{constraint}
-For example, $\preceq$ can be implemented as \variable{lexLessEq} over the
-decision variables of each body.
-% TODO: turn this into lexChainLessEq
 
 \section{Counting Programs}
-% TODO: update to account for the new definition of head
+
+This is without any kind of cycle detection and without probabilities.
+
+Number of ways to fill $n$ positions with terms: % TODO: what's the smallest n?
+\[
+  P(n) = |\constants{}|^n + |\constants{}|^{n-1}|\variables{}| +
+  \sum_{i=0}^{n-2} |\constants{}|^i \sum_{j=0}^{\min\{|\variables{}| - 1, n - i
+    - 1\}} \binom{n-i-1}{j} (|\constants{}| + 1)^{n-i-j-1}
+\]
+where $i$ iterates over the number of constants before the first variable, and
+$j$ iterates over the number of `new variable actions'. Explain:
+$|\constants{}|+2$ possible actions.
 
 Let $p_a$ be the number of predicates in $\predicates{}$ with arity $a \in
-\arities{}$.
-
-Number of atoms (leaves of the tree):
+\arities{}$. Number of clauses with total arity $a$:
+\begin{align*}
+  C(0) &= 1,\\
+  C(a) &= \sum_{n=1}^{\maxNumNodes{}} T(n, a),
+\end{align*}
+where $T(n, a)$ is defined recursively as:
 \[
-  A = \sum_{a \in \arities{}} p_a(|\variables{}| + |\constants{}|)^a
-\]
-
-Number of clauses:
-\[
-  C = 1 + \sum_{n=1}^{\maxNumNodes{}} T(n),
-\]
-where $T(n)$ is defined recursively as:
-\[
-  T(1) = A
+  T(1, a) = p_a
 \]
 and
 \[
-  T(n) = T(n-1) + 2\sum_{\substack{c_1 + \dots + c_k = n - 1,\\
-      k \ge 2,\\
-      c_i \ge 1 \text{ for all } i}} \prod_{i=1}^k T(c_i).
+  T(n, a) = T(n-1, a) + 2\sum_{\substack{c_1 + \dots + c_k = n - 1,\\
+      2 \le k \le \frac{a}{\min \arities{}},\\
+      c_i \ge 1 \text{ for all } i}} \sum_{\substack{d_1 + \dots + d_k = a,\\
+    d_i \ge \min \arities{} \text{ for all } i}} \prod_{i=1}^k T(c_i, d_i).
 \]
-
-% TODO: explain how it works
-Number of heads for a specific predicate with arity $a \in \arities{}$:
-\[
-  H_a = \sum_{v = 0}^a |\constants{}|^{a-v} \sum_{k=1}^{\min\{|\variables{}|,
-    a\}} p_k(a),
-\]
-where $p_k(a)$ denotes the number of ways to partition integer $a$ into exactly
-$k$ parts.
 
 Let us order the elements of $\predicates{}$, and let $a_i$ be the arity of the
 $i$-th predicate. The number of programs is then:
@@ -481,15 +461,12 @@ $i$-th predicate. The number of programs is then:
   \sum_{\substack{ \sum_{i=1}^{|\predicates{}|} h_i = n,\\
       |\predicates{}| \le n \le \maxNumClauses,\\
       h_i \ge 1 \text{ for all } i}} \prod_{i=1}^{|\predicates{}|}
-  \multiset{C}{h_i} H_{a_i}^{h_i},
+  \multiset{\sum_{a=0}^{\maxArity{} \times \maxNumNodes{}} C(a) P(a+a_i)}{h_i},
 \]
 where
 \[
-  \multiset{n}{k} = \binom{n + k - 1}{k}.
+  \multiset{n}{k} = \binom{n+k-1}{k}.
 \]
-
-This is without any kind of cycle detection and without probabilities.
-% TODO: describe what parameter values were used to test the model (or... not).
 
 \section{Predicate Independence}
 

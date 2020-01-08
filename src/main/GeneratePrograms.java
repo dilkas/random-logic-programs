@@ -22,7 +22,7 @@ class GeneratePrograms {
     private static final String DIRECTORY = "../programs/";
     private static final int NUM_SOLUTIONS = 10000;
     private static int MAX_NUM_NODES = 1;
-    private static int MAX_NUM_CLAUSES = 1;
+    private static int MAX_NUM_CLAUSES = 2;
     private static final boolean FORBID_ALL_CYCLES = false;
     //private static final double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
     //        1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
@@ -30,7 +30,7 @@ class GeneratePrograms {
 
     static String[] PREDICATES = {"p"};
     static int[] ARITIES = {1};
-    static String[] VARIABLES = {"X", "Y", "Z"};
+    static String[] VARIABLES = {"X"};
     static String[] CONSTANTS = {"a"};
     static int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
@@ -48,7 +48,7 @@ class GeneratePrograms {
 
     /** The entire clause, i.e., both body and head */
     private static String clauseToString(int i, java.util.Random rng) {
-        for (int j = 0; j < termsPerClause[i].length; j++)
+        /*for (int j = 0; j < termsPerClause[i].length; j++)
             System.out.print(termsPerClause[i][j].getValue() + " ");
         System.out.println();
         for (int j = 0; j < occurrences[i].length; j++)
@@ -56,7 +56,7 @@ class GeneratePrograms {
         System.out.println();
         for (int j = 0; j < M[i].length; j++)
             System.out.print(M[i][j].getValue() + " ");
-        System.out.println();
+        System.out.println();*/
 
         /*System.out.print("Occurrences of variables in the body: ");
         SetVar[] bodyOccurrences = bodies[i].getOccurrences();
@@ -97,7 +97,6 @@ class GeneratePrograms {
 
         // numbers < PREDICATES.length assign a clause to a predicate, PREDICATES.length is used to discard the clause
         clauseAssignments = model.intVarArray(MAX_NUM_CLAUSES, 0, PREDICATES.length);
-        model.sort(clauseAssignments, clauseAssignments).post();
 
         clauseHeads = new Head[clauseAssignments.length];
         for (int i = 0; i < clauseHeads.length; i++)
@@ -121,18 +120,13 @@ class GeneratePrograms {
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
         decisionVariables = clauseAssignments;
-        IntVar[] previousDecisionVariables = null;
+        IntVar[][] decisionVariablesPerClause = new IntVar[MAX_NUM_CLAUSES][];
         for (int i = 0; i < MAX_NUM_CLAUSES; i++) {
-            IntVar[] currentDecisionVariables = bodies[i].getDecisionVariables();
-            decisionVariables = ArrayUtils.concat(decisionVariables, currentDecisionVariables);
-            decisionVariables = ArrayUtils.concat(decisionVariables, clauseHeads[i].getDecisionVariables());
-            if (i > 0) {
-                Constraint sameClause = model.arithm(clauseAssignments[i], "=", clauseAssignments[i-1]);
-                Constraint lexOrdering = model.lexLessEq(previousDecisionVariables, currentDecisionVariables);
-                model.ifThen(sameClause, lexOrdering);
-            }
-            previousDecisionVariables = currentDecisionVariables;
+            decisionVariablesPerClause[i] = ArrayUtils.concat(clauseHeads[i].getDecisionVariables(),
+                    bodies[i].getDecisionVariables());
+            decisionVariables = ArrayUtils.concat(decisionVariables, decisionVariablesPerClause[i]);
         }
+        model.lexChainLessEq(decisionVariablesPerClause).post();
 
         // Adding a graph representation
         IntVar[][] adjacencyMatrix = model.intVarMatrix(PREDICATES.length, PREDICATES.length, 0, 1);
@@ -171,7 +165,7 @@ class GeneratePrograms {
         for (int i = 0; i < MAX_NUM_CLAUSES; i++)
             model.setsIntsChanneling(occurrences[i], termsPerClause[i]).post();
 
-        // Set up M
+        // Eliminate variable symmetry
         M = new IntVar[MAX_NUM_CLAUSES][];
         for (int i = 0; i < MAX_NUM_CLAUSES; i++) {
             M[i] = model.intVarArray(VARIABLES.length, 0, numIndices);
@@ -219,7 +213,7 @@ class GeneratePrograms {
 
     private static void saveProgramsToFiles() throws IOException {
         for (int i = 0; i < NUM_SOLUTIONS && model.getSolver().solve(); i++) {
-            //System.out.println("========== " + i + " ==========");
+            System.out.println("========== " + i + " ==========");
             StringBuilder program = new StringBuilder();
             for (int j = 0; j < MAX_NUM_CLAUSES; j++)
                 program.append(clauseToString(j, rng));
