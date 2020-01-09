@@ -122,7 +122,10 @@ variables of the model are contained in two arrays:
 \item $\arrayt{headsOfClauses}{\maxNumClauses{}}{Head}$
 \end{itemize}
 
-\section{Heads of Clauses}
+\section{Considering Each Clause Separately}
+% TODO: define heads & bodies
+
+\subsection{Heads of Clauses}
 % TODO: section for clauses. define heads & bodies, then separate subsections
 % for head and body constraints
 
@@ -157,7 +160,7 @@ symmetries.
   \]
 \end{constraint}
 
-\section{Bodies of Clauses}
+\subsection{Bodies of Clauses}
 
 \begin{definition}
   The body of a clause is defined by:
@@ -210,7 +213,7 @@ latter counts the number of trees in total.
   this representation unique.
 \end{example}
 
-\subsection{Nodes}
+\subsubsection{Nodes}
 
 \begin{definition} \label{def:node}
   A \emph{node} has a $\variable{name} \in \tokens{} \cup \predicates{}$ and
@@ -247,7 +250,7 @@ latter counts the number of trees in total.
   \end{align*}
 \end{example}
 
-\subsection{Constraints}
+\subsubsection{Constraints}
 
 \begin{constraint}
   \variable{treeStructure} represents \variable{numTrees} trees, i.e.,
@@ -318,72 +321,48 @@ multiple children, respectively.
   \]
 \end{constraint}
 
-\section{Eliminating Variable Symmetries} \label{sec:variable_symmetry}
+\subsection{Eliminating Variable Symmetries} \label{sec:variable_symmetry}
 
 Given any clause, we can permute the variables in it without changing the
-meaning of the clause or the entire program. Thus, we want to fix an order on
+meaning of the clause or the entire program. Thus, we want to fix the order of
 variables to eliminate unnecessary symmetries. Informally, we can say that
 variable $X$ goes before variable $Y$ if its first occurrence in either the head
 or the body of the clause is before the first occurrence of $Y$.
 
 \begin{definition}
-  Head:
+  % TODO: what odes this mean? example?
+  Let $N = \maxArity{} \times (\maxNumNodes{} + 1)$. Let
+  $\variable{termsPerClause}[N] \in \constants{} \cup \variables{} \cup \{ \Box
+  \}$ be a matrix, each row of which is a flattened list of all positions for
+  terms in a particular clause.
 
-  size: $|\constants{}| + |\variables{}|$
-
-  domain: $\{ 0, \dots, \maxArity{} - 1\}$
-
-  condition: for $i = 0, \dots, \maxArity{} - 1$ and $t \in \constants{} \cup \variables{}$,
+  Then we can use the $\variable{setsIntsChanneling}$ constraint
+  to define $\variable{occurrences}[|\constants{}| + |\variables{}| + 1]$ as a
+  matrix of subsets of $\{ 0, \dots, N-1 \}$ such that for all $i = 0, \dots, N
+  - 1$, and $t \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   \[
-    \variable{arguments}[i] = t \quad \iff \quad i \in \variable{occurrences}[t].
+    i \in \variable{occurrences}[t] \quad \iff \quad
+    \variable{termsPerClause}[i] = t
   \]
-
-  Body:
-
-  size: $|\constants{}| + |\variables{}| + 1$
-
-  domain: $\maxNumNodes{} \times \maxArity{}$
-
-  condition: for $i = 0, \dots, \maxNumNodes{} - 1$, $j = 0, \dots, \maxArity{}
-  - 1$, $t \in \constants{} \cup \variables{} \cup \{ \Box \}$,
-  \[
-    \variable{treeValues}[i].\variable{arguments}[j] = t \quad \iff \quad i
-    \times \maxNumNodes{} + j \in \variable{occurrences}[t]
-  \]
-
-  We define an array \variable{occurrences} of  sets such that, for all $t \in
-  \constants{} \cup \variables{}$, $\variable{occurrences}[t]$ is a subset of
-  that stores the indices of \variable{arguments} at which $t$ is located. It is
-  defined by the \variable{setsIntsChanneling} constraint equivalent to the
-  following condition:
 \end{definition}
 
 \begin{definition}
-  We define a $|\variables{}| \times 2$ matrix $\mathbf{M}$ with domain $[0,
-  \maxNumNodes{} \times \maxArity{}]$ such that for $v = 0, \dots, |\variables{}| - 1$,
-  \begin{align*}
-    M_{v,0} &= |\variable{occurrences}[v]|.\\
-    M_{v,1} &= \begin{cases}
-      \min \variable{occurrences}[v] & \text{if } \variable{occurrences}[v] \ne \emptyset\\
-      \maxNumNodes{} \times \maxArity{} & \text{otherwise.}
+  We define $\arrayd{M}{|\variables{}|}{\{ 0, \dots, N \}}$ such that for $v \in
+  \variables{}$,
+  \[
+    \variable{M}[v] = \begin{cases}
+      \min \variable{occurrences}[v] & \text{if }
+      \variable{occurrences}[v] \ne \emptyset\\
+      N & \text{otherwise.}
     \end{cases}
-  \end{align*}
+  \]
 \end{definition}
 
 \begin{constraint}
-  We can then impose the \variable{lexChainLessEq} constraint on $\mathbf{M}$
-  which means that for $v = 1, \dots, |\variables{}| - 1$,
-  \[
-    |\variable{occurrences}[v - 1]| \le |\variable{occurrences}[v]|,
-  \]
-  and if $|\variable{occurrences}[v - 1]| = |\variable{occurrences}[v]| > 0$,
-  then
-  \[
-    \min \variable{occurrences}[v - 1] \le \min \variable{occurrences}[v].
-  \]
+  $\variable{M}$ is sorted.
 \end{constraint}
 
-\begin{example}
+\begin{example} % TODO: update the example to cover an entire clause
   Let $\maxArity{} = 4$, $\mathsf{P} \in \predicates{}$, $\constants{} = \{ a
   \}$, $\variables{} = \{X, Y, Z \}$. Then $\mathsf{P}(Z, Y, Z)$ would be
   represented as:
@@ -423,33 +402,60 @@ or the body of the clause is before the first occurrence of $Y$.
 \end{constraint}
 
 \section{Counting Programs}
+% TODO: define combined arity.
+% TODO: define 'gap', 'argument', 'position' or something like that.
 
-This is without any kind of cycle detection and without probabilities.
+In order to demonstrate the correctness of the model and explain it in more
+detail, in this section we are going to derive combinatorial expressions for
+counting the number of programs with up to $\maxNumClauses{}$ clauses and up to
+$\maxNumNodes{}$ nodes per clause, and arbitrary $\predicates{}$,
+$\arities{}$, $\variables{}$, and $\constants{}$. To simplify the task, we only
+consider clauses without probabilities and disable (negative) cycle elimination.
+It was experimentally confirmed that the model agrees with the combinatorial
+formula from this section in 985 different scenarios.
 
-Number of ways to fill $n$ positions with terms:
-\[
-  P(n) = |\constants{}|^n + \sum_{\substack{1 \le k \le |\variables{}|, \\ 0 =
-      s_0 < s_1 < \dots < s_k < s_{k+1} = n+1}} \prod_{i=0}^k (|\constants{}| +
-  i)^{s_{i+1} - s_i - 1}
-\]
-
-Let $p_a$ be the number of predicates in $\predicates{}$ with arity $a \in
-\arities{}$. Number of clauses with total arity $a$:
-\begin{align*}
-  C(0) &= 1,\\
-  C(a) &= \sum_{n=1}^{\maxNumNodes{}} T(n, a),
-\end{align*}
-where $T(n, a)$ is defined recursively as:
-\[
-  T(1, a) = p_a
-\]
-and
+We will first consider clauses with `gaps', i.e., without taking variables and
+constants into account. Let $T(n, a)$ denote the number of possible clause
+bodies with $n$ nodes and combined arity $a$. Then $T(1, a)$ is the number of
+predicates in $\predicates{}$ with arity $a$, and the following recursive
+definition can be applied for $n > 1$:
 \[
   T(n, a) = T(n-1, a) + 2\sum_{\substack{c_1 + \dots + c_k = n - 1,\\
       2 \le k \le \frac{a}{\min \arities{}},\\
       c_i \ge 1 \text{ for all } i}} \sum_{\substack{d_1 + \dots + d_k = a,\\
     d_i \ge \min \arities{} \text{ for all } i}} \prod_{i=1}^k T(c_i, d_i).
 \]
+The first term here represents negation, i.e., negating an expression consumes
+one node but otherwise leaves the task unchanged. If the first operation is not
+negation, then it must be either conjunction or disjunction (hence the
+coefficient `2'). In the first sum, $k$ represents the number of children of the
+root node, and each $c_i$ is the number of nodes dedicated to child $i$. Thus,
+the first sum iterates over all possible ways to partition the remaining $n-1$
+nodes. Similarly, the second sum considers every possible way to partition the
+total arity $a$ across the $k$ children nodes.
+
+We can then count the number of possible clause bodies with total arity $a$ (and
+any number of nodes) as
+\[
+  C(a) = \begin{cases}
+    1 & \text{if } a = 0\\
+    \sum_{n=1}^{\maxNumNodes{}} T(n, a) & \text{otherwise.}
+  \end{cases}
+\]
+Here, the empty clause is considered separately.
+
+The number of ways to fill $n$ positions with terms can be expressed as
+\[
+  P(n) = |\constants{}|^n + \sum_{\substack{1 \le k \le |\variables{}|, \\ 0 =
+      s_0 < s_1 < \dots < s_k < s_{k+1} = n+1}} \prod_{i=0}^k (|\constants{}| +
+  i)^{s_{i+1} - s_i - 1}.
+\]
+The first term is simply the number of ways to fill all $n$ positions with
+constants. The parameter $k$ is the number of variables used in the clause, and
+$s_1, \dots, s_k$ mark the first occurrence of each variable. For each gap
+between any two introductions (or before the first introduction, or after the last
+introduction), we have $s_{i+1}-s_i-1$ spaces to be filled with any of the
+$\constants{}$ constants or any of the $i$ already-introduced variables.
 
 Let us order the elements of $\predicates{}$, and let $a_i$ be the arity of the
 $i$-th predicate. The number of programs is then:
@@ -461,8 +467,17 @@ $i$-th predicate. The number of programs is then:
 \]
 where
 \[
-  \multiset{n}{k} = \binom{n+k-1}{k}.
+  \multiset{n}{k} = \binom{n+k-1}{k}
 \]
+counts the number of ways to select $k$ out of $n$ items with repetition (and
+without ordering). Here, we sum over all possible ways to distribute
+$|\predicates{}| \le n \le \maxNumClauses{}$ clauses among $|\predicates{}|$
+predicates so that each predicate gets at least one clause. For each predicate,
+we can then count the number of ways to select its clauses out of all possible
+clauses. The number of possible clauses can be computed by considering each
+possible arity $a$, and multiplying the number of `unfinished' clauses $C(a)$ by
+the number of ways to fill the $a+a_i$ gaps in the body and the head of the
+clause with terms.
 
 \section{Predicate Independence}
 
