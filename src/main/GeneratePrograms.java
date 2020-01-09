@@ -231,10 +231,10 @@ class GeneratePrograms {
         while ((row = reader.readLine()) != null) {
             // Read each line of the CSV file into fields
             String[] data = row.split(";");
-            List<Integer> arities = Arrays.stream(data[0].substring(1, data[0].length() - 1).split(","))
+            List<Integer> arities = Arrays.stream(data[0].substring(1, data[0].length() - 1).split(", "))
                     .map(Integer::parseInt).collect(toList());
             List<Integer> predicatesWithArity = Arrays.stream(data[1].substring(1, data[1].length() - 1)
-                    .split(",")).map(Integer::parseInt).collect(toList());
+                    .split(", ")).map(Integer::parseInt).collect(toList());
 
             int numPredicates = predicatesWithArity.stream().reduce(0, Integer::sum);
             PREDICATES = new String[numPredicates];
