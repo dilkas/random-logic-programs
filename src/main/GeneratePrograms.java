@@ -28,10 +28,10 @@ class GeneratePrograms {
     //        1, 1, 1, 1, 1, 1}; // let's make probability 1 a bit more likely
     private static final double[] PROBABILITIES = {1};
 
-    static String[] PREDICATES = {"p"};
-    static int[] ARITIES = {1};
+    static String[] PREDICATES = {"p", "q"};
+    static int[] ARITIES = {1, 1};
     static String[] VARIABLES = {"X"};
-    static String[] CONSTANTS = {"a"};
+    static String[] CONSTANTS = {};
     static int MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
 
     static Tuples arities;
@@ -238,7 +238,8 @@ class GeneratePrograms {
 
             int numPredicates = predicatesWithArity.stream().reduce(0, Integer::sum);
             PREDICATES = new String[numPredicates];
-            Arrays.fill(PREDICATES, "p"); // Names don't matter
+            for (int i = 0; i < numPredicates; i++)
+                PREDICATES[i] = "p" + (i + 1);
             ARITIES = new int[numPredicates];
             int k = 0;
             for (int i = 0; i < arities.size(); i++)
@@ -246,9 +247,11 @@ class GeneratePrograms {
                     ARITIES[k++] = arities.get(i);
 
             VARIABLES = new String[Integer.parseInt(data[2])];
-            Arrays.fill(VARIABLES, "X");
+            for (int i = 0; i < VARIABLES.length; i++)
+                VARIABLES[i] = "X" + (i + 1);
             CONSTANTS = new String[Integer.parseInt(data[3])];
-            Arrays.fill(CONSTANTS, "a");
+            for (int i = 0; i < CONSTANTS.length; i++)
+                CONSTANTS[i] = "a" + (i + 1);
             MAX_NUM_NODES = Integer.parseInt(data[4]);
             MAX_NUM_CLAUSES = Integer.parseInt(data[5]);
             MAX_ARITY = Arrays.stream(ARITIES).max().getAsInt();
@@ -260,7 +263,8 @@ class GeneratePrograms {
 
             // Count the number of solutions
             int i = 0;
-            System.out.println("========================================");
+            System.out.print(".");
+            //System.out.println("========================================");
             while (model.getSolver().solve()) {
                 i++;
                 /*System.out.println("=====Program=====");
@@ -279,11 +283,11 @@ class GeneratePrograms {
     }
 
     public static void main(String[] args) throws IOException {
-        setUp();
+        /*setUp();
         //setUpExtraConditions();
         configureSearchStrategy();
-        saveProgramsToFiles();
+        saveProgramsToFiles();*/
 
-        //checkNumPrograms();
+        checkNumPrograms();
     }
 }

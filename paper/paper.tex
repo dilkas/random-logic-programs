@@ -36,8 +36,7 @@
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
 
-\institute{University of Edinburgh, Edinburgh, UK\\
-  Heriot-Watt University, Edinburgh, UK\\
+\institute{University of Edinburgh, Edinburgh, United Kingdom\\
   \email{p.dilkas@sms.ed.ac.uk}}
 \maketitle
 
@@ -427,15 +426,12 @@ or the body of the clause is before the first occurrence of $Y$.
 
 This is without any kind of cycle detection and without probabilities.
 
-Number of ways to fill $n$ positions with terms: % TODO: what's the smallest n?
+Number of ways to fill $n$ positions with terms:
 \[
-  P(n) = |\constants{}|^n + |\constants{}|^{n-1}|\variables{}| +
-  \sum_{i=0}^{n-2} |\constants{}|^i \sum_{j=0}^{\min\{|\variables{}| - 1, n - i
-    - 1\}} \binom{n-i-1}{j} (|\constants{}| + 1)^{n-i-j-1}
+  P(n) = |\constants{}|^n + \sum_{\substack{1 \le k \le |\variables{}|, \\ 0 =
+      s_0 < s_1 < \dots < s_k < s_{k+1} = n+1}} \prod_{i=0}^k (|\constants{}| +
+  i)^{s_{i+1} - s_i - 1}
 \]
-where $i$ iterates over the number of constants before the first variable, and
-$j$ iterates over the number of `new variable actions'. Explain:
-$|\constants{}|+2$ possible actions.
 
 Let $p_a$ be the number of predicates in $\predicates{}$ with arity $a \in
 \arities{}$. Number of clauses with total arity $a$:
