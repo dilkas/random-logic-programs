@@ -59,14 +59,17 @@ Motivation:
   constraints. A more primitive angle: generate structures, learn weights.
 \end{itemize}
 
-We will often use $\Box$ as a special domain value to indicate some kind of
-exception. We write $\arrayd{a}{b}{c}$ to mean that
-$\variable{a}$ is an array of variables of length $b$ such that each element of
-$\variable{a}$ has domain $c$. Similarly, we write $\arrayt{a}{b}{c}$ to denote
-an array $\variable{a}$ of length $b$ such that each element of $\variable{a}$
-has type $\variable{c}$. All constraint variables in the model are integer
-variables, but, e.g., if the integer $i$ refers to a logical variable $X$, we
-will use $i$ and $X$ interchangeably. All indices start at zero.
+% TODO: define 'gap'
+
+We will often use $\Box$ as a special domain value indicating a `disabled'
+(i.e., fixed and ignored) part of the model. We write $\arrayd{a}{b}{c}$ to mean
+that $\variable{a}$ is an array of variables of length $b$ such that each
+element of $\variable{a}$ has domain $c$. Similarly, we write $\arrayt{a}{b}{c}$
+to denote an array $\variable{a}$ of length $b$ such that each element of
+$\variable{a}$ has type $\variable{c}$. All constraint variables in the model
+are integer variables, but, e.g., if the integer $i$ refers to a logical
+variable $X$, we will use $i$ and $X$ interchangeably. All indices start at
+zero.
 
 We also use Choco~4.10.2 \cite{choco}. This works with both Prolog
 \cite{DBLP:books/daglib/0041598} and ProbLog \cite{DBLP:conf/ijcai/RaedtKT07}.
@@ -123,14 +126,8 @@ variables of the model are contained in two arrays:
 \end{itemize}
 
 \section{Considering Each Clause Separately}
-% TODO: define heads & bodies
 
 \subsection{Heads of Clauses}
-% TODO: section for clauses. define heads & bodies, then separate subsections
-% for head and body constraints
-
-Our definition is slightly more involved because we want to eliminate some
-symmetries.
 
 \begin{definition}
   The \emph{head} of a clause is composed of:
@@ -139,21 +136,23 @@ symmetries.
   \item and $\arrayd{arguments}{\maxArity{}}{\constants{} \cup \variables{}}
     \cup \{ \Box \}$
   \end{itemize}
-  In both cases, $\Box$ is the disabled value.
 \end{definition}
+The reason why $\Box$ must be a separate value will become clear in
+\cref{sec:variable_symmetry}.
 
-\begin{definition}
+\begin{definition} \label{def:arity}
   The \variable{predicate}'s $\variable{arity} \in [0, \maxArity{}]$ can then be
   defined using the \variable{table} constraint as
   \[
     \variable{arity} = \begin{cases}
-      0 & \text{if } \variable{predicate} = \Box\\
-      \text{the arity of } \variable{predicate} & \text{otherwise.}
+      \text{the arity of } \variable{predicate} & \text{if }
+      \variable{predicate} \in \predicates{}\\
+      0 & \text{otherwise.}
     \end{cases}
   \]
 \end{definition}
 
-\begin{constraint}
+\begin{constraint} \label{constr:arity}
   For $i = 0, \dots, \maxArity{} - 1$,
   \[
     \variable{arguments}[i] = \Box \iff i \ge \variable{arity}.
@@ -218,26 +217,11 @@ latter counts the number of trees in total.
 \begin{definition} \label{def:node}
   A \emph{node} has a $\variable{name} \in \tokens{} \cup \predicates{}$ and
   $\arrayd{arguments}{\maxArity{}}{\variables{} \cup \constants{} \cup \{ \Box
-    \}}$, where $\Box$ denotes a disabled argument (the reason why this value is
-  needed will become clear in \cref{sec:variable_symmetry}). The node's
-  $\variable{arity} \in [0, \maxArity{}]$ is defined by a \variable{table}
-  constraint as
-  \[
-    \variable{arity} = \begin{cases}
-      \text{the arity of } \variable{name} & \text{if } \variable{name} \in
-      \predicates{}\\
-      0 & \text{otherwise.}
-    \end{cases}
-  \]
+    \}}$. The node's $\variable{arity}$ can then be
+  defined analogously to \cref{def:arity}.
 \end{definition}
 
-\begin{constraint}
-  For $i = 0, \dots, \maxArity{} - 1$,
-  \[
-  \variable{arguments}[i] = \Box \quad \iff \quad i \ge \variable{arity}.
-  \]
-\end{constraint}
-% TODO: this could merged into a single constraint for termsPerClause
+We can use \cref{constr:arity} again to disable extra arguments.
 
 \begin{example}
   Let $\maxArity{} = 2$, $\predicates{} = [\mathsf{P}, \dots]$, $\arities{}
@@ -291,10 +275,10 @@ latter counts the number of trees in total.
   \begin{align*}
     \variable{count}(i, \variable{treeStructure}_{-i}) = 0 &\iff \variable{treeValues}[i].\variable{name} \in \predicates{} \cup \{ \top \},\\
     \variable{count}(i, \variable{treeStructure}_{-i}) = 1 &\iff \variable{treeValues}[i].\variable{name} = \neg,\\
-    \variable{count}(i, \variable{treeStructure}_{-i}) > 1 &\iff \variable{treeValues}[i].\variable{name} \in \{ \land, \lor \}.
+    \variable{count}(i, \variable{treeStructure}_{-i}) > 1 &\iff \variable{treeValues}[i].\variable{name} \in \{ \land, \lor \},
   \end{align*}
-  $\variable{treeStructure}_{-i}$ denotes array $\variable{treeStructure}$ with
-  position $i$ skipped.
+  where $\variable{treeStructure}_{-i}$ denotes array $\variable{treeStructure}$
+  with position $i$ skipped.
 \end{constraint}
 Each constraint corresponds to node $i$ having no children, one child, and
 multiple children, respectively.
@@ -330,27 +314,25 @@ variable $X$ goes before variable $Y$ if its first occurrence in either the head
 or the body of the clause is before the first occurrence of $Y$.
 
 \begin{definition}
-  % TODO: what odes this mean? example?
   Let $N = \maxArity{} \times (\maxNumNodes{} + 1)$. Let
-  $\variable{termsPerClause}[N] \in \constants{} \cup \variables{} \cup \{ \Box
-  \}$ be a matrix, each row of which is a flattened list of all positions for
-  terms in a particular clause.
+  $\variable{terms}[N] \in \constants{} \cup \variables{} \cup \{ \Box
+  \}$ be a flattened array of all gaps in a particular clause.
 
   Then we can use the $\variable{setsIntsChanneling}$ constraint
-  to define $\variable{occurrences}[|\constants{}| + |\variables{}| + 1]$ as a
-  matrix of subsets of $\{ 0, \dots, N-1 \}$ such that for all $i = 0, \dots, N
+  to define $\variable{occurrences}[|\constants{}| + |\variables{}| + 1]$ as an
+  array of subsets of $\{ 0, \dots, N-1 \}$ such that for all $i = 0, \dots, N
   - 1$, and $t \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   \[
     i \in \variable{occurrences}[t] \quad \iff \quad
-    \variable{termsPerClause}[i] = t
+    \variable{terms}[i] = t
   \]
 \end{definition}
 
 \begin{definition}
-  We define $\arrayd{M}{|\variables{}|}{\{ 0, \dots, N \}}$ such that for $v \in
-  \variables{}$,
+  We define $\arrayd{introductions}{|\variables{}|}{\{ 0, \dots, N \}}$ such
+  that for $v \in \variables{}$,
   \[
-    \variable{M}[v] = \begin{cases}
+    \variable{introductions}[v] = \begin{cases}
       \min \variable{occurrences}[v] & \text{if }
       \variable{occurrences}[v] \ne \emptyset\\
       N & \text{otherwise.}
@@ -359,24 +341,19 @@ or the body of the clause is before the first occurrence of $Y$.
 \end{definition}
 
 \begin{constraint}
-  $\variable{M}$ is sorted.
+  $\variable{introductions}$ are sorted.
 \end{constraint}
 
-\begin{example} % TODO: update the example to cover an entire clause
-  Let $\maxArity{} = 4$, $\mathsf{P} \in \predicates{}$, $\constants{} = \{ a
-  \}$, $\variables{} = \{X, Y, Z \}$. Then $\mathsf{P}(Z, Y, Z)$ would be
-  represented as:
-  \begin{align*}
-    \variable{predicate} &= \mathsf{P},\\
-    \variable{arguments} &= [Z, Y, Z, 0],\\
-    \variable{arity} &= 3,\\
-    \variable{occurrences} &= [\emptyset, \emptyset, \{ 1 \}, \{ 0, 2 \}],\\
-    \mathbf{M} &= \begin{bmatrix}
-      0 & 0\\
-      1 & 1\\
-      2 & 0
-    \end{bmatrix}.
-  \end{align*}
+\begin{example}
+  Let $\constants{} = \emptyset$, $\variables{} = \{ X, Y, Z \}$, $\maxArity{} =
+  2$, $\maxNumNodes{} = 3$, and consider the clause
+  \[
+    \variable{sibling}(X, Y) \gets \variable{parent}(X, Z) \land
+    \variable{parent}(Y, Z).
+  \]
+  Then $\variable{terms} = [X, Y, \Box, \Box, X, Z, Y, Z]$ (the boxes represent
+  the conjunction node), $\variable{occurrences} = [\{ 0, 4 \}, \{ 1, 6 \},
+  \{ 5, 7 \}, \{ 2, 3 \}]$, and $\variable{introductions} = [0, 1, 5]$.
 \end{example}
 
 \section{Interactions Between Clauses}
@@ -402,8 +379,6 @@ or the body of the clause is before the first occurrence of $Y$.
 \end{constraint}
 
 \section{Counting Programs}
-% TODO: define combined arity.
-% TODO: define 'gap', 'argument', 'position' or something like that.
 
 In order to demonstrate the correctness of the model and explain it in more
 detail, in this section we are going to derive combinatorial expressions for
@@ -412,11 +387,12 @@ $\maxNumNodes{}$ nodes per clause, and arbitrary $\predicates{}$,
 $\arities{}$, $\variables{}$, and $\constants{}$. To simplify the task, we only
 consider clauses without probabilities and disable (negative) cycle elimination.
 It was experimentally confirmed that the model agrees with the combinatorial
-formula from this section in 985 different scenarios.
+formula from this section in 985 different scenarios. The \emph{total arity} of
+a body of a clause is the sum total of arities of all predicates in the body.
 
-We will first consider clauses with `gaps', i.e., without taking variables and
+We will first consider clauses with gaps, i.e., without taking variables and
 constants into account. Let $T(n, a)$ denote the number of possible clause
-bodies with $n$ nodes and combined arity $a$. Then $T(1, a)$ is the number of
+bodies with $n$ nodes and total arity $a$. Then $T(1, a)$ is the number of
 predicates in $\predicates{}$ with arity $a$, and the following recursive
 definition can be applied for $n > 1$:
 \[
@@ -444,13 +420,13 @@ any number of nodes) as
 \]
 Here, the empty clause is considered separately.
 
-The number of ways to fill $n$ positions with terms can be expressed as
+The number of ways to fill $n$ gaps with terms can be expressed as
 \[
   P(n) = |\constants{}|^n + \sum_{\substack{1 \le k \le |\variables{}|, \\ 0 =
       s_0 < s_1 < \dots < s_k < s_{k+1} = n+1}} \prod_{i=0}^k (|\constants{}| +
   i)^{s_{i+1} - s_i - 1}.
 \]
-The first term is simply the number of ways to fill all $n$ positions with
+The first term is simply the number of ways to fill all $n$ gaps with
 constants. The parameter $k$ is the number of variables used in the clause, and
 $s_1, \dots, s_k$ mark the first occurrence of each variable. For each gap
 between any two introductions (or before the first introduction, or after the last
