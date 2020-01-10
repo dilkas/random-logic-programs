@@ -10,6 +10,8 @@
 \usepackage{tikz}
 \usepackage{mathrsfs}
 
+\usetikzlibrary{arrows.meta}
+
 \newtheorem{constraint}{Constraint}
 
 \newcommand{\variable}[1]{\texttt{\textup{#1}}}
@@ -59,7 +61,9 @@ Motivation:
   constraints. A more primitive angle: generate structures, learn weights.
 \end{itemize}
 
-% TODO: define 'gap'
+TODO: define all the relevant terminology from logic. If a predicate has arity
+$n$ and it is as of yet undecided what $n$ terms will fill those spots, we will
+say that the predicate has $n$ \emph{gaps}.
 
 We will often use $\Box$ as a special domain value indicating a `disabled'
 (i.e., fixed and ignored) part of the model. We write $\arrayd{a}{b}{c}$ to mean
@@ -74,26 +78,6 @@ zero.
 We also use Choco~4.10.2 \cite{choco}. This works with both Prolog
 \cite{DBLP:books/daglib/0041598} and ProbLog \cite{DBLP:conf/ijcai/RaedtKT07}.
 Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
-
-\subsection{TODO}
-
-\begin{itemize}
-\item A constraint for logical equivalence. An algorithm to reduce each tree to
-  some kind of normal form. Not doing this on purpose. Leaving for further work.
-\item Perhaps negative cycle detection could use the same graph as the
-  independence propagator? If we extend each domain to {-1, 0, 1}, but that
-  might make propagation weaker or slower.
-\item Could investigate how uniform the generated distribution of programs is.
-  Distributions of individual parameters will often favour larger values
-  because, e.g., there are more 5-tuples than 4-tuples.
-\item Inference options to explore. Logspace vs normal space. Symbolic vs
-  non-symbolic. Propagate evidence (might be irrelevant)? Propagate weights?
-  Supported knowledge compilation techniques: sdd, sddx, bdd, nnf, ddnnf, kbest,
-  fsdd, fbdd.
-\item Mention the random heuristic. Mention that restarting gives better
-  randomness, but duplicates become possible. Restarting after each run is
-  expensive. Periodic restarts could be an option.
-\end{itemize}
 
 \subsection{Parameters}
 
@@ -125,9 +109,7 @@ variables of the model are contained in two arrays:
 \item $\arrayt{headsOfClauses}{\maxNumClauses{}}{Head}$
 \end{itemize}
 
-\section{Considering Each Clause Separately}
-
-\subsection{Heads of Clauses}
+\section{Heads of Clauses}
 
 \begin{definition}
   The \emph{head} of a clause is composed of:
@@ -159,7 +141,7 @@ The reason why $\Box$ must be a separate value will become clear in
   \]
 \end{constraint}
 
-\subsection{Bodies of Clauses}
+\section{Bodies of Clauses}
 
 \begin{definition}
   The body of a clause is defined by:
@@ -173,10 +155,6 @@ The reason why $\Box$ must be a separate value will become clear in
   \item $\arrayt{treeValues}{\maxNumNodes{}}{Node}$.
   \end{itemize}
 \end{definition}
-
-Auxiliary variables: $\variable{numNodes}, \variable{numTrees} \in \{ 1, \dots,
-\maxNumNodes{} \}$. The former counts the number of nodes in the main tree. The
-latter counts the number of trees in total.
 
 \begin{figure}[t]
   \centering
@@ -212,7 +190,7 @@ latter counts the number of trees in total.
   this representation unique.
 \end{example}
 
-\subsubsection{Nodes}
+\subsection{Nodes}
 
 \begin{definition} \label{def:node}
   A \emph{node} has a $\variable{name} \in \tokens{} \cup \predicates{}$ and
@@ -234,23 +212,27 @@ We can use \cref{constr:arity} again to disable extra arguments.
   \end{align*}
 \end{example}
 
-\subsubsection{Constraints}
+\subsection{Constraints}
 
-\begin{constraint}
-  \variable{treeStructure} represents \variable{numTrees} trees, i.e.,
+\begin{definition}
+  We define $\variable{numTrees} \in \{ 1, \dots, \maxNumNodes{} \}$ to count
+  the number of trees in our representation of a clause using the
+  $\variable{tree}(\variable{treeStructure}, \variable{numTrees})$\footnote{This
+    constraint uses dominator-based filtering by Fages and Lorca
+    \cite{DBLP:conf/cp/FagesL11}.} constraint.
+\end{definition}
+
+\begin{definition}
+  For convenience, we also define $\variable{numNodes} \in \{ 1, \dots,
+  \maxNumNodes{} \}$ to count the number of nodes in the main tree. We define it
+  as
   \[
-    \variable{tree}(\variable{treeStructure}, \variable{numTrees})\footnote{This
-      constraint uses dominator-based filtering by Fages and Lorca
-      \cite{DBLP:conf/cp/FagesL11}.}.
+    \variable{numNodes} = \maxNumNodes{} - \variable{numTrees} + 1.
   \]
-\end{constraint}
+\end{definition}
 
 \begin{constraint}
   $\variable{treeStructure}[0] = 0$.
-\end{constraint}
-
-\begin{constraint}
-  $\variable{numTrees} + \variable{numNodes} = \maxNumNodes{} + 1$.
 \end{constraint}
 
 \begin{constraint}
@@ -305,7 +287,7 @@ multiple children, respectively.
   \]
 \end{constraint}
 
-\subsection{Eliminating Variable Symmetries} \label{sec:variable_symmetry}
+\section{Eliminating Variable Symmetries} \label{sec:variable_symmetry}
 
 Given any clause, we can permute the variables in it without changing the
 meaning of the clause or the entire program. Thus, we want to fix the order of
@@ -348,8 +330,8 @@ or the body of the clause is before the first occurrence of $Y$.
   Let $\constants{} = \emptyset$, $\variables{} = \{ X, Y, Z \}$, $\maxArity{} =
   2$, $\maxNumNodes{} = 3$, and consider the clause
   \[
-    \variable{sibling}(X, Y) \gets \variable{parent}(X, Z) \land
-    \variable{parent}(Y, Z).
+    \mathsf{sibling}(X, Y) \gets \mathsf{parent}(X, Z) \land
+    \mathsf{parent}(Y, Z).
   \]
   Then $\variable{terms} = [X, Y, \Box, \Box, X, Z, Y, Z]$ (the boxes represent
   the conjunction node), $\variable{occurrences} = [\{ 0, 4 \}, \{ 1, 6 \},
@@ -457,6 +439,10 @@ clause with terms.
 
 \section{Predicate Independence}
 
+In this section, we define a notion of predicate independence as a way to
+constrain the probability distributions defined by the generated programs. We
+also describe efficient algorithms for propagation and entailment checking.
+
 \begin{definition}
   Let $\mathscr{P}$ be a probabilistic logic program. Its \emph{predicate
     dependency graph} is a directed graph $G_{\mathscr{P}} = (V, E)$ with the
@@ -482,6 +468,38 @@ clause with terms.
   $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
 \end{definition}
 
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}
+    \node[draw] (father) at (0, 0.5) {$\mathsf{father}$};
+    \node[draw] (mother) at (0, -0.5) {$\mathsf{mother}$};
+    \node[draw] (parent) at (2, 0) {$\mathsf{parent}$};
+    \node[draw] (sibling) at (4, 0) {$\mathsf{sibling}$};
+    \draw[-{Stealth[scale=1.5]}] (father) -- (parent);
+    \draw[-{Stealth[scale=1.5]}] (mother) -- (parent);
+    \draw[-{Stealth[scale=1.5]}] (parent) -- (sibling);
+  \end{tikzpicture}
+  \caption{The predicate dependency graph of the program in \cref{ex:program}}
+  \label{fig:predicate_dependencies}
+\end{figure}
+
+\begin{example} \label{ex:program}
+  Consider the following program:
+  \begin{align*}
+    \mathsf{sibling}(X, Y) &\gets \mathsf{parent}(X, Z) \land \mathsf{parent}(Y, Z),\\
+    \mathsf{parent}(X, Y) &\gets \mathsf{father}(X, Y) \lor \mathsf{mother}(X, Y).
+  \end{align*}
+  Its predicate dependency graph is in \cref{fig:predicate_dependencies}. We can
+  then list the dependencies of each predicate:
+  \begin{alignat*}{3}
+    D_{\mathsf{father}} &= \{ \mathsf{father} \}, \quad && D_{\mathsf{parent}} &&= \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent} \}, \\
+    D_{\mathsf{mother}} &= \{ \mathsf{mother} \}, \quad && D_{\mathsf{sibling}} &&= \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent}, \mathsf{sibling} \}.
+  \end{alignat*}
+  Hence, the only pair of independent predicates in this program is
+  $\mathsf{father}$ and $\mathsf{mother}$.
+\end{example}
+
+% TODO: continue writing from here
 \begin{definition}[Adjacency matrix representation]
   An $|\predicates{}| \times |\predicates{}|$ adjacency matrix $\mathbf{A}$
   defined by
@@ -509,7 +527,7 @@ Propagation for independence:
   \end{itemize}
 \end{itemize}
 
-\begin{algorithm}
+\begin{algorithm}[p]
   \SetKwFunction{getDependencies}{getDependencies}
   \SetKwFunction{isDetermined}{isDetermined}
   \SetKwFunction{fail}{fail}
@@ -533,7 +551,7 @@ Propagation for independence:
   \caption{Propagation}
 \end{algorithm}
 
-\begin{algorithm}
+\begin{algorithm}[p]
   \SetKwFunction{getDependencies}{getDependencies}
   \SetKwFunction{isDetermined}{isDetermined}
   \SetKwData{predicate}{predicate}
@@ -551,7 +569,7 @@ Propagation for independence:
   \caption{Entailment}
 \end{algorithm}
 
-\begin{algorithm}
+\begin{algorithm}[p]
   \SetKwData{edgeExists}{edgeExists}
   \SetKwData{predicate}{predicate}
   \SetKwData{source}{source}
@@ -640,12 +658,32 @@ Propagation for independence:
 %     node at index $i$ is part of the expression}
 % \end{algorithm}
 
+\section{Conclusion \& Future Work}
+
+\begin{itemize}
+\item A constraint for logical equivalence. An algorithm to reduce each tree to
+  some kind of normal form. Not doing this on purpose. Leaving for further work.
+\item Perhaps negative cycle detection could use the same graph as the
+  independence propagator? If we extend each domain to {-1, 0, 1}, but that
+  might make propagation weaker or slower.
+\item Could investigate how uniform the generated distribution of programs is.
+  Distributions of individual parameters will often favour larger values
+  because, e.g., there are more 5-tuples than 4-tuples.
+\item Inference options to explore. Logspace vs normal space. Symbolic vs
+  non-symbolic. Propagate evidence (might be irrelevant)? Propagate weights?
+  Supported knowledge compilation techniques: sdd, sddx, bdd, nnf, ddnnf, kbest,
+  fsdd, fbdd.
+\item Mention the random heuristic. Mention that restarting gives better
+  randomness, but duplicates become possible. Restarting after each run is
+  expensive. Periodic restarts could be an option.
+\end{itemize}
+
 \section*{Acknowledgments}
 
-The author would like to thank Vaishak Belle for his comments. This work was
-supported by the EPSRC Centre for Doctoral Training in Robotics and Autonomous
-Systems, funded by the UK Engineering and Physical Sciences Research Council
-(grant EP/S023208/1).
+% The author would like to thank Vaishak Belle for his comments.
+This work was supported by the EPSRC Centre for Doctoral Training in Robotics
+and Autonomous Systems, funded by the UK Engineering and Physical Sciences
+Research Council (grant EP/S023208/1).
 
 \bibliographystyle{splncs04}
 \bibliography{paper}
