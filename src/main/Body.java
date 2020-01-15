@@ -18,17 +18,19 @@ public class Body {
     private Node[] treeValues;
     private IntVar[] arguments; // concatenated arguments of all nodes in treeValues
 
-    public Body(Program program, Model model, IntVar assignment, int maxNumNodes) {
+    public Body(Program program, Model model, IntVar assignment, int maxNumNodes, int clauseIndex) {
         this.maxNumNodes = maxNumNodes;
 
-        IntVar numNodes = model.intVar(1, maxNumNodes); // number of nodes in the main tree
-        treeStructure = model.intVarArray(maxNumNodes, 0, maxNumNodes - 1);
+        // number of nodes in the main tree
+        IntVar numNodes = model.intVar("numNodes[" + clauseIndex + "]", 1, maxNumNodes);
+        treeStructure = model.intVarArray("treeStructure[" + clauseIndex + "]", maxNumNodes, 0,
+                maxNumNodes - 1);
         treeValues = new Node[maxNumNodes];
         for (int i = 0; i < maxNumNodes; i++)
-            treeValues[i] = new Node(program, model);
+            treeValues[i] = new Node(program, model, clauseIndex, i);
 
         // Tree structure
-        IntVar numTrees = model.intVar(1, maxNumNodes);
+        IntVar numTrees = model.intVar("numTrees[" + clauseIndex + "]", 1, maxNumNodes);
         model.tree(treeStructure, numTrees).post();
         model.arithm(treeStructure[0], "=", 0).post(); // the 0th element is always a root
 
@@ -139,6 +141,14 @@ public class Body {
             if (i != parent && treeStructure[i].getValue() == parent)
                 break;
         return i;
+    }
+
+    /** The decision variables relevant to negative cycle detection (i.e., everything except arguments) */
+    public IntVar[] getStructuralDecisionVariables() {
+        IntVar[] variables = treeStructure;
+        for (Node treeValue : treeValues)
+            variables = ArrayUtils.concat(variables, treeValue.getPredicate());
+        return variables;
     }
 
     public IntVar[] getDecisionVariables() {

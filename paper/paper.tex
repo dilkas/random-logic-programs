@@ -643,6 +643,11 @@ Propagation for independence:
 \section{Entailment Checking for Negative/All Cycles}
 % TODO: explain that the hasNegativeCycles algorithm is an extension of a simple
 % cycle detection algorithm.
+% TODO: the difficulty with propagation is that there is no good way to define
+% the adjacency matrix with 0/-1/+1 values, the negativity condition is too
+% difficult.
+% TODO: NB: the set of decision variables for this constraint must exclude all
+% arguments.
 
 \begin{algorithm}[t]
   \KwData{a constraint model for a logic program $\mathscr{P}$ amid execution}

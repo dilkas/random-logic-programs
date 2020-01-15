@@ -13,24 +13,23 @@ class Head {
     private IntVar arity;
     private Program program;
 
-    Head(Program program, Model model, IntVar predicate) {
+    Head(Program program, Model model, IntVar predicate, int clauseIndex) {
         this.program = program;
         this.predicate = predicate;
 
         // Define arity
         IntVar indexToTable = model.intOffsetView(predicate, Token.values().length);
-        arity = model.intVar(0, program.maxArity);
+        arity = model.intVar("headArity[" + clauseIndex + "]", 0, program.maxArity);
         model.table(indexToTable, arity, program.arities).post();
 
         // Arity regulates how many arguments the predicate has
         int numValues = program.constants.length + program.variables.length;
-        arguments = model.intVarArray(program.maxArity, 0, numValues);
+        arguments = model.intVarArray("headArguments[" + clauseIndex + "]", program.maxArity, 0, numValues);
         for (int i = 0; i < arguments.length; i++) {
             Constraint iGeArity = model.arithm(arity, "<=", i);
             Constraint isDisabled = model.arithm(arguments[i], "=", numValues);
             model.ifOnlyIf(iGeArity, isDisabled);
         }
-
     }
 
     IntVar[] getArguments() {

@@ -12,15 +12,17 @@ class Node {
     private IntVar arity;
     private Program program;
 
-    Node(Program program, Model model) {
+    Node(Program program, Model model, int clauseIndex, int position) {
         this.program = program;
         int numPossibleArguments = program.variables.length + program.constants.length + 1;
-        predicate = model.intVar(0, program.predicates.length + Token.values().length - 1);
-        arguments = model.intVarArray(program.maxArity, 0, numPossibleArguments - 1);
+        predicate = model.intVar("nodePredicate[" + clauseIndex + "][" + position + "]", 0,
+                program.predicates.length + Token.values().length - 1);
+        arguments = model.intVarArray("nodeArguments[" + clauseIndex + "][" + position + "]", program.maxArity,
+                0, numPossibleArguments - 1);
 
         // Restrict the number of arguments to the right arity.
         // This also takes care of nullifying the arguments of tokens
-        arity = model.intVar(0, program.maxArity);
+        arity = model.intVar("nodeArity[" + clauseIndex + "][" + position + "]", 0, program.maxArity);
         model.table(predicate, arity, program.arities).post();
         for (int i = 0; i < arguments.length; i++) {
             // If i >= arity, then arguments[i] must be undefined

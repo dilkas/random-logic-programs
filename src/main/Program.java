@@ -1,6 +1,7 @@
 package main;
 
 import org.chocosolver.solver.Model;
+import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.search.strategy.Search;
@@ -69,7 +70,10 @@ public class Program {
     }
 
     void saveProgramsToFiles() throws IOException {
-        for (int i = 0; i < numSolutions && model.getSolver().solve(); i++) {
+        Solver solver = model.getSolver();
+        solver.showDecisions();
+        solver.showContradiction();
+        for (int i = 0; i < numSolutions && solver.solve(); i++) {
             //System.out.println("========== " + i + " ==========");
             StringBuilder program = new StringBuilder();
             for (int j = 0; j < maxNumClauses; j++)
@@ -143,17 +147,19 @@ public class Program {
         rng = new java.util.Random();
 
         // numbers < PREDICATES.length assign a clause to a predicate, PREDICATES.length is used to discard the clause
-        clauseAssignments = model.intVarArray(maxNumClauses, 0, predicates.length);
+        clauseAssignments = model.intVarArray("clauseAssignments", maxNumClauses, 0, predicates.length);
 
         clauseHeads = new Head[clauseAssignments.length];
         for (int i = 0; i < clauseHeads.length; i++)
-            clauseHeads[i] = new Head(this, model, clauseAssignments[i]);
+            clauseHeads[i] = new Head(this, model, clauseAssignments[i], i);
 
-        IntVar numDisabledClauses = model.intVar(0, maxNumClauses - predicates.length);
+        IntVar numDisabledClauses = model.intVar("numDisabledClauses", 0,
+                maxNumClauses - predicates.length);
         model.count(predicates.length, clauseAssignments, numDisabledClauses).post();
 
         // Each possible value (< PREDICATES.length) should be mentioned at least once
-        IntVar numDistinctValues = model.intVar(predicates.length, predicates.length + 1);
+        IntVar numDistinctValues = model.intVar("numDistinctValues", predicates.length,
+                predicates.length + 1);
         model.nValues(clauseAssignments, numDistinctValues).post();
 
         Constraint containsDisabledClause = model.arithm(numDisabledClauses, ">", 0);
@@ -163,7 +169,7 @@ public class Program {
 
         bodies = new Body[maxNumClauses];
         for (int i = 0; i < maxNumClauses; i++)
-            bodies[i] = new Body(this, model, clauseAssignments[i], maxNumNodes);
+            bodies[i] = new Body(this, model, clauseAssignments[i], maxNumNodes, i);
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
         decisionVariables = clauseAssignments;
@@ -176,7 +182,8 @@ public class Program {
         model.lexChainLessEq(decisionVariablesPerClause).post();
 
         // Adding a graph representation
-        IntVar[][] adjacencyMatrix = model.intVarMatrix(predicates.length, predicates.length, 0, 1);
+        IntVar[][] adjacencyMatrix = model.intVarMatrix("adjacencyMatrix", predicates.length, predicates.length,
+                0, 1);
         IntVar zero = model.intVar(0);
         for (int i = 0; i < predicates.length; i++) {
             for (int j = 0; j < predicates.length; j++) {
@@ -213,14 +220,15 @@ public class Program {
         int[] possibleIndices = new int[numIndices];
         for (int i = 0; i < numIndices; i++)
             possibleIndices[i] = i;
-        occurrences = model.setVarMatrix(maxNumClauses, maxValue + 1, new int[0], possibleIndices);
+        occurrences = model.setVarMatrix("occurrences", maxNumClauses, maxValue + 1, new int[0],
+                possibleIndices);
         for (int i = 0; i < maxNumClauses; i++)
             model.setsIntsChanneling(occurrences[i], termsPerClause[i]).post();
 
         // Eliminate variable symmetry
         M = new IntVar[maxNumClauses][];
         for (int i = 0; i < maxNumClauses; i++) {
-            M[i] = model.intVarArray(variables.length, 0, numIndices);
+            M[i] = model.intVarArray("M[" + i + "]", variables.length, 0, numIndices);
             for (int v = 0; v < variables.length; v++) {
                 model.min(occurrences[i][v], M[i][v], false).post();
                 SetVar[] occurrencesAtI = new SetVar[1];

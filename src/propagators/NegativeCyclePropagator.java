@@ -23,7 +23,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
     static IntVar[] constructDecisionVariables(IntVar[] clauseAssignments, Body[] bodies) {
         IntVar[] decisionVariables = clauseAssignments;
         for (Body body : bodies)
-            decisionVariables = ArrayUtils.concat(decisionVariables, body.getDecisionVariables());
+            decisionVariables = ArrayUtils.concat(decisionVariables, body.getStructuralDecisionVariables());
         return decisionVariables;
     }
 
@@ -39,6 +39,29 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
         if (isEntailed() == ESat.FALSE)
             fails();
     }
+
+    // RecursionStack:
+    // null: not visited
+    // otherwise, a list of undetermined edges that have been visited (possibly empty)
+    /*private boolean isCyclic(int node, int previousNode, boolean encounteredNegativeEdge, boolean[] visited,
+                             List<List<Edge>> recursionStack, List<Edge> currentRecursionStack) {
+        if (recursionStack.get(node) != null && encounteredNegativeEdge)
+            return true;
+        if (visited[node])
+            return false;
+        visited[node] = true;
+        recursionStack.set(node, new LinkedList<>(currentRecursionStack));
+
+        if (previousNode != UNDEFINED_NODE)
+            currentRecursionStack.add(new Edge(previousNode, node));
+        for (SignedPredicate p : adjacencyList.get(node)) {
+            if (isCyclic(p.getIndex(), node,encounteredNegativeEdge || p.getSign() == Sign.NEG,
+                    visited, recursionStack, currentRecursionStack))
+                return true;
+        }
+        recursionStack.set(node, null);
+        return false;
+    }*/
 
     /* Adapted from http://geeksforgeeks.org/detect-cycle-in-a-graph/ */
     private boolean isCyclic(int node, boolean encounteredNegativeEdge, boolean[] visited, boolean[] recursionStack) {
@@ -72,7 +95,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
             if (clauseAssignments[i].getDomainSize() != 1)
                 continue;
             boolean determined = true;
-            for (IntVar v : bodies[i].getDecisionVariables()) {
+            for (IntVar v : bodies[i].getStructuralDecisionVariables()) {
                 if (v.getDomainSize() != 1) {
                     determined = false;
                     break;
