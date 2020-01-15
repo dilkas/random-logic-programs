@@ -11,18 +11,20 @@ class Head {
     private IntVar predicate; // PREDICATES.length means that the clause is disabled
     private IntVar[] arguments;
     private IntVar arity;
+    private Program program;
 
-    Head(Model model, IntVar predicate) {
+    Head(Program program, Model model, IntVar predicate) {
+        this.program = program;
         this.predicate = predicate;
 
         // Define arity
         IntVar indexToTable = model.intOffsetView(predicate, Token.values().length);
-        arity = model.intVar(0, GeneratePrograms.MAX_ARITY);
-        model.table(indexToTable, arity, GeneratePrograms.arities).post();
+        arity = model.intVar(0, program.maxArity);
+        model.table(indexToTable, arity, program.arities).post();
 
         // Arity regulates how many arguments the predicate has
-        int numValues = GeneratePrograms.CONSTANTS.length + GeneratePrograms.VARIABLES.length;
-        arguments = model.intVarArray(GeneratePrograms.MAX_ARITY, 0, numValues);
+        int numValues = program.constants.length + program.variables.length;
+        arguments = model.intVarArray(program.maxArity, 0, numValues);
         for (int i = 0; i < arguments.length; i++) {
             Constraint iGeArity = model.arithm(arity, "<=", i);
             Constraint isDisabled = model.arithm(arguments[i], "=", numValues);
@@ -42,15 +44,19 @@ class Head {
     @Override
     public String toString() {
         StringBuilder s = new StringBuilder();
-        s.append(GeneratePrograms.PREDICATES[predicate.getValue()]).append("(");
+        s.append(program.predicates[predicate.getValue()]);
+        if (arity.getValue() == 0)
+            return s.toString();
+
+        s.append("(");
         for (int i = 0; i < arity.getValue(); i++) {
             if (i > 0)
                 s.append(", ");
             int argument = arguments[i].getValue();
-            if (argument < GeneratePrograms.VARIABLES.length) {
-                s.append(GeneratePrograms.VARIABLES[argument]);
+            if (argument < program.variables.length) {
+                s.append(program.variables[argument]);
             } else {
-                s.append(GeneratePrograms.CONSTANTS[argument - GeneratePrograms.VARIABLES.length]);
+                s.append(program.constants[argument - program.variables.length]);
             }
         }
         s.append(")");

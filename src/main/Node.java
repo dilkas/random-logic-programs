@@ -10,16 +10,18 @@ class Node {
     private IntVar predicate; // tokens first, then predicates
     private IntVar[] arguments; // variables first, then constants
     private IntVar arity;
+    private Program program;
 
-    Node(Model model) {
-        int numPossibleArguments = GeneratePrograms.VARIABLES.length + GeneratePrograms.CONSTANTS.length + 1;
-        predicate = model.intVar(0, GeneratePrograms.PREDICATES.length + Token.values().length - 1);
-        arguments = model.intVarArray(GeneratePrograms.MAX_ARITY, 0, numPossibleArguments - 1);
+    Node(Program program, Model model) {
+        this.program = program;
+        int numPossibleArguments = program.variables.length + program.constants.length + 1;
+        predicate = model.intVar(0, program.predicates.length + Token.values().length - 1);
+        arguments = model.intVarArray(program.maxArity, 0, numPossibleArguments - 1);
 
         // Restrict the number of arguments to the right arity.
         // This also takes care of nullifying the arguments of tokens
-        arity = model.intVar(0, GeneratePrograms.MAX_ARITY);
-        model.table(predicate, arity, GeneratePrograms.arities).post();
+        arity = model.intVar(0, program.maxArity);
+        model.table(predicate, arity, program.arities).post();
         for (int i = 0; i < arguments.length; i++) {
             // If i >= arity, then arguments[i] must be undefined
             Constraint iGTEQArity = model.arithm(arity, "<=", i);
@@ -45,16 +47,19 @@ class Node {
         int value = predicate.getValue();
         if (value < Token.values().length)
             return Token.values()[value].toString();
-        StringBuilder atom = new StringBuilder(GeneratePrograms.PREDICATES[value - Token.values().length]);
+        StringBuilder atom = new StringBuilder(program.predicates[value - Token.values().length]);
+        if (arity.getValue() == 0)
+            return atom.toString();
+
         atom.append("(");
         for (int i = 0; i < arity.getValue(); i++) {
             if (i > 0)
                 atom.append(", ");
             int index = arguments[i].getValue();
-            if (index < GeneratePrograms.VARIABLES.length) {
-                atom.append(GeneratePrograms.VARIABLES[index]);
+            if (index < program.variables.length) {
+                atom.append(program.variables[index]);
             } else {
-                atom.append(GeneratePrograms.CONSTANTS[index - GeneratePrograms.VARIABLES.length]);
+                atom.append(program.constants[index - program.variables.length]);
             }
         }
         atom.append(")");

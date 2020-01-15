@@ -18,14 +18,14 @@ public class Body {
     private Node[] treeValues;
     private IntVar[] arguments; // concatenated arguments of all nodes in treeValues
 
-    public Body(Model model, IntVar assignment, int maxNumNodes) {
+    public Body(Program program, Model model, IntVar assignment, int maxNumNodes) {
         this.maxNumNodes = maxNumNodes;
 
         IntVar numNodes = model.intVar(1, maxNumNodes); // number of nodes in the main tree
         treeStructure = model.intVarArray(maxNumNodes, 0, maxNumNodes - 1);
         treeValues = new Node[maxNumNodes];
         for (int i = 0; i < maxNumNodes; i++)
-            treeValues[i] = new Node(model);
+            treeValues[i] = new Node(program, model);
 
         // Tree structure
         IntVar numTrees = model.intVar(1, maxNumNodes);
@@ -75,16 +75,16 @@ public class Body {
         }
 
         // Disable the clause (restrict it to a unique value) if required
-        Constraint shouldBeDisabled = model.arithm(assignment, "=", GeneratePrograms.PREDICATES.length);
+        Constraint shouldBeDisabled = model.arithm(assignment, "=", program.predicates.length);
         Constraint oneNode = model.arithm(numNodes, "=", 1);
         Constraint alwaysTrue = model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal());
         model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
 
-        int numIndices = treeValues.length * GeneratePrograms.MAX_ARITY;
+        int numIndices = treeValues.length * program.maxArity;
         arguments = new IntVar[numIndices];
         for (int i = 0; i < treeValues.length; i++)
-            System.arraycopy(treeValues[i].getArguments(), 0, arguments, i * GeneratePrograms.MAX_ARITY,
-                    GeneratePrograms.MAX_ARITY);
+            System.arraycopy(treeValues[i].getArguments(), 0, arguments, i * program.maxArity,
+                    program.maxArity);
     }
 
     IntVar[] getArguments() {

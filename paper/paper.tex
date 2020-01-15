@@ -92,7 +92,8 @@ Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
 Parameters:
 \begin{itemize}
 \item a list of predicates $\predicates{}$,
-\item a list of their arities $\arities{}$ (including zero),
+\item a list of their arities $\arities{}$ (including zero, but assuming that at
+  least one predicate has non-zero arity),
   \begin{itemize}
   \item maximum arity $\maxArity{} \coloneqq \max \arities{}$.
   \end{itemize}
@@ -296,6 +297,7 @@ multiple children, respectively.
 \end{constraint}
 
 \section{Eliminating Variable Symmetries} \label{sec:variable_symmetry}
+% TODO: only if we have multiple variables
 
 Given any clause, we can permute the variables in it without changing the
 meaning of the clause or the entire program. Thus, we want to fix the order of

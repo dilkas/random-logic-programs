@@ -1,6 +1,7 @@
 package propagators;
 
 import main.Body;
+import main.ForbidCycles;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -16,7 +17,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
 
     private IntVar[] clauseAssignments;
     private Body[] bodies;
-    private boolean forbidAllCycles;
+    private ForbidCycles forbidAllCycles;
     private List<List<SignedPredicate>> adjacencyList;
 
     static IntVar[] constructDecisionVariables(IntVar[] clauseAssignments, Body[] bodies) {
@@ -26,7 +27,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
         return decisionVariables;
     }
 
-    public NegativeCyclePropagator(IntVar[] clauseAssignments, Body[] bodies, boolean forbidAllCycles) {
+    public NegativeCyclePropagator(IntVar[] clauseAssignments, Body[] bodies, ForbidCycles forbidAllCycles) {
         super(constructDecisionVariables(clauseAssignments, bodies));
         this.clauseAssignments = clauseAssignments;
         this.bodies = bodies;
@@ -112,6 +113,9 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
         int numNodes = adjacencyList.size();
         boolean[] visited = new boolean[numNodes];
         boolean[] recursionStack = new boolean[numNodes];
+        boolean forbidAllCycles = false;
+        if (this.forbidAllCycles == ForbidCycles.ALL)
+            forbidAllCycles = true;
         for (int i = 0; i < numNodes; i++)
             if (isCyclic(i, forbidAllCycles, visited, recursionStack))
                 return ESat.FALSE;
