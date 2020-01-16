@@ -9,11 +9,13 @@ import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
 import org.chocosolver.solver.search.strategy.selectors.values.SetDomainMin;
 import org.chocosolver.solver.search.strategy.selectors.variables.GeneralizedMinDomVarSelector;
 import org.chocosolver.solver.search.strategy.selectors.variables.Random;
+import org.chocosolver.solver.search.strategy.strategy.AbstractStrategy;
 import org.chocosolver.solver.search.strategy.strategy.IntStrategy;
 import org.chocosolver.solver.search.strategy.strategy.SetStrategy;
 import org.chocosolver.solver.search.strategy.strategy.StrategiesSequencer;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.SetVar;
+import org.chocosolver.solver.variables.Variable;
 import org.chocosolver.util.tools.ArrayUtils;
 import propagators.NegativeCyclePropagator;
 
@@ -21,6 +23,8 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 public class Program {
     private String directory;
@@ -69,18 +73,30 @@ public class Program {
             new Constraint("NoNegativeCycles",
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
 
-        IntStrategy structuralStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), structuralDecisionVariables);
-        IntStrategy bodyGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), bodyGapDecisionVariables);
-        IntStrategy headGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), headGapDecisionVariables);
-        IntStrategy predicateStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), predicateDecisionVariables);
-
-        if (variables.length > 1) {
-            IntStrategy introductionStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), ArrayUtils.flatten(introductions));
-            SetStrategy occurrencesStrategy = Search.setVarSearch(new GeneralizedMinDomVarSelector(), new SetDomainMin(), true, ArrayUtils.flatten(occurrences));
-            model.getSolver().setSearch(new StrategiesSequencer(structuralStrategy, introductionStrategy, predicateStrategy, headGapStrategy, occurrencesStrategy, bodyGapStrategy));
-        } else {
-            model.getSolver().setSearch(new StrategiesSequencer(structuralStrategy, predicateStrategy, headGapStrategy, bodyGapStrategy));
+        int numStrategies = maxNumClauses * 4 + 1;
+        if (variables.length > 1)
+            numStrategies = maxNumClauses * 5 + 1;
+        IntStrategy[] strategies = new IntStrategy[numStrategies];
+        strategies[0] = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), clauseAssignments);
+        int j = 1;
+        for (int i = 0; i < maxNumClauses; i++) {
+            IntStrategy structuralStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), bodies[i].getTreeStructure());
+            IntStrategy bodyGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), bodies[i].getArguments());
+            IntStrategy headGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), clauseHeads[i].getArguments());
+            IntStrategy predicateStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), ArrayUtils.concat(bodies[i].getPredicateVariables()));
+            strategies[j++] = structuralStrategy;
+            strategies[j++] = predicateStrategy;
+            strategies[j++] = headGapStrategy;
+            if (variables.length > 1) {
+                IntStrategy introductionStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), introductions[i]);
+                SetStrategy occurrencesStrategy = Search.setVarSearch(new GeneralizedMinDomVarSelector(), new SetDomainMin(), true, occurrences[i]);
+                strategies[j++] = introductionStrategy;
+                //strategies.add(occurrencesStrategy);
+            }
+            strategies[j++] = bodyGapStrategy;
         }
+        model.getSolver().setSearch(new StrategiesSequencer(strategies));
+
         //model.getSolver().setRestartOnSolutions(); // takes much longer, but solutions are more random
     }
 
