@@ -153,11 +153,11 @@ class GeneratePrograms {
 
     public static void main(String[] args) throws IOException {
         //generateAllPrograms();
-        checkNumPrograms();
+        //checkNumPrograms();
 
-        /*Program p = new Program("../programs/", 1000, 1, 1,
-                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p"}, new int[]{1}, new String[]{"X", "Y"},
-                new String[0]);
-        p.saveProgramsToFiles();*/
+        Program p = new Program("../programs/", 1000, 3,2,
+                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p"}, new int[]{4}, new String[]{"X", "Y"},
+                new String[]{"a", "b", "c", "d"});
+        p.saveProgramsToFiles();
     }
 }

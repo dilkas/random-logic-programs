@@ -43,7 +43,8 @@ public class Program {
     private Body[] bodies; // the body of each clause
     private IntVar[] structuralDecisionVariables;
     private IntVar[] predicateDecisionVariables;
-    private IntVar[] gapDecisionVariables;
+    private IntVar[] headGapDecisionVariables;
+    private IntVar[] bodyGapDecisionVariables;
     private IntVar[][] termsPerClause; // a flattened-out view of the term positions in each clause
     private SetVar[][] occurrences; // for each clause and variable, a set of positions with that variable
     private IntVar[][] introductions; // for eliminating variable symmetries
@@ -68,16 +69,17 @@ public class Program {
             new Constraint("NoNegativeCycles",
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
 
-        IntStrategy intStrategy1 = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), structuralDecisionVariables);
-        IntStrategy intStrategy2 = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), gapDecisionVariables);
-        IntStrategy intStrategy17 = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), predicateDecisionVariables);
+        IntStrategy structuralStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), structuralDecisionVariables);
+        IntStrategy bodyGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), bodyGapDecisionVariables);
+        IntStrategy headGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), headGapDecisionVariables);
+        IntStrategy predicateStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), predicateDecisionVariables);
 
         if (variables.length > 1) {
-            IntStrategy intStrategy15 = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), ArrayUtils.flatten(introductions));
-            SetStrategy setStrategy = Search.setVarSearch(new GeneralizedMinDomVarSelector(), new SetDomainMin(), true, ArrayUtils.flatten(occurrences));
-            model.getSolver().setSearch(new StrategiesSequencer(intStrategy1, intStrategy15, intStrategy17, setStrategy, intStrategy2));
+            IntStrategy introductionStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), ArrayUtils.flatten(introductions));
+            SetStrategy occurrencesStrategy = Search.setVarSearch(new GeneralizedMinDomVarSelector(), new SetDomainMin(), true, ArrayUtils.flatten(occurrences));
+            model.getSolver().setSearch(new StrategiesSequencer(structuralStrategy, introductionStrategy, predicateStrategy, headGapStrategy, occurrencesStrategy, bodyGapStrategy));
         } else {
-            model.getSolver().setSearch(new StrategiesSequencer(intStrategy1, intStrategy17, intStrategy2));
+            model.getSolver().setSearch(new StrategiesSequencer(structuralStrategy, predicateStrategy, headGapStrategy, bodyGapStrategy));
         }
         //model.getSolver().setRestartOnSolutions(); // takes much longer, but solutions are more random
     }
@@ -228,11 +230,12 @@ public class Program {
         for (Body body : bodies) // Body predicates
             predicateDecisionVariables = ArrayUtils.concat(predicateDecisionVariables, body.getPredicateVariables());
 
-        gapDecisionVariables = new IntVar[0];
+        headGapDecisionVariables = new IntVar[0];
+        bodyGapDecisionVariables = new IntVar[0];
         for (Head clauseHead : clauseHeads) // Head arguments
-            gapDecisionVariables = ArrayUtils.concat(gapDecisionVariables, clauseHead.getArguments());
+            headGapDecisionVariables = ArrayUtils.concat(headGapDecisionVariables, clauseHead.getArguments());
         for (Body body : bodies) // Body arguments
-            gapDecisionVariables = ArrayUtils.concat(gapDecisionVariables, body.getArguments());
+            bodyGapDecisionVariables = ArrayUtils.concat(bodyGapDecisionVariables, body.getArguments());
     }
 
     private void setUpVariableSymmetryElimination() {
@@ -287,7 +290,7 @@ public class Program {
             for (int j = 0; j < introductions[i].length; j++)
                 model.member(introductions[i][j], potentialIntroductoryValues[i]).post();
 
-        // A redundant constraint: part 2
+        // A redundant constraint: Nodes with tokens can't hold arguments
         for (int i = 0; i < maxNumClauses; i++) {
             IntVar[] treeValues = bodies[i].getTreeValues();
             for (int j = 0; j < treeValues.length; j++) {
@@ -298,6 +301,16 @@ public class Program {
                 Constraint disjoint = model.disjoint(potentialIntroductoryValues[i], forbiddenValues);
                 Constraint nodeNotLeaf = model.arithm(treeValues[j], "<", Token.values().length);
                 model.ifThen(nodeNotLeaf, disjoint);
+            }
+        }
+
+        // Another redundant constraint: if the introduction is not NULL, then it must be in the occurrences
+        for (int i = 0; i < maxNumClauses; i++) {
+            for (int j = 0; j < variables.length; j++) {
+                Constraint introductionNotNull = model.arithm(introductions[i][j], ">", 0);
+                Constraint itMustBeInOccurrences = model.member(model.intOffsetView(introductions[i][j], -1),
+                        occurrences[i][j]);
+                model.ifThen(introductionNotNull, itMustBeInOccurrences);
             }
         }
     }

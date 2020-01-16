@@ -359,6 +359,14 @@ or the body of the clause is before the first occurrence of $Y$.
   \{ 5, 7 \}, \{ 2, 3 \}]$, and $\variable{introductions} = [0, 1, 5]$.
 \end{example}
 
+\begin{constraint}[Redundant]
+  For $v \in \variables{}$,
+  \[
+    \variable{introductions}[v] \ne 0 \quad \implies \quad
+    \variable{introductions}[v] - 1 \in \variable{occurrences}[v].
+  \]
+\end{constraint}
+
 \subsection{A Redundant Constraint}
 
 For each clause...
