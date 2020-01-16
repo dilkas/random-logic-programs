@@ -6,8 +6,11 @@ import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
-import org.chocosolver.solver.search.strategy.selectors.variables.InputOrder;
+import org.chocosolver.solver.search.strategy.selectors.values.SetDomainMin;
 import org.chocosolver.solver.search.strategy.selectors.variables.Random;
+import org.chocosolver.solver.search.strategy.strategy.IntStrategy;
+import org.chocosolver.solver.search.strategy.strategy.SetStrategy;
+import org.chocosolver.solver.search.strategy.strategy.StrategiesSequencer;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.SetVar;
 import org.chocosolver.util.tools.ArrayUtils;
@@ -37,10 +40,11 @@ public class Program {
     private IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
     private Head[] clauseHeads; // full heads (predicates, variables, constants)
     private Body[] bodies; // the body of each clause
-    private IntVar[] decisionVariables; // all decision variables relevant to the problem
+    private IntVar[] structuralDecisionVariables;
+    private IntVar[] gapDecisionVariables;
     private IntVar[][] termsPerClause; // a flattened-out view of the term positions in each clause
     private SetVar[][] occurrences; // for each clause and variable, a set of positions with that variable
-    private IntVar[][] M; // for eliminating variable symmetries
+    private IntVar[][] introductions; // for eliminating variable symmetries
     private java.util.Random rng;
 
     Program(String directory, int numSolutions, int maxNumNodes, int maxNumClauses, ForbidCycles forbidCycles,
@@ -61,9 +65,19 @@ public class Program {
             new Constraint("NoNegativeCycles",
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
 
-        model.getSolver().setSearch(Search.intVarSearch(new InputOrder<>(model),
-                new IntDomainRandom(rng.nextLong()), decisionVariables));
-        model.getSolver().setRestartOnSolutions(); // takes much longer, but solutions are more random
+        IntStrategy intStrategy1 = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()),
+                structuralDecisionVariables);
+        IntStrategy intStrategy15 = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()),
+                ArrayUtils.flatten(introductions));
+        SetStrategy setStrategy = Search.setVarSearch(new Random<>(rng.nextLong()),
+                new SetDomainMin(), true, ArrayUtils.flatten(occurrences));
+        IntStrategy intStrategy2 = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()),
+                gapDecisionVariables);
+
+        model.getSolver().setSearch(new StrategiesSequencer(intStrategy1, intStrategy15, setStrategy, intStrategy2));
+        /*model.getSolver().setSearch(Search.intVarSearch(new InputOrder<>(model),
+                new IntDomainRandom(rng.nextLong()), decisionVariables));*/
+        //model.getSolver().setRestartOnSolutions(); // takes much longer, but solutions are more random
     }
 
     boolean solve() {
@@ -72,8 +86,8 @@ public class Program {
 
     void saveProgramsToFiles() throws IOException {
         Solver solver = model.getSolver();
-        //solver.showDecisions();
-        //solver.showContradiction();
+        solver.showDecisions();
+        solver.showContradiction();
         for (int i = 0; i < numSolutions && solver.solve(); i++) {
             //System.out.println("========== " + i + " ==========");
             StringBuilder program = new StringBuilder();
@@ -203,16 +217,21 @@ public class Program {
             setUpVariableSymmetryElimination();
 
         // Collect the decision variables (in the right order)
-        decisionVariables = new IntVar[0];
+        structuralDecisionVariables = new IntVar[0];
         for (Body body : bodies) // Body structure
-            decisionVariables = ArrayUtils.concat(decisionVariables, body.getTreeStructure());
-        decisionVariables = ArrayUtils.concat(decisionVariables, clauseAssignments); // Head predicates
+            structuralDecisionVariables = ArrayUtils.concat(structuralDecisionVariables, body.getTreeStructure());
+        // Head predicates
+        structuralDecisionVariables = ArrayUtils.concat(structuralDecisionVariables, clauseAssignments);
         for (Body body : bodies) // Body predicates
-            decisionVariables = ArrayUtils.concat(decisionVariables, body.getPredicateVariables());
+            structuralDecisionVariables = ArrayUtils.concat(structuralDecisionVariables, body.getPredicateVariables());
+
+        gapDecisionVariables = new IntVar[0];
         for (Head clauseHead : clauseHeads) // Head arguments
-            decisionVariables = ArrayUtils.concat(decisionVariables, clauseHead.getArguments());
+            gapDecisionVariables = ArrayUtils.concat(gapDecisionVariables, clauseHead.getArguments());
+        /*for (IntVar[] introduction : introductions) // Optional: introductions
+            decisionVariables = ArrayUtils.concat(decisionVariables, introduction);*/
         for (Body body : bodies) // Body arguments
-            decisionVariables = ArrayUtils.concat(decisionVariables, body.getArguments());
+            gapDecisionVariables = ArrayUtils.concat(gapDecisionVariables, body.getArguments());
     }
 
     private void setUpVariableSymmetryElimination() {
@@ -236,18 +255,18 @@ public class Program {
             model.setsIntsChanneling(occurrences[i], termsPerClause[i]).post();
 
         // Eliminate variable symmetry
-        M = new IntVar[maxNumClauses][];
+        introductions = new IntVar[maxNumClauses][];
         for (int i = 0; i < maxNumClauses; i++) {
-            M[i] = model.intVarArray("M[" + i + "]", variables.length, 0, numIndices);
+            introductions[i] = model.intVarArray("introductions[" + i + "]", variables.length, 0, numIndices);
             for (int v = 0; v < variables.length; v++) {
-                model.min(occurrences[i][v], M[i][v], false).post();
+                model.min(occurrences[i][v], introductions[i][v], false).post();
                 SetVar[] occurrencesAtI = new SetVar[1];
                 occurrencesAtI[0] = occurrences[i][v];
                 Constraint noOccurrences = model.nbEmpty(occurrencesAtI, 1);
-                Constraint fixMinOccurrence = model.arithm(M[i][v], "=", numIndices);
+                Constraint fixMinOccurrence = model.arithm(introductions[i][v], "=", numIndices);
                 model.ifThen(noOccurrences, fixMinOccurrence);
             }
-            model.sort(M[i], M[i]).post();
+            model.sort(introductions[i], introductions[i]).post();
         }
     }
 }

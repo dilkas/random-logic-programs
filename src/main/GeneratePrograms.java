@@ -151,9 +151,9 @@ class GeneratePrograms {
     public static void main(String[] args) throws IOException {
         //generateAllPrograms();
 
-        Program p = new Program("../programs/", 10000, 4, 1,
-                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p"}, new int[]{4}, new String[]{"X"},
-                new String[]{"a", "b", "c"});
+        Program p = new Program("../programs/", 1000, 4, 1,
+                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p"}, new int[]{4}, new String[]{"X", "Y", "Z"},
+                new String[]{"a"});
         p.saveProgramsToFiles();
     }
 }
