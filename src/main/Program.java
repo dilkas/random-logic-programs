@@ -75,7 +75,7 @@ public class Program {
         if (variables.length > 1) {
             IntStrategy intStrategy15 = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), ArrayUtils.flatten(introductions));
             SetStrategy setStrategy = Search.setVarSearch(new GeneralizedMinDomVarSelector(), new SetDomainMin(), true, ArrayUtils.flatten(occurrences));
-            model.getSolver().setSearch(new StrategiesSequencer(intStrategy1, intStrategy15, setStrategy, intStrategy17, intStrategy2));
+            model.getSolver().setSearch(new StrategiesSequencer(intStrategy1, intStrategy15, intStrategy17, setStrategy, intStrategy2));
         } else {
             model.getSolver().setSearch(new StrategiesSequencer(intStrategy1, intStrategy17, intStrategy2));
         }
@@ -247,9 +247,12 @@ public class Program {
 
         // Set up occurrences
         int maxValue = constants.length + variables.length;
+        int[] weights = new int[numIndices];
         int[] possibleIndices = new int[numIndices];
-        for (int i = 0; i < numIndices; i++)
+        for (int i = 0; i < numIndices; i++) {
             possibleIndices[i] = i;
+            weights[i] = i + 1;
+        }
         occurrences = model.setVarMatrix("occurrences", maxNumClauses, maxValue + 1, new int[0],
                 possibleIndices);
         for (int i = 0; i < maxNumClauses; i++) {
@@ -264,18 +267,19 @@ public class Program {
         for (int i = 0; i < maxNumClauses; i++) {
             introductions[i] = model.intVarArray("introductions[" + i + "]", variables.length, 0, numIndices);
             for (int v = 0; v < variables.length; v++) {
-                model.min(occurrences[i][v], introductions[i][v], false).post();
+                model.min(occurrences[i][v], weights, 0, introductions[i][v], false).post();
                 SetVar[] occurrencesAtI = new SetVar[1];
                 occurrencesAtI[0] = occurrences[i][v];
                 Constraint noOccurrences = model.nbEmpty(occurrencesAtI, 1);
-                Constraint fixMinOccurrence = model.arithm(introductions[i][v], "=", numIndices);
+                Constraint fixMinOccurrence = model.arithm(introductions[i][v], "=", 0);
                 model.ifThen(noOccurrences, fixMinOccurrence);
             }
             model.sort(introductions[i], introductions[i]).post();
+            model.allDifferentExcept0(introductions[i]).post();
         }
 
         // A redundant constraint: for each clause, set up a superset of possible introductory values
-        /*int[] potentialIntroductoryValuesStatic = new int[numIndices + 1];
+        int[] potentialIntroductoryValuesStatic = new int[numIndices + 1];
         for (int i = 0; i <= numIndices; i++)
             potentialIntroductoryValuesStatic[i] = i;
         SetVar[] potentialIntroductoryValues = model.setVarArray(maxNumClauses, new int[0], potentialIntroductoryValuesStatic);
@@ -289,12 +293,12 @@ public class Program {
             for (int j = 0; j < treeValues.length; j++) {
                 int[] forbiddenValuesStatic = new int[maxArity];
                 for (int k = 0; k < maxArity; k++)
-                    forbiddenValuesStatic[k] = maxArity * (j + 1) + k;
+                    forbiddenValuesStatic[k] = 1 + maxArity * (j + 1) + k;
                 SetVar forbiddenValues = model.setVar(forbiddenValuesStatic, forbiddenValuesStatic);
                 Constraint disjoint = model.disjoint(potentialIntroductoryValues[i], forbiddenValues);
                 Constraint nodeNotLeaf = model.arithm(treeValues[j], "<", Token.values().length);
                 model.ifThen(nodeNotLeaf, disjoint);
             }
-        }*/
+        }
     }
 }

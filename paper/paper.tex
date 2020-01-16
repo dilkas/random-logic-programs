@@ -320,7 +320,7 @@ or the body of the clause is before the first occurrence of $Y$.
   \]
 \end{definition}
 
-\begin{constraint}[A redundant constraint]
+\begin{constraint}[Redundant]
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   \[
     \variable{occurrences}[u] \cap \variable{occurrences}[v] = \emptyset.
@@ -332,12 +332,16 @@ or the body of the clause is before the first occurrence of $Y$.
   that for $v \in \variables{}$,
   \[
     \variable{introductions}[v] = \begin{cases}
-      \min \variable{occurrences}[v] & \text{if }
+      1 + \min \variable{occurrences}[v] & \text{if }
       \variable{occurrences}[v] \ne \emptyset\\
-      N & \text{otherwise.}
+      0 & \text{otherwise.}
     \end{cases}
   \]
 \end{definition}
+
+\begin{constraint}[Redundant]
+  $\variable{allDifferentExcept0}(\variable{introductions})$.
+\end{constraint}
 
 \begin{constraint}
   $\variable{introductions}$ are sorted.
@@ -355,18 +359,29 @@ or the body of the clause is before the first occurrence of $Y$.
   \{ 5, 7 \}, \{ 2, 3 \}]$, and $\variable{introductions} = [0, 1, 5]$.
 \end{example}
 
-% \subsection{A Redundant Constraint}
+\subsection{A Redundant Constraint}
 
-% For each clause...
+For each clause...
 
-% \begin{definition}
-%   $\variable{potentialIntroductions}$: a subset of $\{ 0, \dots, N \}$.
-% \end{definition}
+\begin{definition}
+  We define an auxiliary set variable
+  \[
+    \variable{potentialIntroductions} \subseteq \{ 0, \dots, N \}
+  \]
+  by: for $i = 0, \dots, \maxNumNodes{} - 1$, if
+  $\variable{treeValues}[i].\variable{name} \in \tokens{}$, then
+  \[
+    \variable{potentialIntroductions} \cap \{ \maxArity{} \times (i + 1) + j + 1
+    \mid j = 0, \dots, \maxArity{} - 1 \} = \emptyset.
+  \]
+\end{definition} % TODO: maybe add to the example
+In other words, if the node not a predicate, a variable cannot be introduced as
+one of its `arguments'.
 
-% \begin{constraint}
-%   For $i = 0, \dots, \maxNumNodes{} - 1$,
-%   If $\variable{treeValues}[i]$
-% \end{constraint}
+\begin{constraint}
+  For $v \in \variables{}$, $\variable{introductions}[v] \in
+  \variable{potentialIntroductions}$.
+\end{constraint}
 
 \section{Interactions Between Clauses}
 
@@ -739,6 +754,7 @@ Propagation for independence:
 \item Mention the random heuristic. Mention that restarting gives better
   randomness, but duplicates become possible. Restarting after each run is
   expensive. Periodic restarts could be an option.
+\item Could add statistics about what constraints tend to conflict.
 \end{itemize}
 
 \section*{Acknowledgments}

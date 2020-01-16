@@ -155,9 +155,9 @@ class GeneratePrograms {
         //generateAllPrograms();
         checkNumPrograms();
 
-        /*Program p = new Program("../programs/", 1000, 4, 1,
-                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p"}, new int[]{4}, new String[]{"W", "X", "Y", "Z"},
-                new String[]{"a"});
+        /*Program p = new Program("../programs/", 1000, 1, 1,
+                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p"}, new int[]{1}, new String[]{"X", "Y"},
+                new String[0]);
         p.saveProgramsToFiles();*/
     }
 }
