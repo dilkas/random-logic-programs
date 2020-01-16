@@ -6,6 +6,7 @@ import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
+import org.chocosolver.solver.search.strategy.selectors.variables.InputOrder;
 import org.chocosolver.solver.search.strategy.selectors.variables.Random;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.SetVar;
@@ -60,9 +61,9 @@ public class Program {
             new Constraint("NoNegativeCycles",
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
 
-        model.getSolver().setSearch(Search.intVarSearch(new Random<>(rng.nextLong()),
+        model.getSolver().setSearch(Search.intVarSearch(new InputOrder<>(model),
                 new IntDomainRandom(rng.nextLong()), decisionVariables));
-        //solver.setRestartOnSolutions(); // takes much longer, but solutions are more random
+        model.getSolver().setRestartOnSolutions(); // takes much longer, but solutions are more random
     }
 
     boolean solve() {
@@ -71,8 +72,8 @@ public class Program {
 
     void saveProgramsToFiles() throws IOException {
         Solver solver = model.getSolver();
-        solver.showDecisions();
-        solver.showContradiction();
+        //solver.showDecisions();
+        //solver.showContradiction();
         for (int i = 0; i < numSolutions && solver.solve(); i++) {
             //System.out.println("========== " + i + " ==========");
             StringBuilder program = new StringBuilder();
@@ -172,13 +173,10 @@ public class Program {
             bodies[i] = new Body(this, model, clauseAssignments[i], maxNumNodes, i);
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
-        decisionVariables = clauseAssignments;
         IntVar[][] decisionVariablesPerClause = new IntVar[maxNumClauses][];
-        for (int i = 0; i < maxNumClauses; i++) {
+        for (int i = 0; i < maxNumClauses; i++)
             decisionVariablesPerClause[i] = ArrayUtils.concat(clauseHeads[i].getDecisionVariables(),
                     bodies[i].getDecisionVariables());
-            decisionVariables = ArrayUtils.concat(decisionVariables, decisionVariablesPerClause[i]);
-        }
         model.lexChainLessEq(decisionVariablesPerClause).post();
 
         // Adding a graph representation
@@ -203,6 +201,18 @@ public class Program {
 
         if (variables.length > 1)
             setUpVariableSymmetryElimination();
+
+        // Collect the decision variables (in the right order)
+        decisionVariables = new IntVar[0];
+        for (Body body : bodies) // Body structure
+            decisionVariables = ArrayUtils.concat(decisionVariables, body.getTreeStructure());
+        decisionVariables = ArrayUtils.concat(decisionVariables, clauseAssignments); // Head predicates
+        for (Body body : bodies) // Body predicates
+            decisionVariables = ArrayUtils.concat(decisionVariables, body.getPredicateVariables());
+        for (Head clauseHead : clauseHeads) // Head arguments
+            decisionVariables = ArrayUtils.concat(decisionVariables, clauseHead.getArguments());
+        for (Body body : bodies) // Body arguments
+            decisionVariables = ArrayUtils.concat(decisionVariables, body.getArguments());
     }
 
     private void setUpVariableSymmetryElimination() {

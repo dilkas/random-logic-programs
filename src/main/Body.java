@@ -93,6 +93,13 @@ public class Body {
         return arguments;
     }
 
+    IntVar[] getPredicateVariables() {
+        IntVar[] predicates = new IntVar[treeValues.length];
+        for (int i = 0; i < treeValues.length; i++)
+            predicates[i] = treeValues[i].getPredicate();
+        return predicates;
+    }
+
     /** A list of predicates featured in this clause. The sign of each predicate denotes whether the predicate is
      * negated or not (after unfolding all the logical connectives). */
     public List<SignedPredicate> getPredicates() {
