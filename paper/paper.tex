@@ -320,6 +320,13 @@ or the body of the clause is before the first occurrence of $Y$.
   \]
 \end{definition}
 
+\begin{constraint}[A redundant constraint]
+  For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
+  \[
+    \variable{occurrences}[u] \cap \variable{occurrences}[v] = \emptyset.
+  \]
+\end{constraint}
+
 \begin{definition}
   We define $\arrayd{introductions}{|\variables{}|}{\{ 0, \dots, N \}}$ such
   that for $v \in \variables{}$,
@@ -347,6 +354,19 @@ or the body of the clause is before the first occurrence of $Y$.
   the conjunction node), $\variable{occurrences} = [\{ 0, 4 \}, \{ 1, 6 \},
   \{ 5, 7 \}, \{ 2, 3 \}]$, and $\variable{introductions} = [0, 1, 5]$.
 \end{example}
+
+% \subsection{A Redundant Constraint}
+
+% For each clause...
+
+% \begin{definition}
+%   $\variable{potentialIntroductions}$: a subset of $\{ 0, \dots, N \}$.
+% \end{definition}
+
+% \begin{constraint}
+%   For $i = 0, \dots, \maxNumNodes{} - 1$,
+%   If $\variable{treeValues}[i]$
+% \end{constraint}
 
 \section{Interactions Between Clauses}
 

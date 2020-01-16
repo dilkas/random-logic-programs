@@ -113,13 +113,13 @@ class GeneratePrograms {
 
     private static void generateAllPrograms() throws IOException {
         for (int numPredicates = 1; numPredicates < 5; numPredicates++) {
-            System.out.println("\n" + numPredicates);
+            //System.out.println("\n" + numPredicates);
             String[] predicates = new String[numPredicates];
             fillWithNames(predicates, "");
             for (int numAdditionalClauses = 0; numAdditionalClauses < 5; numAdditionalClauses++) {
                 int maxNumClauses = predicates.length + numAdditionalClauses;
                 for (int numVariables = 0; numVariables < 5; numVariables++) {
-                    System.out.print(".");
+                    //System.out.print(".");
                     String[] variables = new String[numVariables];
                     fillWithNames(variables, "v");
                     for (int numConstants = 0; numConstants < 5; numConstants++) {
@@ -135,10 +135,13 @@ class GeneratePrograms {
                                         maxArity + "a/";
                                 new File(directory).mkdir();
                                 for (int[] localArities: arities) {
-                                    Program p = new Program(directory, 100, maxNumNodes, maxNumClauses,
+                                    Program p = new Program(directory, 1, maxNumNodes, maxNumClauses,
                                             ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, predicates, localArities,
                                             variables, constants);
+                                    long start = System.nanoTime();
                                     p.saveProgramsToFiles();
+                                    long finish = System.nanoTime();
+                                    System.out.println(directory + ", " + (finish - start));
                                 }
                             }
                         }
@@ -150,10 +153,11 @@ class GeneratePrograms {
 
     public static void main(String[] args) throws IOException {
         //generateAllPrograms();
+        checkNumPrograms();
 
-        Program p = new Program("../programs/", 1000, 4, 1,
-                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p"}, new int[]{4}, new String[]{"X", "Y", "Z"},
+        /*Program p = new Program("../programs/", 1000, 4, 1,
+                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p"}, new int[]{4}, new String[]{"W", "X", "Y", "Z"},
                 new String[]{"a"});
-        p.saveProgramsToFiles();
+        p.saveProgramsToFiles();*/
     }
 }
