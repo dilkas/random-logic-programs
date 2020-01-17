@@ -45,7 +45,7 @@ class GeneratePrograms {
 
             Program p = new Program("../programs/", 10000, Integer.parseInt(data[4]),
                     Integer.parseInt(data[5]), ForbidCycles.NONE, new double[]{1}, predicates, arities, variables,
-                    constants);
+                    constants, new PredicatePair[0]);
 
             // Count the number of solutions
             int i = 0;
@@ -138,7 +138,7 @@ class GeneratePrograms {
                                 for (int[] localArities: arities) {
                                     Program p = new Program(directory, 1, maxNumNodes, maxNumClauses,
                                             ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, predicates, localArities,
-                                            variables, constants);
+                                            variables, constants, new PredicatePair[0]);
                                     long start = System.nanoTime();
                                     p.saveProgramsToFiles();
                                     long finish = System.nanoTime();
@@ -156,9 +156,10 @@ class GeneratePrograms {
         //generateAllPrograms();
         checkNumPrograms();
 
-        /*Program p = new Program("../programs/", 1000, 4, 4,
-                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, new String[]{"p", "q", "r"}, new int[]{3, 3, 3}, new String[0],
-                new String[]{"a", "b", "c"});
+        /*String[] predicates = new String[]{"p", "q", "r"};
+        Program p = new Program("../programs/", 1000, 4, 4,
+                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, predicates, new int[]{3, 3, 3}, new String[0],
+                new String[]{"a", "b", "c"}, new PredicatePair[]{new PredicatePair(predicates, "p", "q")});
         p.saveProgramsToFiles();*/
     }
 }

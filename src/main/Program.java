@@ -23,12 +23,14 @@ import java.util.Arrays;
 public class Program {
 
     private static final boolean PRINT_DEBUG_INFO = false;
+    private static final boolean RESTART_ON_SOLUTIONS = false; // takes much longer but solutions are more random
 
     private String directory;
     private int numSolutions;
     private int maxNumClauses;
     private double[] probabilities;
     private int[] arities;
+    private PredicatePair[] independentPairs;
 
     int maxNumNodes;
     String[] predicates;
@@ -46,7 +48,8 @@ public class Program {
     private java.util.Random rng;
 
     Program(String directory, int numSolutions, int maxNumNodes, int maxNumClauses, ForbidCycles forbidCycles,
-            double[] probabilities, String[] predicates, int[] aritiesTable, String[] variables, String[] constants) {
+            double[] probabilities, String[] predicates, int[] aritiesTable, String[] variables, String[] constants,
+            PredicatePair[] independentPairs) {
         this.directory = directory;
         this.numSolutions = numSolutions;
         this.maxNumNodes = maxNumNodes;
@@ -56,73 +59,26 @@ public class Program {
         arities = aritiesTable;
         this.variables = variables;
         this.constants = constants;
+        this.independentPairs = independentPairs;
         maxArity = Arrays.stream(arities).max().getAsInt();
 
-        setUpConstraints();
+        // Set up constraints
+        setUpMainConstraints();
+        setUpVariableSymmetryElimination();
+        setUpIndependenceConstraints();
         if (forbidCycles != ForbidCycles.NONE)
             new Constraint("NoNegativeCycles",
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
 
-        if (variables.length > 1)
-            setUpIndependenceConstraint();
-
-        int numStrategies = maxNumClauses * 4 + 1;
-        if (variables.length > 1)
-            numStrategies = maxNumClauses * 5 + 1;
-        IntStrategy[] strategies = new IntStrategy[numStrategies];
-        strategies[0] = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()),
-                clauseAssignments);
-        int j = 1;
-        for (int i = 0; i < maxNumClauses; i++) {
-            IntStrategy structuralStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
-                    new IntDomainRandom(rng.nextLong()), bodies[i].getTreeStructure());
-            IntStrategy bodyGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
-                    new IntDomainRandom(rng.nextLong()), bodies[i].getArguments());
-            IntStrategy headGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
-                    new IntDomainRandom(rng.nextLong()), clauseHeads[i].getArguments());
-            IntStrategy predicateStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
-                    new IntDomainRandom(rng.nextLong()), ArrayUtils.concat(bodies[i].getPredicateVariables()));
-            strategies[j++] = structuralStrategy;
-            strategies[j++] = predicateStrategy;
-            strategies[j++] = headGapStrategy;
-            if (variables.length > 1) {
-                IntStrategy introductionStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
-                        new IntDomainRandom(rng.nextLong()), introductions[i]);
-                strategies[j++] = introductionStrategy;
-            }
-            strategies[j++] = bodyGapStrategy;
-        }
-        model.getSolver().setSearch(new StrategiesSequencer(strategies));
-
-        //model.getSolver().setRestartOnSolutions(); // takes much longer, but solutions are more random
+        setUpVariableOrdering();
+        if (RESTART_ON_SOLUTIONS)
+            model.getSolver().setRestartOnSolutions();
     }
 
-    private void setUpIndependenceConstraint() {
-        System.out.println(predicates.length);
-        IntVar[][] adjacencyMatrix = model.intVarMatrix("adjacencyMatrix", predicates.length, predicates.length,
-                0, 1);
-        IntVar zero = model.intVar(0);
-        for (int i = 0; i < predicates.length; i++) {
-            for (int j = 0; j < predicates.length; j++) {
-                Constraint noEdge = model.arithm(adjacencyMatrix[i][j], "=", 0);
-                Constraint[] clausesAssignedToJHaveNoI = new Constraint[bodies.length];
-                for (int k = 0; k < bodies.length; k++) {
-                    Constraint notAssignedToJ = model.arithm(clauseAssignments[k], "!=", j);
-                    Constraint hasNoI = model.count(i + Token.values().length,
-                            bodies[k].getTreeValues(), zero);
-                    clausesAssignedToJHaveNoI[k] = model.or(notAssignedToJ, hasNoI);
-                }
-                // A[i][j] = 0 iff there are no clauses such that clauseAssignments[k] = j
-                // and i is in clause[k].treeValues
-                model.ifOnlyIf(noEdge, model.and(clausesAssignedToJHaveNoI));
-            }
-        }
-        new Constraint("independence",
-                new IndependencePropagator(adjacencyMatrix, 0, 1)).post();
-    }
+    // ================================================== CONSTRAINTS ==================================================
 
     /** Set up all the variables and constraints. */
-    private void setUpConstraints() {
+    private void setUpMainConstraints() {
         assert(predicates.length == arities.length);
         aritiesTable = new Tuples();
         for (Token t : Token.values())
@@ -165,16 +121,16 @@ public class Program {
             decisionVariablesPerClause[i] = ArrayUtils.concat(clauseHeads[i].getDecisionVariables(),
                     bodies[i].getDecisionVariables());
         model.lexChainLessEq(decisionVariablesPerClause).post();
-
-        if (variables.length > 1)
-            setUpVariableSymmetryElimination();
     }
 
     private void setUpVariableSymmetryElimination() {
+        if (variables.length <= 1)
+            return;
+
         // Set up termsPerClause to keep track of all variables and constants across each clause
         int numIndices = (maxNumNodes + 1) * maxArity;
-        // a concatenation of all terms in each clause (both head and body) (dimension 1 - clauses, dimension 2 - positions)
-        // a flattened-out view of the term positions in each clause
+        /* a concatenation of all terms in each clause (both head and body) (dimension 1 - clauses,
+        dimension 2 - positions) */
         IntVar[][] termsPerClause = new IntVar[maxNumClauses][numIndices];
         for (int i = 0; i < maxNumClauses; i++) {
             System.arraycopy(clauseHeads[i].getArguments(), 0, termsPerClause[i], 0, maxArity);
@@ -216,23 +172,23 @@ public class Program {
         }
 
         // A redundant constraint: for each clause, set up a superset of possible introductory values
-        int[] potentialIntroductoryValuesStatic = new int[numIndices + 1];
+        int[] potentialIntroductionsStatic = new int[numIndices + 1];
         for (int i = 0; i <= numIndices; i++)
-            potentialIntroductoryValuesStatic[i] = i;
-        SetVar[] potentialIntroductoryValues = model.setVarArray(maxNumClauses, new int[0], potentialIntroductoryValuesStatic);
+            potentialIntroductionsStatic[i] = i;
+        SetVar[] potentialIntroductions = model.setVarArray(maxNumClauses, new int[0],potentialIntroductionsStatic);
         for (int i = 0; i < introductions.length; i++)
             for (int j = 0; j < introductions[i].length; j++)
-                model.member(introductions[i][j], potentialIntroductoryValues[i]).post();
+                model.member(introductions[i][j], potentialIntroductions[i]).post();
 
         // A redundant constraint: Nodes with tokens can't hold arguments
         for (int i = 0; i < maxNumClauses; i++) {
-            IntVar[] treeValues = bodies[i].getTreeValues();
+            IntVar[] treeValues = bodies[i].getPredicates();
             for (int j = 0; j < treeValues.length; j++) {
                 int[] forbiddenValuesStatic = new int[maxArity];
                 for (int k = 0; k < maxArity; k++)
                     forbiddenValuesStatic[k] = 1 + maxArity * (j + 1) + k;
                 SetVar forbiddenValues = model.setVar(forbiddenValuesStatic, forbiddenValuesStatic);
-                Constraint disjoint = model.disjoint(potentialIntroductoryValues[i], forbiddenValues);
+                Constraint disjoint = model.disjoint(potentialIntroductions[i], forbiddenValues);
                 Constraint nodeNotLeaf = model.arithm(treeValues[j], "<", Token.values().length);
                 model.ifThen(nodeNotLeaf, disjoint);
             }
@@ -247,6 +203,66 @@ public class Program {
                 model.ifThen(introductionNotNull, itMustBeInOccurrences);
             }
         }
+    }
+
+    private void setUpIndependenceConstraints() {
+        if (predicates.length == 0)
+            return;
+        IntVar[][] adjacencyMatrix = model.intVarMatrix("adjacencyMatrix", predicates.length, predicates.length,
+                0, 1);
+        IntVar zero = model.intVar(0);
+        for (int i = 0; i < predicates.length; i++) {
+            for (int j = 0; j < predicates.length; j++) {
+                Constraint noEdge = model.arithm(adjacencyMatrix[i][j], "=", 0);
+                Constraint[] clausesAssignedToJHaveNoI = new Constraint[bodies.length];
+                for (int k = 0; k < bodies.length; k++) {
+                    Constraint notAssignedToJ = model.arithm(clauseAssignments[k], "!=", j);
+                    Constraint hasNoI = model.count(i + Token.values().length,
+                            bodies[k].getPredicates(), zero);
+                    clausesAssignedToJHaveNoI[k] = model.or(notAssignedToJ, hasNoI);
+                }
+                // A[i][j] = 0 iff there are no clauses such that clauseAssignments[k] = j
+                // and i is in clause[k].treeValues
+                model.ifOnlyIf(noEdge, model.and(clausesAssignedToJHaveNoI));
+            }
+        }
+        for (int i = 0; i < independentPairs.length; i++)
+            new Constraint("independence " + i,
+                    new IndependencePropagator(adjacencyMatrix, independentPairs[i].getFirst(),
+                            independentPairs[i].getSecond())).post();
+    }
+
+    // ================================================== SOLVING ==================================================
+
+    /** Semi-random variable ordering */
+    private void setUpVariableOrdering() {
+        int numStrategies = maxNumClauses * 4 + 1;
+        if (variables.length > 1)
+            numStrategies = maxNumClauses * 5 + 1;
+        IntStrategy[] strategies = new IntStrategy[numStrategies];
+        strategies[0] = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()),
+                clauseAssignments);
+        int j = 1;
+        for (int i = 0; i < maxNumClauses; i++) {
+            IntStrategy structuralStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                    new IntDomainRandom(rng.nextLong()), bodies[i].getTreeStructure());
+            IntStrategy bodyGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                    new IntDomainRandom(rng.nextLong()), bodies[i].getArguments());
+            IntStrategy headGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                    new IntDomainRandom(rng.nextLong()), clauseHeads[i].getArguments());
+            IntStrategy predicateStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                    new IntDomainRandom(rng.nextLong()), ArrayUtils.concat(bodies[i].getPredicates()));
+            strategies[j++] = structuralStrategy;
+            strategies[j++] = predicateStrategy;
+            strategies[j++] = headGapStrategy;
+            if (variables.length > 1) {
+                IntStrategy introductionStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                        new IntDomainRandom(rng.nextLong()), introductions[i]);
+                strategies[j++] = introductionStrategy;
+            }
+            strategies[j++] = bodyGapStrategy;
+        }
+        model.getSolver().setSearch(new StrategiesSequencer(strategies));
     }
 
     boolean solve() {
@@ -269,6 +285,8 @@ public class Program {
             writer.close();
         }
     }
+
+    // ================================================== OUTPUT ==================================================
 
     /** The entire clause, i.e., both body and head */
     private String clauseToString(int i, java.util.Random rng) {

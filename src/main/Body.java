@@ -15,7 +15,8 @@ public class Body {
     private Program program;
     private IntVar[] treeStructure;
     private Node[] treeValues;
-    private IntVar[] arguments; // Concatenated arguments of all nodes in treeValues
+    // The decision variables relevant to negative cycle detection (i.e., everything except arguments)
+    private IntVar[] structuralDecisionVariables;
 
     public Body(Program program, Model model, IntVar assignment, int clauseIndex) {
         this.program = program;
@@ -81,32 +82,53 @@ public class Body {
         Constraint alwaysTrue = model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal());
         model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
 
-        // Concatenate all arguments into a single array
+        structuralDecisionVariables = treeStructure;
+        for (Node treeValue : treeValues)
+            structuralDecisionVariables = ArrayUtils.concat(structuralDecisionVariables, treeValue.getPredicate());
+    }
+
+    // ========================================= GETTERS OF DECISION VARIABLES =======================================
+
+    IntVar[] getArguments() {
         int numIndices = treeValues.length * program.maxArity;
-        arguments = new IntVar[numIndices];
+        IntVar[] arguments = new IntVar[numIndices];
         for (int i = 0; i < treeValues.length; i++)
             System.arraycopy(treeValues[i].getArguments(), 0, arguments, i * program.maxArity,
                     program.maxArity);
-    }
-
-    IntVar[] getArguments() {
         return arguments;
     }
 
-    IntVar[] getPredicateVariables() {
+    IntVar[] getPredicates() {
         IntVar[] predicates = new IntVar[treeValues.length];
         for (int i = 0; i < treeValues.length; i++)
             predicates[i] = treeValues[i].getPredicate();
         return predicates;
     }
 
-    /** A list of predicates featured in this clause. The sign of each predicate denotes whether the predicate is
-     * negated or not (after unfolding all the logical connectives). */
-    public List<SignedPredicate> getPredicates() {
-        return getPredicates(0);
+    public IntVar[] getStructuralDecisionVariables() {
+        return structuralDecisionVariables;
     }
 
-    private List<SignedPredicate> getPredicates(int index) {
+    IntVar[] getDecisionVariables() {
+        IntVar[] variables = treeStructure;
+        for (Node node : treeValues)
+            variables = ArrayUtils.concat(variables, node.getDecisionVariables());
+        return variables;
+    }
+
+    IntVar[] getTreeStructure() {
+        return treeStructure;
+    }
+
+    // ======================================== OTHER GETTERS ========================================
+
+    /** A list of predicates featured in this clause. The sign of each predicate denotes whether the predicate is
+     * negated or not (after unfolding all the logical connectives). */
+    public List<SignedPredicate> getSignedPredicates() {
+        return getSignedPredicates(0);
+    }
+
+    private List<SignedPredicate> getSignedPredicates(int index) {
         int valueIndex = treeValues[index].getPredicate().getValue();
         List<SignedPredicate> predicates = new LinkedList<>();
 
@@ -128,7 +150,7 @@ public class Body {
             if (firstChild >= program.maxNumNodes)
                 return predicates;
 
-            List<SignedPredicate> descendants = getPredicates(firstChild);
+            List<SignedPredicate> descendants = getSignedPredicates(firstChild);
             for (SignedPredicate descendant : descendants)
                 descendant.setNegative();
             return descendants;
@@ -137,11 +159,12 @@ public class Body {
         // If the node is AND/OR
         for (int i = 0; i < program.maxNumNodes; i++) {
             if (i != index && treeStructure[i].getValue() == index)
-                predicates.addAll(getPredicates(i));
+                predicates.addAll(getSignedPredicates(i));
         }
         return predicates;
     }
 
+    /** Return the first index which is a child of the given parent */
     private int findFirstChild(int parent) {
         int i = 0;
         for (; i < program.maxNumNodes; i++)
@@ -150,31 +173,7 @@ public class Body {
         return i;
     }
 
-    /** The decision variables relevant to negative cycle detection (i.e., everything except arguments) */
-    public IntVar[] getStructuralDecisionVariables() {
-        IntVar[] variables = treeStructure;
-        for (Node treeValue : treeValues)
-            variables = ArrayUtils.concat(variables, treeValue.getPredicate());
-        return variables;
-    }
-
-    public IntVar[] getDecisionVariables() {
-        IntVar[] variables = treeStructure;
-        for (Node node : treeValues)
-            variables = ArrayUtils.concat(variables, node.getDecisionVariables());
-        return variables;
-    }
-
-    public IntVar[] getTreeStructure() {
-        return treeStructure;
-    }
-
-    public IntVar[] getTreeValues() {
-        IntVar[] predicates = new IntVar[treeValues.length];
-        for (int i = 0; i < treeValues.length; i++)
-            predicates[i] = treeValues[i].getPredicate();
-        return predicates;
-    }
+    // ================================================== OUTPUT ==================================================
 
     private String treeToString(int i) {
         int value = treeValues[i].getPredicate().getValue();

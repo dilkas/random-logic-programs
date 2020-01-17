@@ -99,7 +99,7 @@ public class NegativeCyclePropagator extends Propagator<IntVar> {
         for (int i = 0; i < predicates.size(); i++)
             adjacencyList.add(new LinkedList<>());
         for (int i : determinedClauses) {
-            for (SignedPredicate predicate : bodies[i].getPredicates()) {
+            for (SignedPredicate predicate : bodies[i].getSignedPredicates()) {
                 int index1 = predicates.indexOf(clauseAssignments[i].getValue());
                 int index2 = predicates.indexOf(predicate.getIndex());
                 if (index2 == -1)
