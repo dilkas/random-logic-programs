@@ -11,7 +11,8 @@ import static java.util.stream.Collectors.toList;
 
 class GeneratePrograms {
 
-    private static final double[] DEFAULT_PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1, 1, 1, 1, 1};
+    private static final double[] DEFAULT_PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
+            1, 1, 1, 1, 1, 1};
 
     private static void checkNumPrograms() throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader("../program_counts.csv"));

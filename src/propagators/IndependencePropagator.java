@@ -24,15 +24,6 @@ public class IndependencePropagator extends Propagator<IntVar> {
         this.predicate2 = predicate2;
     }
 
-    public IndependencePropagator(IntVar[][] adjacencyMatrix, IntVar[] clauseAssignments, Body[] bodies,
-                           int predicate1, int predicate2) {
-        super(ArrayUtils.concat(ArrayUtils.flatten(adjacencyMatrix),
-                NegativeCyclePropagator.constructDecisionVariables(clauseAssignments, bodies)));
-        this.adjacencyMatrix = adjacencyMatrix;
-        this.predicate1 = predicate1;
-        this.predicate2 = predicate2;
-    }
-
     @Override
     public void propagate(int evtmask) throws ContradictionException {
         Set<Dependency> dependencies1 = getDependencies(predicate1);
@@ -71,16 +62,6 @@ public class IndependencePropagator extends Propagator<IntVar> {
         return ESat.TRUE;
     }
 
-    private String matrixToString(IntVar[][] matrix) {
-        StringBuilder builder = new StringBuilder();
-        for (int i = 0; i < matrix.length; i++) {
-            for (int j = 0; j < matrix.length; j++)
-                builder.append(matrix[i][j].getValue()).append(" ");
-            builder.append("\n");
-        }
-        return builder.toString();
-    }
-
     /** Return a set of two types of dependencies: those that are guaranteed to be there (determined) and those that
      * could exist if one edge in the dependency graph is instantiated. */
     private Set<Dependency> getDependencies(int initialPredicate) {
@@ -94,7 +75,7 @@ public class IndependencePropagator extends Propagator<IntVar> {
                     boolean edgeExists = adjacencyMatrix[i][dependency.getPredicate()].getValue() == 1;
                     if (edgeIsDetermined && edgeExists && dependency.isDetermined()) {
                         newDependencies.add(new Dependency(i));
-                    } else if (edgeIsDetermined && edgeExists && !dependency.isDetermined()) {
+                    } else if (edgeIsDetermined && edgeExists) {
                         newDependencies.add(new Dependency(i, dependency.getSource(), dependency.getTarget()));
                     } else if (!edgeIsDetermined && dependency.isDetermined()) {
                         newDependencies.add(new Dependency(i, i, dependency.getPredicate()));

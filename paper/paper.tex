@@ -668,7 +668,7 @@ Propagation for independence:
           \uIf{$\edgeExists$ {\bf and} $d$.\isDetermined{}}{
             $D' \gets D' \cup \{ i \}$\;
           }
-          \uElseIf{$\edgeExists$ {\bf and not} $d$.\isDetermined{}}{
+          \uElseIf{$\edgeExists$}{
             $D' \gets D' \cup \{ (i, d.\source, d.\target) \}$\;
           }
           \ElseIf{$|\mathbf{A}[i][d.\predicate]| > 1$ {\bf and} $d$.\isDetermined{}}{

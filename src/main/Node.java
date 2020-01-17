@@ -23,7 +23,7 @@ class Node {
         // Restrict the number of arguments to the right arity.
         // This also takes care of nullifying the arguments of tokens
         arity = model.intVar("nodeArity[" + clauseIndex + "][" + position + "]", 0, program.maxArity);
-        model.table(predicate, arity, program.arities).post();
+        model.table(predicate, arity, program.aritiesTable).post();
         for (int i = 0; i < arguments.length; i++) {
             // If i >= arity, then arguments[i] must be undefined
             Constraint iGTEQArity = model.arithm(arity, "<=", i);

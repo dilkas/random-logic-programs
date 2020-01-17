@@ -21,19 +21,22 @@ import java.io.IOException;
 import java.util.Arrays;
 
 public class Program {
+
+    private static final boolean PRINT_DEBUG_INFO = false;
+
     private String directory;
     private int numSolutions;
-    private int maxNumNodes;
     private int maxNumClauses;
     private double[] probabilities;
+    private int[] arities;
 
+    int maxNumNodes;
     String[] predicates;
-    private int[] ARITIES;
     String[] variables;
     String[] constants;
     int maxArity;
 
-    Tuples arities; // used in defining constraints
+    Tuples aritiesTable; // used in defining constraints
 
     private Model model;
     private IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
@@ -43,17 +46,17 @@ public class Program {
     private java.util.Random rng;
 
     Program(String directory, int numSolutions, int maxNumNodes, int maxNumClauses, ForbidCycles forbidCycles,
-            double[] probabilities, String[] predicates, int[] arities, String[] variables, String[] constants) {
+            double[] probabilities, String[] predicates, int[] aritiesTable, String[] variables, String[] constants) {
         this.directory = directory;
         this.numSolutions = numSolutions;
         this.maxNumNodes = maxNumNodes;
         this.maxNumClauses = maxNumClauses;
         this.probabilities = probabilities;
         this.predicates = predicates;
-        ARITIES = arities;
+        arities = aritiesTable;
         this.variables = variables;
         this.constants = constants;
-        maxArity = Arrays.stream(ARITIES).max().getAsInt();
+        maxArity = Arrays.stream(arities).max().getAsInt();
 
         setUpConstraints();
         if (forbidCycles != ForbidCycles.NONE)
@@ -67,18 +70,24 @@ public class Program {
         if (variables.length > 1)
             numStrategies = maxNumClauses * 5 + 1;
         IntStrategy[] strategies = new IntStrategy[numStrategies];
-        strategies[0] = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), clauseAssignments);
+        strategies[0] = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()),
+                clauseAssignments);
         int j = 1;
         for (int i = 0; i < maxNumClauses; i++) {
-            IntStrategy structuralStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), bodies[i].getTreeStructure());
-            IntStrategy bodyGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), bodies[i].getArguments());
-            IntStrategy headGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), clauseHeads[i].getArguments());
-            IntStrategy predicateStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), ArrayUtils.concat(bodies[i].getPredicateVariables()));
+            IntStrategy structuralStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                    new IntDomainRandom(rng.nextLong()), bodies[i].getTreeStructure());
+            IntStrategy bodyGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                    new IntDomainRandom(rng.nextLong()), bodies[i].getArguments());
+            IntStrategy headGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                    new IntDomainRandom(rng.nextLong()), clauseHeads[i].getArguments());
+            IntStrategy predicateStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                    new IntDomainRandom(rng.nextLong()), ArrayUtils.concat(bodies[i].getPredicateVariables()));
             strategies[j++] = structuralStrategy;
             strategies[j++] = predicateStrategy;
             strategies[j++] = headGapStrategy;
             if (variables.length > 1) {
-                IntStrategy introductionStrategy = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()), introductions[i]);
+                IntStrategy introductionStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                        new IntDomainRandom(rng.nextLong()), introductions[i]);
                 strategies[j++] = introductionStrategy;
             }
             strategies[j++] = bodyGapStrategy;
@@ -87,7 +96,6 @@ public class Program {
 
         //model.getSolver().setRestartOnSolutions(); // takes much longer, but solutions are more random
     }
-
 
     private void setUpIndependenceConstraint() {
         System.out.println(predicates.length);
@@ -113,56 +121,15 @@ public class Program {
                 new IndependencePropagator(adjacencyMatrix, 0, 1)).post();
     }
 
-    boolean solve() {
-        return model.getSolver().solve();
-    }
-
-    void saveProgramsToFiles() throws IOException {
-        Solver solver = model.getSolver();
-        //solver.showDecisions();
-        //solver.showContradiction();
-        for (int i = 0; i < numSolutions && solver.solve(); i++) {
-            //System.out.println("========== " + i + " ==========");
-            StringBuilder program = new StringBuilder();
-            for (int j = 0; j < maxNumClauses; j++)
-                program.append(clauseToString(j, rng));
-            //System.out.println(program);
-
-            BufferedWriter writer = new BufferedWriter(new FileWriter(directory + i + ".pl"));
-            writer.write(program.toString());
-            writer.close();
-        }
-    }
-
-    /** The entire clause, i.e., both body and head */
-    private String clauseToString(int i, java.util.Random rng) {
-        // Is this clause disabled?
-        int predicate = clauseAssignments[i].getValue();
-        if (predicate == predicates.length)
-            return "";
-
-        // Add a probability to the statement
-        int probability = rng.nextInt(probabilities.length);
-        String probabilityString = "";
-        if (probabilities[probability] < 1)
-            probabilityString = probabilities[probability] + " :: ";
-
-        String body = bodies[i].toString();
-        String head = clauseHeads[i].toString();
-        if (body.equals("T."))
-            return probabilityString + head+ ".\n";
-        return probabilityString + head + " :- " + body + "\n";
-    }
-
     /** Set up all the variables and constraints. */
     private void setUpConstraints() {
-        assert(predicates.length == ARITIES.length);
-        arities = new Tuples();
+        assert(predicates.length == arities.length);
+        aritiesTable = new Tuples();
         for (Token t : Token.values())
-            arities.add(t.ordinal(), 0); // Tokens don't have arities
-        for (int i = 0; i < ARITIES.length; i++)
-            arities.add(Token.values().length + i, ARITIES[i]); // Predicate arities are predefined
-        arities.add(predicates.length + Token.values().length, 0); // This stands for a disabled clause
+            aritiesTable.add(t.ordinal(), 0); // Tokens don't have arities
+        for (int i = 0; i < arities.length; i++)
+            aritiesTable.add(Token.values().length + i, arities[i]); // Predicate arities are predefined
+        aritiesTable.add(predicates.length + Token.values().length, 0); // This stands for a disabled clause
 
         model = new Model();
         rng = new java.util.Random();
@@ -190,7 +157,7 @@ public class Program {
 
         bodies = new Body[maxNumClauses];
         for (int i = 0; i < maxNumClauses; i++)
-            bodies[i] = new Body(this, model, clauseAssignments[i], maxNumNodes, i);
+            bodies[i] = new Body(this, model, clauseAssignments[i], i);
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
         IntVar[][] decisionVariablesPerClause = new IntVar[maxNumClauses][];
@@ -199,26 +166,8 @@ public class Program {
                     bodies[i].getDecisionVariables());
         model.lexChainLessEq(decisionVariablesPerClause).post();
 
-
         if (variables.length > 1)
             setUpVariableSymmetryElimination();
-
-        // Collect the decision variables (in the right order)
-        IntVar[] structuralDecisionVariables = new IntVar[0];
-        for (Body body : bodies) // Body structure
-            structuralDecisionVariables = ArrayUtils.concat(structuralDecisionVariables, body.getTreeStructure());
-
-        // Head predicates
-        IntVar[] predicateDecisionVariables = clauseAssignments;
-        for (Body body : bodies) // Body predicates
-            predicateDecisionVariables = ArrayUtils.concat(predicateDecisionVariables, body.getPredicateVariables());
-
-        IntVar[] headGapDecisionVariables = new IntVar[0];
-        IntVar[] bodyGapDecisionVariables = new IntVar[0];
-        for (Head clauseHead : clauseHeads) // Head arguments
-            headGapDecisionVariables = ArrayUtils.concat(headGapDecisionVariables, clauseHead.getArguments());
-        for (Body body : bodies) // Body arguments
-            bodyGapDecisionVariables = ArrayUtils.concat(bodyGapDecisionVariables, body.getArguments());
     }
 
     private void setUpVariableSymmetryElimination() {
@@ -298,5 +247,46 @@ public class Program {
                 model.ifThen(introductionNotNull, itMustBeInOccurrences);
             }
         }
+    }
+
+    boolean solve() {
+        return model.getSolver().solve();
+    }
+
+    void saveProgramsToFiles() throws IOException {
+        Solver solver = model.getSolver();
+        if (PRINT_DEBUG_INFO) {
+            solver.showDecisions();
+            solver.showContradiction();
+        }
+        for (int i = 0; i < numSolutions && solver.solve(); i++) {
+            StringBuilder program = new StringBuilder();
+            for (int j = 0; j < maxNumClauses; j++)
+                program.append(clauseToString(j, rng));
+
+            BufferedWriter writer = new BufferedWriter(new FileWriter(directory + i + ".pl"));
+            writer.write(program.toString());
+            writer.close();
+        }
+    }
+
+    /** The entire clause, i.e., both body and head */
+    private String clauseToString(int i, java.util.Random rng) {
+        // Is this clause disabled?
+        int predicate = clauseAssignments[i].getValue();
+        if (predicate == predicates.length)
+            return "";
+
+        // Add a probability to the statement
+        int probability = rng.nextInt(probabilities.length);
+        String probabilityString = "";
+        if (probabilities[probability] < 1)
+            probabilityString = probabilities[probability] + " :: ";
+
+        String body = bodies[i].toString();
+        String head = clauseHeads[i].toString();
+        if (body.equals("T."))
+            return probabilityString + head+ ".\n";
+        return probabilityString + head + " :- " + body + "\n";
     }
 }

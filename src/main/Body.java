@@ -3,7 +3,6 @@ package main;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
-import org.chocosolver.util.iterators.DisposableValueIterator;
 import org.chocosolver.util.tools.ArrayUtils;
 import propagators.Sign;
 import propagators.SignedPredicate;
@@ -13,48 +12,48 @@ import java.util.List;
 
 public class Body {
 
-    private int maxNumNodes;
+    private Program program;
     private IntVar[] treeStructure;
     private Node[] treeValues;
-    private IntVar[] arguments; // concatenated arguments of all nodes in treeValues
+    private IntVar[] arguments; // Concatenated arguments of all nodes in treeValues
 
-    public Body(Program program, Model model, IntVar assignment, int maxNumNodes, int clauseIndex) {
-        this.maxNumNodes = maxNumNodes;
+    public Body(Program program, Model model, IntVar assignment, int clauseIndex) {
+        this.program = program;
 
-        // number of nodes in the main tree
-        IntVar numNodes = model.intVar("numNodes[" + clauseIndex + "]", 1, maxNumNodes);
-        treeStructure = model.intVarArray("treeStructure[" + clauseIndex + "]", maxNumNodes, 0,
-                maxNumNodes - 1);
-        treeValues = new Node[maxNumNodes];
-        for (int i = 0; i < maxNumNodes; i++)
-            treeValues[i] = new Node(program, model, clauseIndex, i);
+        // Auxiliary variables
+        IntVar numNodes = model.intVar("numNodes[" + clauseIndex + "]", 1, program.maxNumNodes);
+        IntVar numTrees = model.intVar("numTrees[" + clauseIndex + "]", 1, program.maxNumNodes);
+        model.arithm(numTrees, "+", numNodes, "=", program.maxNumNodes + 1).post();
 
         // Tree structure
-        IntVar numTrees = model.intVar("numTrees[" + clauseIndex + "]", 1, maxNumNodes);
+        treeStructure = model.intVarArray("treeStructure[" + clauseIndex + "]", program.maxNumNodes, 0,
+                program.maxNumNodes - 1);
         model.tree(treeStructure, numTrees).post();
         model.arithm(treeStructure[0], "=", 0).post(); // the 0th element is always a root
-
-        model.arithm(numTrees, "+", numNodes, "=", maxNumNodes + 1).post();
         model.sort(treeStructure, treeStructure).post();
 
-        for (int i = 0; i < maxNumNodes; i++) {
+        // Tree values
+        treeValues = new Node[program.maxNumNodes];
+        for (int i = 0; i < program.maxNumNodes; i++)
+            treeValues[i] = new Node(program, model, clauseIndex, i);
+
+        // Per-node constraints
+        for (int i = 0; i < program.maxNumNodes; i++) {
+            // The first numNodes elements define our tree. Fix the rest to some predefined values.
             Constraint outsideScope = model.arithm(numNodes, "<=", i);
             Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
             Constraint fixValue = model.arithm(treeValues[i].getPredicate(), "=", Token.TRUE.ordinal());
             Constraint isRestricted = model.arithm(treeStructure[i], "<", numNodes);
             model.ifThenElse(outsideScope, model.and(mustBeALoop, fixValue), isRestricted);
-        }
 
-        // Tree values
-        for (int i = 0; i < maxNumNodes; i++) {
             IntVar exactlyZero = model.intVar(0);
             IntVar exactlyOne = model.intVar(1);
-            IntVar moreThanOne = model.intVar(2, Math.max(maxNumNodes, 2));
+            IntVar moreThanOne = model.intVar(2, Math.max(program.maxNumNodes, 2));
 
-            IntVar[] structureWithoutI = new IntVar[maxNumNodes - 1];
+            IntVar[] structureWithoutI = new IntVar[program.maxNumNodes - 1];
             for (int j = 0; j < i; j++)
                 structureWithoutI[j] = treeStructure[j];
-            for (int j = i + 1; j < maxNumNodes; j++)
+            for (int j = i + 1; j < program.maxNumNodes; j++)
                 structureWithoutI[j - 1] = treeStructure[j];
 
             Constraint isLeaf = model.count(i, structureWithoutI, exactlyZero);
@@ -68,7 +67,7 @@ public class Body {
             model.ifOnlyIf(isNegation, model.arithm(treeValues[i].getPredicate(), "=", 0));
             model.ifOnlyIf(isInternal, mustBeAConnective);
 
-            // 'True' (T) is only acceptable for root nodes
+            // 'True' is only acceptable for root nodes
             if (i > 0) {
                 Constraint notRoot = model.arithm(treeStructure[i], "!=", i);
                 Constraint cannotBeTrue = model.arithm(treeValues[i].getPredicate(), "!=", Token.TRUE.ordinal());
@@ -82,6 +81,7 @@ public class Body {
         Constraint alwaysTrue = model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal());
         model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
 
+        // Concatenate all arguments into a single array
         int numIndices = treeValues.length * program.maxArity;
         arguments = new IntVar[numIndices];
         for (int i = 0; i < treeValues.length; i++)
@@ -125,7 +125,7 @@ public class Body {
             int firstChild = findFirstChild(index);
 
             // This only happens if the tree constraint is unsatisfied but negative cycle constraint is propagated first
-            if (firstChild >= maxNumNodes)
+            if (firstChild >= program.maxNumNodes)
                 return predicates;
 
             List<SignedPredicate> descendants = getPredicates(firstChild);
@@ -135,7 +135,7 @@ public class Body {
         }
 
         // If the node is AND/OR
-        for (int i = 0; i < maxNumNodes; i++) {
+        for (int i = 0; i < program.maxNumNodes; i++) {
             if (i != index && treeStructure[i].getValue() == index)
                 predicates.addAll(getPredicates(i));
         }
@@ -144,7 +144,7 @@ public class Body {
 
     private int findFirstChild(int parent) {
         int i = 0;
-        for (; i < maxNumNodes; i++)
+        for (; i < program.maxNumNodes; i++)
             if (i != parent && treeStructure[i].getValue() == parent)
                 break;
         return i;
@@ -176,26 +176,6 @@ public class Body {
         return predicates;
     }
 
-    private List<Integer> getDomainValues(IntVar variable, int toSubtract) {
-        List<Integer> values = new LinkedList<>();
-        DisposableValueIterator it = variable.getValueIterator(true);
-        while (it.hasNext()) {
-            int value = it.next() - toSubtract;
-            if (value >= 0)
-                values.add(value);
-        }
-        it.dispose();
-        return values;
-    }
-
-    List<Integer> getTreeStructureDomainValues(int index) {
-        return getDomainValues(treeStructure[index], 0);
-    }
-
-    List<Integer> getTreeValueDomainValues(int index) {
-        return getDomainValues(treeValues[index].getPredicate(), Token.values().length);
-    }
-
     private String treeToString(int i) {
         int value = treeValues[i].getPredicate().getValue();
         if (value >= Token.TRUE.ordinal())
@@ -206,7 +186,7 @@ public class Body {
 
         boolean first = true;
         StringBuilder output = new StringBuilder();
-        for (int j = 0; j < maxNumNodes; j++) {
+        for (int j = 0; j < program.maxNumNodes; j++) {
             if (j != i && treeStructure[j].getValue() == i) {
                 if (first) {
                     first = false;

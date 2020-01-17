@@ -20,7 +20,7 @@ class Head {
         // Define arity
         IntVar indexToTable = model.intOffsetView(predicate, Token.values().length);
         arity = model.intVar("headArity[" + clauseIndex + "]", 0, program.maxArity);
-        model.table(indexToTable, arity, program.arities).post();
+        model.table(indexToTable, arity, program.aritiesTable).post();
 
         // Arity regulates how many arguments the predicate has
         int numValues = program.constants.length + program.variables.length;
