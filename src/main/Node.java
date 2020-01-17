@@ -7,8 +7,8 @@ import org.chocosolver.util.tools.ArrayUtils;
 
 class Node {
 
-    private IntVar predicate; // tokens first, then predicates
-    private IntVar[] arguments; // variables first, then constants
+    private IntVar predicate; // Tokens first, then predicates
+    private IntVar[] arguments; // Variables first, then constants
     private IntVar arity;
     private Program program;
 

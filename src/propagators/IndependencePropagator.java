@@ -1,6 +1,5 @@
 package propagators;
 
-import main.Body;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -34,11 +33,9 @@ public class IndependencePropagator extends Propagator<IntVar> {
                     if (dependency1.isDetermined() && dependency2.isDetermined())
                         fails();
                     if (dependency1.isDetermined()) {
-                        adjacencyMatrix[dependency2.getSource()][dependency2.getTarget()].removeValue(1,
-                                this);
+                        adjacencyMatrix[dependency2.getSource()][dependency2.getTarget()].removeValue(1, this);
                     } else if (dependency2.isDetermined()) {
-                        adjacencyMatrix[dependency1.getSource()][dependency1.getTarget()].removeValue(1,
-                                this);
+                        adjacencyMatrix[dependency1.getSource()][dependency1.getTarget()].removeValue(1, this);
                     }
                 }
             }

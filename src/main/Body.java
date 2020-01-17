@@ -18,7 +18,7 @@ public class Body {
     // The decision variables relevant to negative cycle detection (i.e., everything except arguments)
     private IntVar[] structuralDecisionVariables;
 
-    public Body(Program program, Model model, IntVar assignment, int clauseIndex) {
+    Body(Program program, Model model, IntVar assignment, int clauseIndex) {
         this.program = program;
 
         // Auxiliary variables

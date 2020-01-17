@@ -154,12 +154,12 @@ class GeneratePrograms {
 
     public static void main(String[] args) throws IOException {
         //generateAllPrograms();
-        checkNumPrograms();
+        //checkNumPrograms();
 
-        /*String[] predicates = new String[]{"p", "q", "r"};
-        Program p = new Program("../programs/", 1000, 4, 4,
-                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, predicates, new int[]{3, 3, 3}, new String[0],
-                new String[]{"a", "b", "c"}, new PredicatePair[]{new PredicatePair(predicates, "p", "q")});
-        p.saveProgramsToFiles();*/
+        String[] predicates = new String[]{"p", "q", "r", "s", "t"};
+        Program p = new Program("../programs/", 1000, 2, 5,
+                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1, 1, 1}, new String[0],
+                new String[]{"a"}, new PredicatePair[]{new PredicatePair(predicates, "p", "q")});
+        p.saveProgramsToFiles();
     }
 }

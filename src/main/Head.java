@@ -5,7 +5,6 @@ import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 
-/** The head of a clause */
 class Head {
 
     private IntVar predicate; // PREDICATES.length means that the clause is disabled
@@ -36,7 +35,7 @@ class Head {
         return arguments;
     }
 
-    public IntVar[] getDecisionVariables() {
+    IntVar[] getDecisionVariables() {
         return ArrayUtils.concat(new IntVar[]{predicate}, arguments);
     }
 

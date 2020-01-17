@@ -1,5 +1,6 @@
 package main;
 
+/** A pair of predicates. Used to define pairs of independent predicates. */
 class PredicatePair {
 
     private String[] predicates;

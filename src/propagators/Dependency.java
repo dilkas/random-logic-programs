@@ -2,6 +2,8 @@ package propagators;
 
 import java.util.Objects;
 
+/** A dependency is either determined (in which case it only holds the predicate name) or undetermined (in which case
+ * it also holds the source and target vertices of the edge that makes it undetermined). */
 final class Dependency {
 
     private final int predicate;

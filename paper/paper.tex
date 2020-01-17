@@ -657,23 +657,22 @@ Propagation for independence:
   \SetKwFunction{isDetermined}{isDetermined}
   \SetKwFunction{getDependencies}{getDependencies}
   \SetKwProg{Fn}{Function}{:}{}
-  \KwData{an $n \times n$ adjacency matrix $\mathbf{A}$}
+  \KwData{a $|\predicates{}| \times |\predicates|$ adjacency matrix $\mathbf{A}$
+  with $\{ 0, 1 \}$ as the domain}
   \Fn{\getDependencies{$p$}} {
     $D \gets \{ p \}$\;
     \While{{\normalfont \texttt{true}}}{
       $D' \gets \emptyset$\;
-      \For{$d \in D$}{
-        \For{$i \gets 1$ \KwTo $n$}{
-          $\edgeExists \gets \mathbf{A}[i][d.\predicate] = \{ 1 \}$\;
-          \uIf{$\edgeExists$ {\bf and} $d$.\isDetermined{}}{
-            $D' \gets D' \cup \{ i \}$\;
-          }
-          \uElseIf{$\edgeExists$}{
-            $D' \gets D' \cup \{ (i, d.\source, d.\target) \}$\;
-          }
-          \ElseIf{$|\mathbf{A}[i][d.\predicate]| > 1$ {\bf and} $d$.\isDetermined{}}{
-            $D' \gets D' \cup \{ (i, i, d.\predicate) \}$\;
-          }
+      \For{$d \in D$ {\bf and} $q \in \predicates{}$}{
+        $\edgeExists \gets \mathbf{A}[q][d.\predicate] = \{ 1 \}$\;
+        \uIf{$\edgeExists$ {\bf and} $d$.\isDetermined{}}{
+          $D' \gets D' \cup \{ q \}$\;
+        }
+        \uElseIf{$\edgeExists$}{
+          $D' \gets D' \cup \{ (q, d.\source, d.\target) \}$\;
+        }
+        \ElseIf{$|\mathbf{A}[q][d.\predicate]| > 1$ {\bf and} $d$.\isDetermined{}}{
+          $D' \gets D' \cup \{ (q, q, d.\predicate) \}$\;
         }
       }
       \lIf{$D' = D$}{\Return{$D$}}
@@ -691,6 +690,8 @@ Propagation for independence:
 % difficult.
 % TODO: NB: the set of decision variables for this constraint must exclude all
 % arguments.
+% In order to avoid thrashing, we fix the following variable ordering: [...]. Example of thrashing: P(X, a) <- ~P(X, b) contradicts the negative cycle constrant. Let's try P(X, a) <- P(X, c) instead (and so on).
+
 
 \begin{algorithm}[t]
   \KwData{a constraint model for a logic program $\mathscr{P}$ amid execution}

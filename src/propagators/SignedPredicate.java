@@ -18,6 +18,7 @@ public class SignedPredicate {
         return sign;
     }
 
+    /** We can only go from positive to negative, but not vice-versa */
     public void setNegative() {
         sign = Sign.NEG;
     }
