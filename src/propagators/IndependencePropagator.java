@@ -5,6 +5,8 @@ import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.ESat;
 import org.chocosolver.util.tools.ArrayUtils;
+import propagators.dependencies.Dependency;
+import propagators.dependencies.Status;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -25,16 +27,16 @@ public class IndependencePropagator extends Propagator<IntVar> {
 
     @Override
     public void propagate(int evtmask) throws ContradictionException {
-        Set<Dependency> dependencies1 = getDependencies(predicate1);
-        Set<Dependency> dependencies2 = getDependencies(predicate2);
+        Set<Dependency> dependencies1 = getDependencies(predicate1, false);
+        Set<Dependency> dependencies2 = getDependencies(predicate2, false);
         for (Dependency dependency1 : dependencies1) {
             for (Dependency dependency2 : dependencies2) {
                 if (dependency1.getPredicate() == dependency2.getPredicate()) {
-                    if (dependency1.isDetermined() && dependency2.isDetermined())
+                    if (dependency1.getStatus() == Status.DETERMINED && dependency2.getStatus() == Status.DETERMINED)
                         fails();
-                    if (dependency1.isDetermined()) {
+                    if (dependency1.getStatus() == Status.DETERMINED) {
                         adjacencyMatrix[dependency2.getSource()][dependency2.getTarget()].removeValue(1, this);
-                    } else if (dependency2.isDetermined()) {
+                    } else if (dependency2.getStatus() == Status.DETERMINED) {
                         adjacencyMatrix[dependency1.getSource()][dependency1.getTarget()].removeValue(1, this);
                     }
                 }
@@ -42,15 +44,14 @@ public class IndependencePropagator extends Propagator<IntVar> {
         }
     }
 
-    // TODO: this could be improved (see the pseudocode)
     @Override
     public ESat isEntailed() {
-        Set<Dependency> dependencies1 = getDependencies(predicate1);
-        Set<Dependency> dependencies2 = getDependencies(predicate2);
+        Set<Dependency> dependencies1 = getDependencies(predicate1, true);
+        Set<Dependency> dependencies2 = getDependencies(predicate2, true);
         for (Dependency dependency1 : dependencies1) {
             for (Dependency dependency2 : dependencies2) {
                 if (dependency1.getPredicate() == dependency2.getPredicate()) {
-                    if (dependency1.isDetermined() && dependency2.isDetermined())
+                    if (dependency1.getStatus() == Status.DETERMINED && dependency2.getStatus() == Status.DETERMINED)
                         return ESat.FALSE;
                     return ESat.UNDEFINED;
                 }
@@ -61,21 +62,23 @@ public class IndependencePropagator extends Propagator<IntVar> {
 
     /** Return a set of two types of dependencies: those that are guaranteed to be there (determined) and those that
      * could exist if one edge in the dependency graph is instantiated. */
-    private Set<Dependency> getDependencies(int initialPredicate) {
+    private Set<Dependency> getDependencies(int initialPredicate, boolean allDependencies) {
         Set<Dependency> dependencies = new HashSet<>();
-        dependencies.add(new Dependency(initialPredicate));
+        dependencies.add(new Dependency(initialPredicate, true));
         while (true) {
             Set<Dependency> newDependencies = new HashSet<>();
             for (Dependency dependency : dependencies) {
                 for (int i = 0; i < adjacencyMatrix.length; i++) {
                     boolean edgeIsDetermined = adjacencyMatrix[i][dependency.getPredicate()].getDomainSize() == 1;
                     boolean edgeExists = adjacencyMatrix[i][dependency.getPredicate()].getValue() == 1;
-                    if (edgeIsDetermined && edgeExists && dependency.isDetermined()) {
-                        newDependencies.add(new Dependency(i));
-                    } else if (edgeIsDetermined && edgeExists) {
+                    if (edgeIsDetermined && edgeExists && dependency.getStatus() == Status.DETERMINED) {
+                        newDependencies.add(new Dependency(i, true));
+                    } else if (edgeIsDetermined && edgeExists && dependency.getStatus() == Status.ALMOST_DETERMINED) {
                         newDependencies.add(new Dependency(i, dependency.getSource(), dependency.getTarget()));
-                    } else if (!edgeIsDetermined && dependency.isDetermined()) {
+                    } else if (!edgeIsDetermined && dependency.getStatus() == Status.DETERMINED) {
                         newDependencies.add(new Dependency(i, i, dependency.getPredicate()));
+                    } else if (allDependencies && !edgeIsDetermined) {
+                        newDependencies.add(new Dependency(i, false));
                     }
                 }
             }

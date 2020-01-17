@@ -1,49 +1,53 @@
-package propagators;
+package propagators.dependencies;
 
 import java.util.Objects;
 
 /** A dependency is either determined (in which case it only holds the predicate name) or undetermined (in which case
  * it also holds the source and target vertices of the edge that makes it undetermined). */
-final class Dependency {
+public final class Dependency {
 
     private final int predicate;
-    private final boolean determined;
+    private final Status status;
     private final int source;
     private final int target;
 
-    Dependency(int predicate) {
+    public Dependency(int predicate, boolean determined) {
         this.predicate = predicate;
-        determined = true;
-        source = 0;
-        target = 0;
+        if (determined) {
+            status = Status.DETERMINED;
+        } else {
+            status = Status.UNDETERMINED;
+        }
+        source = -1;
+        target = -1;
     }
 
-    Dependency(int predicate, int source, int target) {
+    public Dependency(int predicate, int source, int target) {
         this.predicate = predicate;
-        determined = false;
+        status = Status.ALMOST_DETERMINED;
         this.source = source;
         this.target = target;
     }
 
-    int getPredicate() {
+    public int getPredicate() {
         return predicate;
     }
 
-    boolean isDetermined() {
-        return determined;
+    public Status getStatus() {
+        return status;
     }
 
-    int getSource() {
+    public int getSource() {
         return source;
     }
 
-    int getTarget() {
+    public int getTarget() {
         return target;
     }
 
     @Override
     public String toString() {
-        return predicate + " (" + determined + "): " + source + "-" + target;
+        return predicate + " (" + status + "): " + source + "-" + target;
     }
 
     @Override
@@ -53,12 +57,12 @@ final class Dependency {
         if (o == null || getClass() != o.getClass())
             return false;
         Dependency other = (Dependency) o;
-        return predicate == other.predicate && determined == other.determined && source == other.source &&
+        return predicate == other.predicate && status == other.status && source == other.source &&
                 target == other.target;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(predicate, determined, source, target);
+        return Objects.hash(predicate, status, source, target);
     }
 }

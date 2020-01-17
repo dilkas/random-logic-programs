@@ -9,6 +9,7 @@
 \usepackage[capitalise]{cleveref}
 \usepackage{tikz}
 \usepackage{mathrsfs}
+\usepackage[nounderscore]{syntax}
 
 \usetikzlibrary{arrows.meta}
 
@@ -17,6 +18,8 @@
 \newcommand{\variable}[1]{\texttt{\textup{#1}}}
 \newcommand{\arrayd}[3]{\variable{{#1}[}{#2}\variable{]} \in {#3}}
 \newcommand{\arrayt}[3]{\variable{{#3}[}{#2}\variable{] {#1}}}
+\newcommand{\logical}[1]{{\normalfont \texttt{#1}}}
+
 \newcommand{\predicates}{\mathcal{P}}
 \newcommand{\variables}{\mathcal{V}}
 \newcommand{\constants}{\mathcal{C}}
@@ -25,6 +28,10 @@
 \newcommand{\maxArity}{\mathcal{M}_{\mathcal{A}}}
 \newcommand{\maxNumNodes}{\mathcal{M}_{\mathcal{N}}}
 \newcommand{\maxNumClauses}{\mathcal{M}_{\mathcal{C}}}
+
+\DeclareMathOperator{\Determined}{Determined}
+\DeclareMathOperator{\Undetermined}{Undetermined}
+\DeclareMathOperator{\AlmostDetermined}{AlmostDetermined}
 
 %\relpenalty=10000
 %\binoppenalty=10000
@@ -620,17 +627,18 @@ Propagation for independence:
   \SetKwData{source}{source}
   \SetKwData{target}{target}
   \KwData{predicates $p_1$, $p_2$; adjacency matrix $\mathbf{A}$}
-  \For{$(d_1, d_2) \in \getDependencies{$p_1$} \times
-    \getDependencies{$p_2$}$ such that $d_1.\predicate = d_2.\predicate$}{
-    \lIf{$d_1$.\isDetermined{} {\bf and} $d_2$.\isDetermined{}}{\fail{}}
-    \uIf{$d_1$.\isDetermined{}}{
-      $\mathbf{A}[d_2.\source][d_2.\target]$.\removeValue{$1$}\;
-    }
-    \ElseIf{$d_2$.\isDetermined{}}{
-      $\mathbf{A}[d_1.\source][d_1.\target]$.\removeValue{$1$}\;
+  \For{$(d_1, d_2) \in \getDependencies{$p_1$, \logical{false}} \times
+      \getDependencies{$p_2$, \logical{false}}$ such that $d_1.\predicate =
+      d_2.\predicate$}{
+    \lIf{$d_1$ {\bf is} $\Determined$ {\bf and} $d_2$ {\bf is}
+      $\Determined$}{\fail{}}
+    \If{$d_1$ {\bf is} $\Determined$ {\bf and} $d_2$ {\bf is}
+      $\AlmostDetermined(\_, s, t)$ {\bf or} \hspace{50pt} $d_2$ {\bf is} $\Determined$ {\bf
+        and} $d_1$ {\bf is} $\AlmostDetermined(\_, s, t)$}{
+      $\mathbf{A}[s][t]$.\removeValue{$1$}\;
     }
   }
-  \caption{Propagation}
+  \caption{Propagation algorithm for predicate independence}
 \end{algorithm}
 
 \begin{algorithm}[p]
@@ -638,41 +646,53 @@ Propagation for independence:
   \SetKwFunction{isDetermined}{isDetermined}
   \SetKwData{predicate}{predicate}
   \KwData{predicates $p_1$, $p_2$}
-  $D \gets \{ (d_1, d_2) \in \getDependencies{$p_1$} \times
-  \getDependencies{$p_2$} \mid d_1.\predicate = d_2.\predicate \}$\;
-  \If{$\exists (d_1, d_2) \in D$ such that $d_1.\isDetermined{}$ {\bf and}
-    $d_2.\isDetermined{}$}{
-    \Return{\textsc{false}}\;
-  }
+  $D \gets \{ (d_1, d_2) \in \getDependencies{$p_1$, \logical{true}} \times
+  \getDependencies{$p_2$, \logical{true}} \mid d_1.\predicate = d_2.\predicate
+  \}$\;
   \lIf{$D = \emptyset$}{\Return{\textsc{true}}}
+  \lIf{$\exists (\Determined \_, \Determined \_) \in D$}{\Return{\textsc{false}}}
   \Return{\textsc{undefined}}\;
-  \caption{Entailment}
+  \caption{Entailment check for predicate independence}
 \end{algorithm}
+
+% TODO: introduce this sum data type syntax
+\begin{grammar}
+  <dependency> ::= $\Determined p$ | $\Undetermined p$ | $\AlmostDetermined(p, s, t)$
+\end{grammar}
+where $p,s,t \in \predicates{}$. For a dependency $d$---regardless of its exact
+type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
+% TODO: underscore represents a variable that can take any value (different
+% underscores can take different values)
 
 \begin{algorithm}[p]
   \SetKwData{edgeExists}{edgeExists}
   \SetKwData{predicate}{predicate}
   \SetKwData{source}{source}
   \SetKwData{target}{target}
+  \SetKwData{all}{allDependencies}
   \SetKwFunction{isDetermined}{isDetermined}
   \SetKwFunction{getDependencies}{getDependencies}
   \SetKwProg{Fn}{Function}{:}{}
-  \KwData{a $|\predicates{}| \times |\predicates|$ adjacency matrix $\mathbf{A}$
-  with $\{ 0, 1 \}$ as the domain}
-  \Fn{\getDependencies{$p$}} {
-    $D \gets \{ p \}$\;
-    \While{{\normalfont \texttt{true}}}{
+  \KwData{a $|\predicates{}| \times |\predicates{}|$ adjacency matrix
+    $\mathbf{A}$ with $\{ 0, 1 \}$ as the domain}
+  \Fn{\getDependencies{$p$, \all}} {
+    $D \gets \{ \Determined p \}$\;
+    \While{\logical{true}}{
       $D' \gets \emptyset$\;
       \For{$d \in D$ {\bf and} $q \in \predicates{}$}{
         $\edgeExists \gets \mathbf{A}[q][d.\predicate] = \{ 1 \}$\;
-        \uIf{$\edgeExists$ {\bf and} $d$.\isDetermined{}}{
-          $D' \gets D' \cup \{ q \}$\;
+        \uIf{$\edgeExists$ {\bf and} $d$ {\bf is} $\Determined$}{
+          $D' \gets D' \cup \{ \Determined q \}$
         }
-        \uElseIf{$\edgeExists$}{
-          $D' \gets D' \cup \{ (q, d.\source, d.\target) \}$\;
+        \uElseIf{$\edgeExists$ {\bf and} $d$ {\bf is} $\AlmostDetermined(\_, s, t)$}{
+          $D' \gets D' \cup \{ \AlmostDetermined(q, s, t) \}$\;
         }
-        \ElseIf{$|\mathbf{A}[q][d.\predicate]| > 1$ {\bf and} $d$.\isDetermined{}}{
-          $D' \gets D' \cup \{ (q, q, d.\predicate) \}$\;
+        \uElseIf{$|\mathbf{A}[q][d.\predicate]| > 1$ {\bf and} $d$ {\bf is}
+          $\Determined r$}{
+          $D' \gets D' \cup \{ \AlmostDetermined(q, q, r) \}$\;
+        }
+        \ElseIf{$|\mathbf{A}[q][d.\predicate]| > 1$ {\bf and} \all}{
+          $D' \gets D' \cup \{ \Undetermined q \}$\;
         }
       }
       \lIf{$D' = D$}{\Return{$D$}}
@@ -681,6 +701,14 @@ Propagation for independence:
   }
   \caption{Computing the dependencies of a predicate}
 \end{algorithm}
+% TODO: any way to test all of this?
+
+% TODO: Discuss that the algorithms work in case there are multiple 'paths'
+% without any issues.
+% TODO: An example of algorithms, showing a program that's not fully determined
+% yet, a dependency graph (with dashed and grayed out edges). Create a situation
+% with multiple different dependency paths such that propagation would result in
+% a solution).
 
 \section{Entailment Checking for Negative/All Cycles}
 % TODO: explain that the hasNegativeCycles algorithm is an extension of a simple
@@ -692,7 +720,6 @@ Propagation for independence:
 % arguments.
 % In order to avoid thrashing, we fix the following variable ordering: [...]. Example of thrashing: P(X, a) <- ~P(X, b) contradicts the negative cycle constrant. Let's try P(X, a) <- P(X, c) instead (and so on).
 
-
 \begin{algorithm}[t]
   \KwData{a constraint model for a logic program $\mathscr{P}$ amid execution}
   \SetKwFunction{hasNegativeCycles}{hasNegativeCycles}
@@ -703,47 +730,10 @@ Propagation for independence:
   \lIf{\hasNegativeCycles($G_{\mathscr{R}}$)}{\Return{\textsc{false}}}
   \lIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}
   \Return{\textsc{undefined}}\;
-  \caption{Entailment checking for negative cycles}
+  \caption{Entailment check for negative cycles}
 \end{algorithm}
 \footnotetext{Due to the definition of independence, the arguments of the head
   atom need not be determined.}
-
-% \section{Conditional Independence}
-
-% Finish the propagation algorithm for conditional independence. The
-%  propagation algorithm for independence is extended with masks that are either
-%  potential or definite. Masking happens in two stages: first, we mask
-%  expressions within formulas, and then predicates. Masking algorithm uses an
-%  algorithm for perfect bipartite matching.
-
-% Both determined $\implies$ fail(). Both determined but at least is one masked by
-% a (probable/determined) mask $\implies$ nothing. One determined $\implies$ the
-% other one cannot exist.
-
-% \begin{algorithm}
-%   \SetKwProg{Fn}{Function}{:}{}
-%   \SetKwFunction{potentialRoots}{potentialRoots}
-%   \SetKwFunction{getTreeValues}{getTreeValues}
-%   \SetKwFunction{getTreeStructureDomainValues}{getTreeStructureDomainValues}
-%   \SetKwData{clause}{clause}
-%   \KwData{connective $c$, a set of predicates $P$}
-%   \Fn{\potentialRoots{\clause, $i$}} {
-%     $R \gets \emptyset$\;
-%     $V \gets \clause.\getTreeValues{$i$}$\;
-%     \For{$v \in V$}{
-%       \uIf{$v = c$}{
-%         $R \gets R \cup \{ (i, |V| = 1) \}$\;
-%       }
-%       \ElseIf{$v \in P$}{
-%         $R' \gets \clause.\getTreeStructureDomainValues{$i$}$\;
-%         $R \gets R \cup \{ (r, |R'| = 1) \mid r \in R' \}$\;
-%       }
-%     }
-%     \Return{$R$}\;
-%   }
-%   \caption{Potential root nodes of the required expression, assuming that the
-%     node at index $i$ is part of the expression}
-% \end{algorithm}
 
 \section{Conclusion \& Future Work}
 
