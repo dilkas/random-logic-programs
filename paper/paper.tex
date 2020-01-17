@@ -10,10 +10,13 @@
 \usepackage{tikz}
 \usepackage{mathrsfs}
 \usepackage[nounderscore]{syntax}
+\usepackage{blkarray}
 
 \usetikzlibrary{arrows.meta}
 
 \newtheorem{constraint}{Constraint}
+
+\renewcommand\fbox{\fcolorbox{red}{white}}
 
 \newcommand{\variable}[1]{\texttt{\textup{#1}}}
 \newcommand{\arrayd}[3]{\variable{{#1}[}{#2}\variable{]} \in {#3}}
@@ -569,6 +572,7 @@ also describe efficient algorithms for propagation and entailment checking.
 \end{figure}
 
 % TODO: example of edge positivity/negativity
+% TODO: this is not a complete program (by my definition). Make it clear in the text.
 \begin{example} \label{ex:program}
   Consider the following program:
   \begin{align}
@@ -591,7 +595,7 @@ also describe efficient algorithms for propagation and entailment checking.
   independent from $\mathsf{parent}$ and $\mathsf{sibling}$.
 \end{example}
 
-\begin{definition}[Adjacency matrix representation]
+\begin{definition}[Adjacency matrix representation] \label{def:adjacency_matrix}
   An $|\predicates{}| \times |\predicates{}|$ adjacency matrix $\mathbf{A}$ with
   $\{ 0, 1 \}$ as its domain is defined by
   \begin{align*}
@@ -653,6 +657,7 @@ Propagation for independence:
   \lIf{$\exists (\Determined \_, \Determined \_) \in D$}{\Return{\textsc{false}}}
   \Return{\textsc{undefined}}\;
   \caption{Entailment check for predicate independence}
+  \label{alg:independence_entailment}
 \end{algorithm}
 
 % TODO: introduce this sum data type syntax
@@ -709,6 +714,77 @@ type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
 % yet, a dependency graph (with dashed and grayed out edges). Create a situation
 % with multiple different dependency paths such that propagation would result in
 % a solution).
+
+\begin{figure}[t]
+  \centering
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \begin{minipage}{.49\textwidth}
+    \centering
+    \[
+      \begin{blockarray}{ccccccc}
+        \begin{block}{ccc(cccc)}
+          \mathsf{father} & & & 0 & 0 & 0 & 0 \\
+          \mathsf{mother} & & & 1 & 0 & 0 & 0 \\
+          \mathsf{parent} & & & 1 & \fbox{\{ 0, 1 \}} & \{ 0, 1 \} & \{ 0, 1 \} \\
+          \mathsf{sibling} & & & 0 & 0 & 0 & 0 \\
+        \end{block}
+      \end{blockarray}
+    \]
+    \caption{The adjacency matrix defined using \cref{def:adjacency_matrix} for
+      \cref{example:independence}}
+    \label{fig:dependencies_matrix}
+  \end{minipage}
+  \begin{minipage}{.5\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node[draw] (parent) at (0, 0.5) {$\mathsf{parent}$};
+      \node[draw] (mother) at (0, -0.5) {$\mathsf{mother}$};
+      \node[draw] (sibling) at (2, 0.5) {$\mathsf{sibling}$};
+      \node[draw] (father) at (2, -0.5) {$\mathsf{father}$};
+      \draw[-{Stealth}] (parent) edge (father);
+      \draw[-{Stealth}] (mother) edge (father);
+      \draw[-{Stealth},dashed,darkgray] (parent) edge (sibling);
+      \draw[-{Stealth},dashed,darkgray] (parent) edge (mother);
+    \end{tikzpicture}
+    \caption{The predicate dependency graph that corresponds to
+      \cref{fig:dependencies_matrix}. Dashed edges are undetermined---they may
+      or may not exist.}
+    \label{fig:dependencies2}
+  \end{minipage}
+\end{figure}
+% TODO: make sure my definitions and examples are consistent with loops
+
+\begin{example} \label{example:independence}
+  Consider this partially determined (fragment of a) program:
+  \begin{align*}
+    \Box(X, Y) &\gets \mathsf{parent}(X, Z) \land \mathsf{parent}(Y, Z),\\
+    \mathsf{father}(X, Y) &\gets \mathsf{parent}(X, Y) \land \neg\mathsf{mother}(X, Y)
+  \end{align*}
+  where $\Box$ indicates an unknown predicate with domain
+  \[
+    D = \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent}, \mathsf{sibling}
+    \}.
+  \]
+  The predicate dependency graph (without positivity/negativity) defined by
+  \cref{def:adjacency_matrix} is represented in
+  \cref{fig:dependencies_matrix,fig:dependencies2}.
+
+  Suppose we have a constraint that $\mathsf{mother}$ and $\mathsf{parent}$ must
+  be independent. The lists of potential dependencies for both predicates are:
+  \begin{align*}
+    D_{\mathsf{mother}} &= \{ \Determined \mathsf{mother}, \AlmostDetermined(\mathsf{parent}, \mathsf{parent}, \mathsf{mother}) \}, \\
+    D_{\mathsf{parent}} &= \{ \Determined \mathsf{parent} \}.
+  \end{align*}
+  An entailment check at this stage would produce \textsc{undefined}, but
+  propagation replaces the boxed value in \cref{fig:dependencies_matrix} with
+  zero, eliminating the potential edge from $\mathsf{parent}$ to
+  $\mathsf{mother}$. This also eliminates $\mathsf{mother}$ from $D$, and,
+  although some undetermined variables remain, this is enough to make
+  \cref{alg:independence_entailment} return \textsc{true}.
+\end{example}
 
 \section{Entailment Checking for Negative/All Cycles}
 % TODO: explain that the hasNegativeCycles algorithm is an extension of a simple
