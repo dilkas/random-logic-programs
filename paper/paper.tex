@@ -307,13 +307,14 @@ multiple children, respectively.
 \end{constraint}
 
 \section{Eliminating Variable Symmetries} \label{sec:variable_symmetry}
-% TODO: only if we have multiple variables
 
 Given any clause, we can permute the variables in it without changing the
 meaning of the clause or the entire program. Thus, we want to fix the order of
 variables to eliminate unnecessary symmetries. Informally, we can say that
 variable $X$ goes before variable $Y$ if its first occurrence in either the head
-or the body of the clause is before the first occurrence of $Y$.
+or the body of the clause is before the first occurrence of $Y$. Note that the
+constrains described in this section only make sense if $|\variables| > 1$. Also
+note that all definitions and constraints here are on a per-clause basis.
 
 \begin{definition}
   Let $N = \maxArity{} \times (\maxNumNodes{} + 1)$. Let
@@ -330,13 +331,6 @@ or the body of the clause is before the first occurrence of $Y$.
   \]
 \end{definition}
 
-\begin{constraint}[Redundant]
-  For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
-  \[
-    \variable{occurrences}[u] \cap \variable{occurrences}[v] = \emptyset.
-  \]
-\end{constraint}
-
 \begin{definition}
   We define $\arrayd{introductions}{|\variables{}|}{\{ 0, \dots, N \}}$ such
   that for $v \in \variables{}$,
@@ -348,10 +342,6 @@ or the body of the clause is before the first occurrence of $Y$.
     \end{cases}
   \]
 \end{definition}
-
-\begin{constraint}[Redundant]
-  $\variable{allDifferentExcept0}(\variable{introductions})$.
-\end{constraint}
 
 \begin{constraint}
   $\variable{introductions}$ are sorted.
@@ -369,17 +359,27 @@ or the body of the clause is before the first occurrence of $Y$.
   \{ 5, 7 \}, \{ 2, 3 \}]$, and $\variable{introductions} = [0, 1, 5]$.
 \end{example}
 
-\begin{constraint}[Redundant]
+\subsection{Redundant Constraints}
+% TODO: need writing. For example: why do I need them?
+
+\begin{constraint}
+  For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
+  \[
+    \variable{occurrences}[u] \cap \variable{occurrences}[v] = \emptyset.
+  \]
+\end{constraint}
+
+\begin{constraint}
+  $\variable{allDifferentExcept0}(\variable{introductions})$.
+\end{constraint}
+
+\begin{constraint}
   For $v \in \variables{}$,
   \[
     \variable{introductions}[v] \ne 0 \quad \implies \quad
     \variable{introductions}[v] - 1 \in \variable{occurrences}[v].
   \]
 \end{constraint}
-
-\subsection{A Redundant Constraint}
-
-For each clause...
 
 \begin{definition}
   We define an auxiliary set variable
@@ -710,14 +710,6 @@ type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
 
 % TODO: Discuss that the algorithms work in case there are multiple 'paths'
 % without any issues.
-% TODO: An example of algorithms, showing a program that's not fully determined
-% yet, a dependency graph (with dashed and grayed out edges). Create a situation
-% with multiple different dependency paths such that propagation would result in
-% a solution).
-
-\begin{figure}[t]
-  \centering
-\end{figure}
 
 \begin{figure}[t]
   \centering
@@ -810,6 +802,8 @@ type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
 \end{algorithm}
 \footnotetext{Due to the definition of independence, the arguments of the head
   atom need not be determined.}
+
+\section{Experimental Results}
 
 \section{Conclusion \& Future Work}
 

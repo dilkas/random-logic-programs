@@ -1,11 +1,11 @@
 package main;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.function.Predicate;
 
 import org.chocosolver.util.tools.ArrayUtils;
+import org.jgrapht.util.PrefetchIterator;
 
 import static java.util.stream.Collectors.toList;
 
@@ -43,9 +43,8 @@ class GeneratePrograms {
                 constants[i] = "a" + (i + 1);
             int predictedProgramCount = Integer.parseInt(data[6]);
 
-            Program p = new Program("../programs/", 10000, Integer.parseInt(data[4]),
-                    Integer.parseInt(data[5]), ForbidCycles.NONE, new double[]{1}, predicates, arities, variables,
-                    constants, new PredicatePair[0]);
+            Program p = new Program(Integer.parseInt(data[4]), Integer.parseInt(data[5]), ForbidCycles.NONE,
+                    new double[]{1}, predicates, arities, variables, constants, new PredicatePair[0]);
 
             // Count the number of solutions
             int i = 0;
@@ -111,38 +110,72 @@ class GeneratePrograms {
         return possibilities;
     }
 
+    private static List<PredicatePair> generateAllPairsOfPredicates(String[] predicates) {
+        List<PredicatePair> pairs = new LinkedList<>();
+        for (int i = 0; i < predicates.length; i++)
+            for (int j = i + 1; j < predicates.length; j++)
+                pairs.add(new PredicatePair(predicates, predicates[i], predicates[j]));
+            return pairs;
+    }
 
-    private static void generateAllPrograms() throws IOException {
+    private static PredicatePair[] selectRandomSubset(List<PredicatePair> pairs, int M, Random rng) {
+        int m = M;
+        PredicatePair[] selection = new PredicatePair[m];
+        for (int i = 0; i < pairs.size(); i++) {
+            if (rng.nextInt(pairs.size() - i) < m) {
+                selection[M - m] = pairs.get(i);
+                m--;
+            }
+        }
+        return selection;
+    }
+
+    private static void generateAllPrograms() {
+        Random rng = new Random();
         for (int numPredicates = 1; numPredicates < 5; numPredicates++) {
-            //System.out.println("\n" + numPredicates);
             String[] predicates = new String[numPredicates];
             fillWithNames(predicates, "");
-            for (int numAdditionalClauses = 0; numAdditionalClauses < 5; numAdditionalClauses++) {
-                int maxNumClauses = predicates.length + numAdditionalClauses;
+            List<PredicatePair> potentialIndependentPairs = generateAllPairsOfPredicates(predicates);
+
+            for (int maxArity = 1; maxArity < 5; maxArity++) {
+                List<int[]> potentialArities = generateArities(new int[0], predicates.length, maxArity);
+
                 for (int numVariables = 0; numVariables < 5; numVariables++) {
-                    //System.out.print(".");
                     String[] variables = new String[numVariables];
                     fillWithNames(variables, "v");
+
                     for (int numConstants = 0; numConstants < 5; numConstants++) {
                         if (numConstants == 0 && numVariables == 0)
                             continue;
                         String[] constants = new String[numConstants];
                         fillWithNames(constants, "c");
-                        for (int maxArity = 1; maxArity < 5; maxArity++) {
-                            List<int[]> arities = generateArities(new int[0], predicates.length, maxArity);
-                            for (int maxNumNodes = 1; maxNumNodes < 5; maxNumNodes++) {
-                                String directory = "../programs/" + numPredicates + "p_" + numAdditionalClauses + "cl_" +
-                                        numVariables + "v_" + numConstants + "co_" + maxNumNodes + "n_" +
-                                        maxArity + "a/";
-                                new File(directory).mkdir();
-                                for (int[] localArities: arities) {
-                                    Program p = new Program(directory, 1, maxNumNodes, maxNumClauses,
-                                            ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, predicates, localArities,
-                                            variables, constants, new PredicatePair[0]);
-                                    long start = System.nanoTime();
-                                    p.saveProgramsToFiles();
-                                    long finish = System.nanoTime();
-                                    System.out.println(directory + ", " + (finish - start));
+
+                        for (int numAdditionalClauses = 0; numAdditionalClauses < 5; numAdditionalClauses++) {
+                            int maxNumClauses = predicates.length + numAdditionalClauses;
+
+                            for (int numIndependentPairs = 0;
+                                 numIndependentPairs <= numPredicates * (numPredicates - 1) / 2;
+                                 numIndependentPairs++) {
+
+                                for (int maxNumNodes = 1; maxNumNodes < 5; maxNumNodes++) {
+                                    String prefix = numPredicates + ";" + maxArity + ";" + numVariables + ";" +
+                                            numConstants + ";" + numAdditionalClauses + ";" + numIndependentPairs +
+                                            ";" + maxNumNodes;
+
+                                    for (int i = 0; i < 10; i++) {
+                                        int[] arities = potentialArities.get(rng.nextInt(potentialArities.size()));
+
+                                        for (int j = 0; j < 10; j++) {
+                                            PredicatePair[] independentPairs =
+                                                    selectRandomSubset(potentialIndependentPairs, numIndependentPairs,
+                                                            rng);
+
+                                            Program p = new Program(maxNumNodes, maxNumClauses, ForbidCycles.NEGATIVE,
+                                                    DEFAULT_PROBABILITIES, predicates, arities, variables, constants,
+                                                    independentPairs);
+                                            p.compileStatistics(10, prefix);
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -153,13 +186,13 @@ class GeneratePrograms {
     }
 
     public static void main(String[] args) throws IOException {
-        //generateAllPrograms();
+        generateAllPrograms();
         //checkNumPrograms();
 
-        String[] predicates = new String[]{"p", "q", "r", "s", "t"};
-        Program p = new Program("../programs/", 1000, 2, 5,
+        /*String[] predicates = new String[]{"p", "q", "r", "s", "t"};
+        Program p = new Program("../programs/", 2, 5,
                 ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1, 1, 1}, new String[0],
                 new String[]{"a"}, new PredicatePair[]{new PredicatePair(predicates, "p", "q")});
-        p.saveProgramsToFiles();
+        p.saveProgramsToFiles(1000);*/
     }
 }

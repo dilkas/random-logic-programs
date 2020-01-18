@@ -60,8 +60,6 @@ public class IndependencePropagator extends Propagator<IntVar> {
         return ESat.TRUE;
     }
 
-    /** Return a set of two types of dependencies: those that are guaranteed to be there (determined) and those that
-     * could exist if one edge in the dependency graph is instantiated. */
     private Set<Dependency> getDependencies(int initialPredicate, boolean allDependencies) {
         Set<Dependency> dependencies = new HashSet<>();
         dependencies.add(new Dependency(initialPredicate, true));

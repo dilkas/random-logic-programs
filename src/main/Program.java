@@ -23,10 +23,7 @@ import java.util.Arrays;
 public class Program {
 
     private static final boolean PRINT_DEBUG_INFO = false;
-    private static final boolean RESTART_ON_SOLUTIONS = false; // takes much longer but solutions are more random
 
-    private String directory;
-    private int numSolutions;
     private int maxNumClauses;
     private double[] probabilities;
     private int[] arities;
@@ -47,11 +44,9 @@ public class Program {
     private IntVar[][] introductions; // for eliminating variable symmetries
     private java.util.Random rng;
 
-    Program(String directory, int numSolutions, int maxNumNodes, int maxNumClauses, ForbidCycles forbidCycles,
+    Program(int maxNumNodes, int maxNumClauses, ForbidCycles forbidCycles,
             double[] probabilities, String[] predicates, int[] aritiesTable, String[] variables, String[] constants,
             PredicatePair[] independentPairs) {
-        this.directory = directory;
-        this.numSolutions = numSolutions;
         this.maxNumNodes = maxNumNodes;
         this.maxNumClauses = maxNumClauses;
         this.probabilities = probabilities;
@@ -71,8 +66,7 @@ public class Program {
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
 
         setUpVariableOrdering();
-        if (RESTART_ON_SOLUTIONS)
-            model.getSolver().setRestartOnSolutions();
+        //model.getSolver().setRestartOnSolutions();
     }
 
     // ================================================== CONSTRAINTS ==================================================
@@ -269,7 +263,7 @@ public class Program {
         return model.getSolver().solve();
     }
 
-    void saveProgramsToFiles() throws IOException {
+    void saveProgramsToFiles(int numSolutions, String directory) throws IOException {
         Solver solver = model.getSolver();
         if (PRINT_DEBUG_INFO) {
             solver.showDecisions();
@@ -283,6 +277,16 @@ public class Program {
             BufferedWriter writer = new BufferedWriter(new FileWriter(directory + i + ".pl"));
             writer.write(program.toString());
             writer.close();
+        }
+    }
+
+    void compileStatistics(int numSolutions, String prefix) {
+        Solver solver = model.getSolver();
+        solver.setRestartOnSolutions();
+        for (int i = 0; i < numSolutions; i++) {
+            solver.solve();
+            System.out.print(prefix + ";");
+            solver.printCSVStatistics();
         }
     }
 
