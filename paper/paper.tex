@@ -259,15 +259,14 @@ We can use \cref{constr:arity} again to disable extra arguments.
 \end{constraint}
 
 \begin{constraint}
-  For $i = 0, \dots, \maxNumNodes{} - 1$, if $\variable{numNodes} \le
-  i$, then
+  For $i = 1, \dots, \maxNumNodes{} - 1$, if $i \ge \variable{numNodes}$, then
   \[
     \variable{treeStructure}[i] = i \quad \text{and} \quad
     \variable{treeValues}[i].\variable{name} = \top,
   \]
   else
   \[
-    \variable{treeStructure}[i] < \variable{numNodes}.
+    \variable{treeStructure}[i] < i.
   \]
 \end{constraint}
 
@@ -283,7 +282,6 @@ We can use \cref{constr:arity} again to disable extra arguments.
 \end{constraint}
 Each constraint corresponds to node $i$ having no children, one child, and
 multiple children, respectively.
-
 
 \begin{constraint}
   For $i = 0, \dots, \maxNumNodes{} - 1$,

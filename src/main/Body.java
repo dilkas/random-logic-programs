@@ -41,11 +41,13 @@ public class Body {
         // Per-node constraints
         for (int i = 0; i < program.maxNumNodes; i++) {
             // The first numNodes elements define our tree. Fix the rest to some predefined values.
-            Constraint outsideScope = model.arithm(numNodes, "<=", i);
-            Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
-            Constraint fixValue = model.arithm(treeValues[i].getPredicate(), "=", Token.TRUE.ordinal());
-            Constraint isRestricted = model.arithm(treeStructure[i], "<", numNodes);
-            model.ifThenElse(outsideScope, model.and(mustBeALoop, fixValue), isRestricted);
+            if (i > 0) {
+                Constraint outsideScope = model.arithm(numNodes, "<=", i);
+                Constraint mustBeALoop = model.arithm(treeStructure[i], "=", i);
+                Constraint fixValue = model.arithm(treeValues[i].getPredicate(), "=", Token.TRUE.ordinal());
+                Constraint isRestricted = model.arithm(treeStructure[i], "<", i);
+                model.ifThenElse(outsideScope, model.and(mustBeALoop, fixValue), isRestricted);
+            }
 
             IntVar exactlyZero = model.intVar(0);
             IntVar exactlyOne = model.intVar(1);

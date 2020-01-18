@@ -4,9 +4,10 @@ import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.extension.Tuples;
+import org.chocosolver.solver.search.limits.FailCounter;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
-import org.chocosolver.solver.search.strategy.selectors.variables.Random;
+import org.chocosolver.solver.search.strategy.selectors.variables.FirstFail;
 import org.chocosolver.solver.search.strategy.strategy.IntStrategy;
 import org.chocosolver.solver.search.strategy.strategy.StrategiesSequencer;
 import org.chocosolver.solver.variables.IntVar;
@@ -30,10 +31,10 @@ public class Program {
     private PredicatePair[] independentPairs;
 
     int maxNumNodes;
+    int maxArity;
     String[] predicates;
     String[] variables;
     String[] constants;
-    int maxArity;
 
     Tuples aritiesTable; // used in defining constraints
 
@@ -234,23 +235,23 @@ public class Program {
         if (variables.length > 1)
             numStrategies = maxNumClauses * 5 + 1;
         IntStrategy[] strategies = new IntStrategy[numStrategies];
-        strategies[0] = Search.intVarSearch(new Random<>(rng.nextLong()), new IntDomainRandom(rng.nextLong()),
+        strategies[0] = Search.intVarSearch(new FirstFail(model), new IntDomainRandom(rng.nextLong()),
                 clauseAssignments);
         int j = 1;
         for (int i = 0; i < maxNumClauses; i++) {
-            IntStrategy structuralStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+            IntStrategy structuralStrategy = Search.intVarSearch(new FirstFail(model),
                     new IntDomainRandom(rng.nextLong()), bodies[i].getTreeStructure());
-            IntStrategy bodyGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+            IntStrategy bodyGapStrategy = Search.intVarSearch(new FirstFail(model),
                     new IntDomainRandom(rng.nextLong()), bodies[i].getArguments());
-            IntStrategy headGapStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+            IntStrategy headGapStrategy = Search.intVarSearch(new FirstFail(model),
                     new IntDomainRandom(rng.nextLong()), clauseHeads[i].getArguments());
-            IntStrategy predicateStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+            IntStrategy predicateStrategy = Search.intVarSearch(new FirstFail(model),
                     new IntDomainRandom(rng.nextLong()), ArrayUtils.concat(bodies[i].getPredicates()));
             strategies[j++] = structuralStrategy;
             strategies[j++] = predicateStrategy;
             strategies[j++] = headGapStrategy;
             if (variables.length > 1) {
-                IntStrategy introductionStrategy = Search.intVarSearch(new Random<>(rng.nextLong()),
+                IntStrategy introductionStrategy = Search.intVarSearch(new FirstFail(model),
                         new IntDomainRandom(rng.nextLong()), introductions[i]);
                 strategies[j++] = introductionStrategy;
             }
@@ -280,9 +281,12 @@ public class Program {
         }
     }
 
-    void compileStatistics(int numSolutions, String prefix) {
+    void compileStatistics(int numSolutions, String prefix, String timeout) {
         Solver solver = model.getSolver();
-        solver.setRestartOnSolutions();
+        solver.setGeometricalRestart(2, 2, new FailCounter(model, 1), 16);
+        //solver.setRestartOnSolutions();
+        if (timeout != null)
+            solver.limitTime(timeout);
         for (int i = 0; i < numSolutions; i++) {
             solver.solve();
             System.out.print(prefix + ";");
