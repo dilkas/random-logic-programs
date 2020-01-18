@@ -241,12 +241,10 @@ public class Program {
         for (int i = 0; i < maxNumClauses; i++) {
             IntStrategy structuralStrategy = Search.intVarSearch(new FirstFail(model),
                     new IntDomainRandom(rng.nextLong()), bodies[i].getTreeStructure());
-            IntStrategy bodyGapStrategy = Search.intVarSearch(new FirstFail(model),
-                    new IntDomainRandom(rng.nextLong()), bodies[i].getArguments());
-            IntStrategy headGapStrategy = Search.intVarSearch(new FirstFail(model),
-                    new IntDomainRandom(rng.nextLong()), clauseHeads[i].getArguments());
             IntStrategy predicateStrategy = Search.intVarSearch(new FirstFail(model),
                     new IntDomainRandom(rng.nextLong()), ArrayUtils.concat(bodies[i].getPredicates()));
+            IntStrategy headGapStrategy = Search.intVarSearch(new FirstFail(model),
+                    new IntDomainRandom(rng.nextLong()), clauseHeads[i].getArguments());
             strategies[j++] = structuralStrategy;
             strategies[j++] = predicateStrategy;
             strategies[j++] = headGapStrategy;
@@ -255,6 +253,8 @@ public class Program {
                         new IntDomainRandom(rng.nextLong()), introductions[i]);
                 strategies[j++] = introductionStrategy;
             }
+            IntStrategy bodyGapStrategy = Search.intVarSearch(new FirstFail(model),
+                    new IntDomainRandom(rng.nextLong()), bodies[i].getArguments());
             strategies[j++] = bodyGapStrategy;
         }
         model.getSolver().setSearch(new StrategiesSequencer(strategies));
@@ -283,7 +283,7 @@ public class Program {
 
     void compileStatistics(int numSolutions, String prefix, String timeout) {
         Solver solver = model.getSolver();
-        solver.setGeometricalRestart(2, 2, new FailCounter(model, 1), 16);
+        solver.setGeometricalRestart(10, 2, new FailCounter(model, 1), 100);
         //solver.setRestartOnSolutions();
         if (timeout != null)
             solver.limitTime(timeout);

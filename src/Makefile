@@ -6,3 +6,8 @@ all:
 
 run:
 	java main/GeneratePrograms
+
+compile:
+	javac propagators/dependencies/*.java
+	javac propagators/*.java
+	javac main/*.java

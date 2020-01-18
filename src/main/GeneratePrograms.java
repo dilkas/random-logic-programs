@@ -232,11 +232,9 @@ class GeneratePrograms {
     }
 
     public static void main(String[] args) throws IOException {
+        //checkNumPrograms();
         //generateSmallPrograms();
-        checkNumPrograms();
-
-        //Integer[] pars = new Integer[]{1, 2, 4, 8, 16};
-        //generateBigPrograms(Arrays.asList(pars));
+        generateBigPrograms(Arrays.asList(1, 2, 4, 8, 16));
 
         /*String[] predicates = new String[]{"p"};
         Program p = new Program(16, 2,

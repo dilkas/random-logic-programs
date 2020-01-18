@@ -95,7 +95,7 @@ zero.
 
 We also use Choco~4.10.2 \cite{choco}. This works with both Prolog
 \cite{DBLP:books/daglib/0041598} and ProbLog \cite{DBLP:conf/ijcai/RaedtKT07}.
-Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
+%Tested with SWI-Prolog \cite{DBLP:journals/tplp/WielemakerSTL12}.
 
 \subsection{Parameters}
 
@@ -128,6 +128,10 @@ variables of the model are contained in two arrays:
 \item $\arrayt{headsOfClauses}{\maxNumClauses{}}{Head}$
 \end{itemize}
 
+\begin{constraint}
+  Clauses are sorted.
+\end{constraint}
+
 \section{Heads of Clauses}
 
 \begin{definition}
@@ -158,6 +162,22 @@ The reason why $\Box$ must be a separate value will become clear in
   \[
     \variable{arguments}[i] = \Box \iff i \ge \variable{arity}.
   \]
+\end{constraint}
+
+\begin{constraint}
+  Each predicate gets at least one clause. Let
+  \[
+    P = \{ h.\variable{predicate} \mid h \in \variable{headsOfClauses} \}.
+  \]
+  Then
+  \[
+    \variable{nValues}(P) =
+    \begin{cases}
+      \variable{numPredicates} + 1 & \text{if } \variable{count}(\Box, P) > 0 \\
+      \variable{numPredicates} & \text{otherwise.}
+    \end{cases}
+  \]
+  Here, $\variable{nValues}(P)$ counts the number of unique values in $P$.
 \end{constraint}
 
 \section{Bodies of Clauses}
@@ -358,7 +378,8 @@ note that all definitions and constraints here are on a per-clause basis.
 \end{example}
 
 \subsection{Redundant Constraints}
-% TODO: need writing. For example: why do I need them?
+
+We add a number of redundant constraints to make search more efficient.
 
 \begin{constraint}
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
@@ -385,40 +406,18 @@ note that all definitions and constraints here are on a per-clause basis.
     \variable{potentialIntroductions} \subseteq \{ 0, \dots, N \}
   \]
   by: for $i = 0, \dots, \maxNumNodes{} - 1$, if
-  $\variable{treeValues}[i].\variable{name} \in \tokens{}$, then
+  $\variable{treeValues}[i].\variable{name} \not\in \predicates{}$, then
   \[
     \variable{potentialIntroductions} \cap \{ \maxArity{} \times (i + 1) + j + 1
     \mid j = 0, \dots, \maxArity{} - 1 \} = \emptyset.
   \]
-\end{definition} % TODO: maybe add to the example
-In other words, if the node not a predicate, a variable cannot be introduced as
-one of its `arguments'.
+\end{definition} % TODO: explain these numbers
+In other words, if the node is not a predicate, a variable cannot be introduced
+as one of its `arguments'.
 
 \begin{constraint}
   For $v \in \variables{}$, $\variable{introductions}[v] \in
   \variable{potentialIntroductions}$.
-\end{constraint}
-
-\section{Interactions Between Clauses}
-
-\begin{constraint}
-  Each predicate gets at least one clause. Let
-  \[
-    P = \{ h.\variable{predicate} \mid h \in \variable{headsOfClauses} \}.
-  \]
-  Then
-  \[
-    \variable{nValues}(P) =
-    \begin{cases}
-      \variable{numPredicates} + 1 & \text{if } \variable{count}(\Box, P) > 0 \\
-      \variable{numPredicates} & \text{otherwise.}
-    \end{cases}
-  \]
-  Here, $\variable{nValues}(P)$ counts the number of unique values in $P$.
-\end{constraint}
-
-\begin{constraint}
-  Clauses are sorted.
 \end{constraint}
 
 \section{Counting Programs}
@@ -521,13 +520,13 @@ also describe efficient algorithms for propagation and entailment checking.
 \end{definition}
 
 \begin{definition}
-  Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The
+  Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The set of
   \emph{dependencies} of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such
   that:
   \begin{itemize}
   \item $\mathsf{P} \in D_{\mathsf{P}}$,
-  \item for every $\mathsf{Q} \in D_{\mathsf{P}}$, the nodes with arrows to
-    $\mathsf{Q}$ in $G_{\mathscr{P}}$ are all in $D_{\mathsf{P}}$.
+  \item for every $\mathsf{Q} \in D_{\mathsf{P}}$, all direct predecessors of
+    $\mathsf{Q}$ in $G_{\mathscr{P}}$ are in $D_{\mathsf{P}}$.
   \end{itemize}
 \end{definition}
 
@@ -569,10 +568,8 @@ also describe efficient algorithms for propagation and entailment checking.
   \end{minipage}
 \end{figure}
 
-% TODO: example of edge positivity/negativity
-% TODO: this is not a complete program (by my definition). Make it clear in the text.
 \begin{example} \label{ex:program}
-  Consider the following program:
+  Consider the following (fragment of a) program:
   \begin{align}
     \mathsf{sibling}(X, Y) &\gets \mathsf{parent}(X, Z) \land \mathsf{parent}(Y, Z), \nonumber \\
     \mathsf{father}(X, Y) &\gets \mathsf{parent}(X, Y) \land \neg\mathsf{mother}(X, Y). \label{eq:example_clause}
@@ -602,23 +599,24 @@ also describe efficient algorithms for propagation and entailment checking.
   \end{align*}
 \end{definition}
 
-% TODO: continue writing from here
-We define a \emph{dependency} as an algebraic data type that is either
-determined (in which case it holds only the index of the \texttt{predicate}) or
-undetermined (in which case it also holds the indices of the \texttt{source} and
-\texttt{target} vertices, corresponding to the edge responsible for making the
-dependency undetermined (exactly one, otherwise we don't consider the edge)).
-
-Propagation for independence:
-\begin{itemize}
-\item Look up the dependencies of both predicates. For each pair of
-  matching dependencies:
-  \begin{itemize}
-  \item If both are determined, fail.
-  \item If one is determined, the selected edge of the other must not
-    exist.
-  \end{itemize}
-\end{itemize}
+Given an undetermined model, we can classify all dependencies of a predicate
+$\mathsf{P}$ into three categories based on how many of the edges on the path
+from the dependency to $\mathsf{P}$ are undetermined. In the case of zero, we
+call the dependency \emph{determined}. In the case of one, we call it
+\emph{almost determined}. Otherwise, it is \emph{undetermined}. In the context
+of propagation and entailment algorithms, we define a \emph{dependency} as the
+sum type:
+\begin{grammar}
+  <dependency> ::= $\Determined p$ | $\Undetermined p$ | $\AlmostDetermined(p,
+  s, t)$
+\end{grammar}
+where $p \in \predicates{}$ is the name of the predicate which is the
+dependency of $\mathsf{P}$, and---in the case of $\AlmostDetermined$---$(s, t)
+\in \predicates{}^2$ is the one undetermined edge in $\mathbf{A}$ that prevents
+the dependency from being determined. For a dependency $d$---regardless of its
+exact type---we will refer to its predicate $p$ as $d.\variable{predicate}$. In
+describing the algorithms, we will use an underscore to replace any of $p$, $s$,
+$t$ in situations where the name is unimportant.
 
 \begin{algorithm}[p]
   \SetKwFunction{getDependencies}{getDependencies}
@@ -642,7 +640,6 @@ Propagation for independence:
   }
   \caption{Propagation algorithm for predicate independence}
 \end{algorithm}
-
 \begin{algorithm}[p]
   \SetKwFunction{getDependencies}{getDependencies}
   \SetKwFunction{isDetermined}{isDetermined}
@@ -657,16 +654,6 @@ Propagation for independence:
   \caption{Entailment check for predicate independence}
   \label{alg:independence_entailment}
 \end{algorithm}
-
-% TODO: introduce this sum data type syntax
-\begin{grammar}
-  <dependency> ::= $\Determined p$ | $\Undetermined p$ | $\AlmostDetermined(p, s, t)$
-\end{grammar}
-where $p,s,t \in \predicates{}$. For a dependency $d$---regardless of its exact
-type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
-% TODO: underscore represents a variable that can take any value (different
-% underscores can take different values)
-
 \begin{algorithm}[p]
   \SetKwData{edgeExists}{edgeExists}
   \SetKwData{predicate}{predicate}
@@ -704,11 +691,6 @@ type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
   }
   \caption{Computing the dependencies of a predicate}
 \end{algorithm}
-% TODO: any way to test all of this?
-
-% TODO: Discuss that the algorithms work in case there are multiple 'paths'
-% without any issues.
-
 \begin{figure}[t]
   \centering
   \begin{minipage}{.49\textwidth}
@@ -745,6 +727,20 @@ type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
     \label{fig:dependencies2}
   \end{minipage}
 \end{figure}
+
+Propagation for independence:
+\begin{itemize}
+\item Look up the dependencies of both predicates. For each pair of
+  matching dependencies:
+  \begin{itemize}
+  \item If both are determined, fail.
+  \item If one is determined, the selected edge of the other must not
+    exist.
+  \end{itemize}
+\end{itemize}
+
+% TODO: Discuss that the algorithms work in case there are multiple 'paths'
+% without any issues.
 % TODO: make sure my definitions and examples are consistent with loops
 
 \begin{example} \label{example:independence}
@@ -776,15 +772,10 @@ type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
   \cref{alg:independence_entailment} return \textsc{true}.
 \end{example}
 
-\section{Entailment Checking for Negative/All Cycles}
-% TODO: explain that the hasNegativeCycles algorithm is an extension of a simple
-% cycle detection algorithm.
-% TODO: the difficulty with propagation is that there is no good way to define
-% the adjacency matrix with 0/-1/+1 values, the negativity condition is too
-% difficult.
+\section{Entailment Checking for Negative Cycles}
 % TODO: NB: the set of decision variables for this constraint must exclude all
 % arguments.
-% In order to avoid thrashing, we fix the following variable ordering: [...]. Example of thrashing: P(X, a) <- ~P(X, b) contradicts the negative cycle constrant. Let's try P(X, a) <- P(X, c) instead (and so on).
+% TODO: My paper has two slightly different graphs with the same name.
 
 \begin{algorithm}[t]
   \KwData{a constraint model for a logic program $\mathscr{P}$ amid execution}
@@ -797,11 +788,48 @@ type---we will refer to its predicate $p$ as $d.\variable{predicate}$.
   \lIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}
   \Return{\textsc{undefined}}\;
   \caption{Entailment check for negative cycles}
+  \label{alg:negative_cycles}
 \end{algorithm}
 \footnotetext{Due to the definition of independence, the arguments of the head
   atom need not be determined.}
 
-\section{Experimental Results}
+The \texttt{hasNegativeCycles} function is just a simple extension of the cycle
+detection algorithm that `travels' around the graph following edges and
+checking if each vertex has already been visited or not.
+
+The difficulty with creating a propagation algorithm for negative cycles is that
+there seems to be no good way to extend \cref{def:adjacency_matrix} so that the
+adjacency matrix captures positivity/negativity.
+
+\section{Empirical Performance}
+% TODO: need a lot more writing
+
+We split the decision variables into the following groups:
+\begin{enumerate}
+\item all head predicates,
+\item for each clause:
+  \begin{enumerate}
+  \item $\variable{treeStructure}$,
+  \item body predicates,
+  \item head arguments,
+  \item (if $|\variables{}| > 1$) $\variable{introductions}$,
+  \item body arguments.
+  \end{enumerate}
+\end{enumerate}
+And use the `fail first' variable ordering heuristic within each group.
+
+We make no claim that this is optimal, but it does avoid major sources of
+thrashing.
+% Example of thrashing: P(X, a) <- ~P(X, b) contradicts the negative cycle
+% constrant. Let's try P(X, a) <- P(X, c) instead (and so on).
+
+%If we're thrashing on the negative cycle constraint, there's not much I can do
+%about that.
+
+Value ordering heuristic is random (to make the results random).
+
+We also employ a geometric restart policy, restarting after 10, 20, 40,...
+failures (contradictions).
 
 \section{Conclusion \& Future Work}
 
