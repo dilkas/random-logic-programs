@@ -190,7 +190,7 @@ class GeneratePrograms {
             fillWithNames(predicates, "");
             List<PredicatePair> potentialIndependentPairs = generateAllPairsOfPredicates(predicates);
 
-            for (int maxArity = 1; maxArity < 6; maxArity++) {
+            for (int maxArity = 1; maxArity < 5; maxArity++) {
                 List<int[]> potentialArities = generateArities(new int[0], predicates.length, maxArity);
 
                 for (int numVariables : possibilities) {
@@ -234,7 +234,7 @@ class GeneratePrograms {
     public static void main(String[] args) throws IOException {
         //checkNumPrograms();
         //generateSmallPrograms();
-        generateBigPrograms(Arrays.asList(1, 2, 4, 8, 16));
+        generateBigPrograms(Arrays.asList(1, 2, 4, 8));
 
         /*String[] predicates = new String[]{"p"};
         Program p = new Program(16, 2,

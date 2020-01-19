@@ -7,6 +7,7 @@ import org.chocosolver.util.tools.ArrayUtils;
 import propagators.Sign;
 import propagators.SignedPredicate;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -53,15 +54,11 @@ public class Body {
             IntVar exactlyOne = model.intVar(1);
             IntVar moreThanOne = model.intVar(2, Math.max(program.maxNumNodes, 2));
 
-            IntVar[] structureWithoutI = new IntVar[program.maxNumNodes - 1];
-            for (int j = 0; j < i; j++)
-                structureWithoutI[j] = treeStructure[j];
-            for (int j = i + 1; j < program.maxNumNodes; j++)
-                structureWithoutI[j - 1] = treeStructure[j];
+            IntVar[] potentialChildren = Arrays.copyOfRange(treeStructure, i + 1, treeStructure.length);
 
-            Constraint isLeaf = model.count(i, structureWithoutI, exactlyZero);
-            Constraint isNegation = model.count(i, structureWithoutI, exactlyOne);
-            Constraint isInternal = model.count(i, structureWithoutI, moreThanOne);
+            Constraint isLeaf = model.count(i, potentialChildren, exactlyZero);
+            Constraint isNegation = model.count(i, potentialChildren, exactlyOne);
+            Constraint isInternal = model.count(i, potentialChildren, moreThanOne);
             Constraint mustBeAConnective = model.member(treeValues[i].getPredicate(),
                     new int[]{Token.AND.ordinal(), Token.OR.ordinal()});
 
