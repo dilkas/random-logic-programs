@@ -1,6 +1,5 @@
-\documentclass[letterpaper]{article}
-\usepackage{uai2019}
-\usepackage[margin=1in]{geometry}
+\documentclass[runningheads]{llncs}
+\usepackage{graphicx}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{amssymb}
 \usepackage{mathtools}
@@ -10,16 +9,12 @@
 \usepackage[nounderscore]{syntax}
 \usepackage{blkarray}
 \usepackage{siunitx}
-\usepackage{amsthm}
 
 \usetikzlibrary{arrows.meta}
 
 \newtheorem{constraint}{Constraint}
-\theoremstyle{definition}
-\newtheorem{definition}{Definition}
-\newtheorem{example}{Example}
-%\let\definition\relax
-%\spnewtheorem{definition}{Definition}{\bfseries}{\rmfamily}
+\let\definition\relax
+\spnewtheorem{definition}{Definition}{\bfseries}{\rmfamily}
 
 \renewcommand\fbox{\fcolorbox{red}{white}}
 
@@ -41,66 +36,28 @@
 \DeclareMathOperator{\Undetermined}{Undetermined}
 \DeclareMathOperator{\AlmostDetermined}{AlmostDetermined}
 
-\Crefname{constraint}{Constraint}{Constraints}
-\relpenalty=10000
-\binoppenalty=10000
+%\relpenalty=10000
+%\binoppenalty=10000
 \def\multiset#1#2{\ensuremath{\left(\kern-.3em\left(\genfrac{}{}{0pt}{}{#1}{#2}\right)\kern-.3em\right)}}
-
-% Set the typeface to Times Roman
-\usepackage{times}
-
-\title{Generating Random Logic Programs Using Constraint Programming}
-
-\author{} % LEAVE BLANK FOR ORIGINAL SUBMISSION.
-          % UAI  reviewing is double-blind.
-
-% The author names and affiliations should appear only in the accepted paper.
-%
-%\author{ {\bf Harry Q.~Bovik\thanks{Footnote for author to give an
-%alternate address.}} \\
-%Computer Science Dept. \\
-%Cranberry University\\
-%Pittsburgh, PA 15213 \\
-%\And
-%{\bf Coauthor}  \\
-%Affiliation          \\
-%Address \\
-%\And
-%{\bf Coauthor}   \\
-%Affiliation \\
-%Address    \\
-%(if needed)\\
-%}
-
-% \begin{figure}[h]
-% \vspace{1in}
-% \caption{Sample Figure Caption}
-% \end{figure}
-
-% \begin{table}[h]
-% \caption{Sample Table Title}
-% \label{sample-table}
-% \begin{center}
-% \begin{tabular}{ll}
-% \multicolumn{1}{c}{\bf PART}  &\multicolumn{1}{c}{\bf DESCRIPTION} \\
-% \hline \\
-% Dendrite         &Input terminal \\
-% Axon             &Output terminal \\
-% Soma             &Cell body (contains cell nucleus) \\
-% \end{tabular}
-% \end{center}
-% \end{table}
 
 \begin{document}
 
+\title{Generating Random Logic Programs Using Constraint Programming}
+\author{Paulius Dilkas\orcidID{0000-1111-2222-3333}}
+\authorrunning{P. Dilkas}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+
+\institute{University of Edinburgh, Edinburgh, United Kingdom\\
+  \email{p.dilkas@sms.ed.ac.uk}}
 \maketitle
 
 \begin{abstract}
-The Abstract paragraph should be indented 0.25 inch (1.5 picas) on
-both left and right-hand margins.  Use 10~point type, with a vertical
-spacing of 11~points.  {\bf Abstract} must be centered, bold, and in
-point size 12. Two line spaces precede the Abstract. The Abstract must
-be limited to one paragraph.
+The abstract should briefly summarize the contents of the paper in
+150--250 words.
+
+\keywords{Constraint Programming \and Logic Programming \and Probabilistic Logic
+  Programming.}
 \end{abstract}
 
 \section{Introduction}
@@ -166,8 +123,8 @@ Parameters:
 We also define $\tokens{} = \{ \neg, \land, \lor, \top \}$. All decision
 variables of the model are contained in two arrays:
 \begin{itemize}
-\item $\arrayt{bodies}{\maxNumClauses{}}{Body}$,
-\item $\arrayt{heads}{\maxNumClauses{}}{Head}$
+\item $\arrayt{bodiesOfClauses}{\maxNumClauses{}}{Body}$,
+\item $\arrayt{headsOfClauses}{\maxNumClauses{}}{Head}$
 \end{itemize}
 
 \begin{constraint}
@@ -193,9 +150,14 @@ The reason why $\Box$ must be a separate value will become clear in
 
 \begin{definition} \label{def:arity}
   The \variable{predicate}'s $\variable{arity} \in [0, \maxArity{}]$ can then be
-  defined using the \variable{table} constraint as the arity of the
-  $\variable{predicate}$ if $\variable{predicate} \in \predicates{}$, and zero
-  otherwise.
+  defined using the \variable{table} constraint as
+  \[
+    \variable{arity} = \begin{cases}
+      \text{the arity of } \variable{predicate} & \text{if }
+      \variable{predicate} \in \predicates{}\\
+      0 & \text{otherwise.}
+    \end{cases}
+  \]
 \end{definition}
 
 \begin{constraint} \label{constr:arity}
@@ -208,14 +170,14 @@ The reason why $\Box$ must be a separate value will become clear in
 \begin{constraint}
   Each predicate gets at least one clause. Let
   \[
-    P = \{ h.\variable{predicate} \mid h \in \variable{heads} \}.
+    P = \{ h.\variable{predicate} \mid h \in \variable{headsOfClauses} \}.
   \]
   Then
   \[
     \variable{nValues}(P) =
     \begin{cases}
-      |\predicates{}| + 1 & \text{if } \variable{count}(\Box, P) > 0 \\
-      |\predicates{}| & \text{otherwise.}
+      \variable{numPredicates} + 1 & \text{if } \variable{count}(\Box, P) > 0 \\
+      \variable{numPredicates} & \text{otherwise.}
     \end{cases}
   \]
   Here, $\variable{nValues}(P)$ counts the number of unique values in $P$.
@@ -226,17 +188,17 @@ The reason why $\Box$ must be a separate value will become clear in
 \begin{definition}
   The body of a clause is defined by:
   \begin{itemize}
-  \item $\arrayd{TS}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ such
+  \item $\arrayd{treeStructure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ such
     that:
     \begin{itemize}
-    \item $\variable{TS}[i] = i$: the $i$-th node is a root.
-    \item $\variable{TS}[i] = j$: the $i$-th node's parent is node $j$.
+    \item $\variable{treeStructure}[i] = i$: the $i$-th node is a root.
+    \item $\variable{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
     \end{itemize}
-  \item $\arrayt{TV}{\maxNumNodes{}}{Node}$.
+  \item $\arrayt{treeValues}{\maxNumNodes{}}{Node}$.
   \end{itemize}
 \end{definition}
 
-\begin{figure}
+\begin{figure}[t]
   \centering
   \begin{tikzpicture}
     \node[draw,circle,gray,text=black] (or) at (-0.375, 0) {$\lor$};
@@ -260,13 +222,13 @@ The reason why $\Box$ must be a separate value will become clear in
   \land \mathsf{P}(X))$ corresponds to the tree in \cref{fig:example_tree} and
   can be encoded as:
   \begin{alignat*}{8}
-    \variable{TS} &= [0, &&0, &&0, &&1, &&2, &&2, &&6, &&7],\\
-    \variable{TV} &= [{\lor}, &&{\neg}, &&{\land}, \mathsf{P}(&&X), \mathsf{Q}(&&X), \mathsf{P}(&&X), &&\top, &&\top],\\
+    \variable{treeStructure} &= [0, &&0, &&0, &&1, &&2, &&2, &&6, &&7],\\
+    \variable{treeValues} &= [{\lor}, &&{\neg}, &&{\land}, \mathsf{P}(&&X), \mathsf{Q}(&&X), \mathsf{P}(&&X), &&\top, &&\top],\\
     \variable{numNodes} &= 6, && && && && && && &&\\
     \variable{numTrees} &= 3. && && && && && && &&
   \end{alignat*}
   In the rest of this section, we will describe how the elements of
-  $\variable{TV}$ are encoded and list a series of constraints that make
+  $\variable{treeValues}$ are encoded and list a series of constraints that make
   this representation unique.
 \end{example}
 
@@ -296,7 +258,7 @@ We can use \cref{constr:arity} again to disable extra arguments.
 
 \begin{definition}
   Let $\variable{numTrees} \in \{ 1, \dots, \maxNumNodes{} \}$ be the number of
-  trees in $\variable{TS}$, defined using the $\variable{tree}$
+  trees in $\variable{treeStructure}$, defined using the $\variable{tree}$
   constraint \cite{DBLP:conf/cp/FagesL11}.
 \end{definition}
 
@@ -310,32 +272,35 @@ We can use \cref{constr:arity} again to disable extra arguments.
 \end{definition}
 
 \begin{constraint}
-  $\variable{TS}[0] = 0$.
+  $\variable{treeStructure}[0] = 0$.
 \end{constraint}
 
 \begin{constraint}
-  \variable{TS} is sorted.
+  \variable{treeStructure} is sorted.
 \end{constraint}
 
 \begin{constraint}
   For $i = 1, \dots, \maxNumNodes{} - 1$, if $i \ge \variable{numNodes}$, then
   \[
-    \variable{TS}[i] = i, \quad \text{and} \quad
-    \variable{TV}[i].\variable{name} = \top,
+    \variable{treeStructure}[i] = i \quad \text{and} \quad
+    \variable{treeValues}[i].\variable{name} = \top,
   \]
-  else $\variable{TS}[i] < i$.
+  else
+  \[
+    \variable{treeStructure}[i] < i.
+  \]
 \end{constraint}
 
 % TODO: could be improved by only considering positions >i
 \begin{constraint} \label{constraint:node_types}
   For $i = 0, \dots, \maxNumNodes{} - 1$,
   \begin{align*}
-    \variable{count}(i, \variable{TS}_{-i}) = 0 &\iff \variable{TV}[i].\variable{name} \in \predicates{} \cup \{ \top \},\\
-    \variable{count}(i, \variable{TS}_{-i}) = 1 &\iff \variable{TV}[i].\variable{name} = \neg,\\
-    \variable{count}(i, \variable{TS}_{-i}) > 1 &\iff \variable{TV}[i].\variable{name} \in \{ \land, \lor \},
+    \variable{count}(i, \variable{treeStructure}_{-i}) = 0 &\iff \variable{treeValues}[i].\variable{name} \in \predicates{} \cup \{ \top \},\\
+    \variable{count}(i, \variable{treeStructure}_{-i}) = 1 &\iff \variable{treeValues}[i].\variable{name} = \neg,\\
+    \variable{count}(i, \variable{treeStructure}_{-i}) > 1 &\iff \variable{treeValues}[i].\variable{name} \in \{ \land, \lor \},
   \end{align*}
-  where $\variable{TS}_{-i}$ denotes array $\variable{TS}$ with position $i$
-  omitted.
+  where $\variable{treeStructure}_{-i}$ denotes array $\variable{treeStructure}$
+  with position $i$ omitted.
 \end{constraint}
 Each of the three equivalences in \cref{constraint:node_types} corresponds to
 node $i$ having no children, one child, and multiple children, respectively.
@@ -344,21 +309,21 @@ node $i$ having no children, one child, and multiple children, respectively.
   Only root nodes can have $\top$ as the value. For $i = 0, \dots,
   \maxNumNodes{} - 1$,
   \[
-    \variable{TS}[i] \ne i \implies
-    \variable{TV}[i].\variable{name} \ne \top.
+    \variable{treeStructure}[i] \ne i \implies
+    \variable{treeValues}[i].\variable{name} \ne \top.
   \]
 \end{constraint}
 
 A way to `disable' a clause:
 \begin{constraint}
   For $i = 0, \dots, \maxNumClauses{} - 1$, if
-  $\variable{heads}[i].\variable{predicate} = \Box$, then
+  $\variable{headsOfClauses}[i].\variable{predicate} = \Box$, then
   \[
-    \variable{bodies}[i].\variable{numNodes} = 1,
+    \variable{bodiesOfClauses}[i].\variable{numNodes} = 1,
   \]
   and
   \[
-    \variable{bodies}[i].\variable{TV}[0].\variable{name} =
+    \variable{bodiesOfClauses}[i].\variable{treeValues}[0].\variable{name} =
     \top.
   \]
 \end{constraint}
@@ -379,11 +344,11 @@ note that all definitions and constraints here are on a per-clause basis.
   \}$ be a flattened array of all gaps in a particular clause.
 
   Then we can use the $\variable{setsIntsChanneling}$ constraint
-  to define $\variable{occ}[|\constants{}| + |\variables{}| + 1]$ as an
+  to define $\variable{occurrences}[|\constants{}| + |\variables{}| + 1]$ as an
   array of subsets of $\{ 0, \dots, N-1 \}$ such that for all $i = 0, \dots, N
   - 1$, and $t \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   \[
-    i \in \variable{occ}[t] \quad \iff \quad
+    i \in \variable{occurrences}[t] \quad \iff \quad
     \variable{terms}[i] = t
   \]
 \end{definition}
@@ -391,12 +356,12 @@ note that all definitions and constraints here are on a per-clause basis.
 We introduce an array that, for each variable, holds the position of its first
 occurrence.
 \begin{definition}
-  Let $\arrayd{intros}{|\variables{}|}{\{ 0, \dots, N \}}$ be such that
+  Let $\arrayd{introductions}{|\variables{}|}{\{ 0, \dots, N \}}$ be such that
   for $v \in \variables{}$,
   \[
-    \variable{intros}[v] = \begin{cases}
-      1 + \min \variable{occ}[v] & \text{if }
-      \variable{occ}[v] \ne \emptyset\\
+    \variable{introductions}[v] = \begin{cases}
+      1 + \min \variable{occurrences}[v] & \text{if }
+      \variable{occurrences}[v] \ne \emptyset\\
       0 & \text{otherwise.}
     \end{cases}
   \]
@@ -404,10 +369,10 @@ occurrence.
 Here, a value of zero means that the variable does not occur in the clause. We
 want to use specifically zero for this so that we could use
 \cref{constraint:diffbutzero} later. Because of this choice, the definition of
-$\variable{intros}$ shifts all indices by one.
+$\variable{introductions}$ shifts all indices by one.
 
 \begin{constraint}
-  $\variable{intros}$ are sorted.
+  $\variable{introductions}$ are sorted.
 \end{constraint}
 
 \begin{example}
@@ -418,8 +383,8 @@ $\variable{intros}$ shifts all indices by one.
     \mathsf{parent}(Y, Z).
   \]
   Then $\variable{terms} = [X, Y, \Box, \Box, X, Z, Y, Z]$ (the boxes represent
-  the conjunction node), $\variable{occ} = [\{ 0, 4 \}, \{ 1, 6 \},
-  \{ 5, 7 \}, \{ 2, 3 \}]$, and $\variable{intros} = [0, 1, 5]$.
+  the conjunction node), $\variable{occurrences} = [\{ 0, 4 \}, \{ 1, 6 \},
+  \{ 5, 7 \}, \{ 2, 3 \}]$, and $\variable{introductions} = [0, 1, 5]$.
 \end{example}
 
 \subsection{Redundant Constraints}
@@ -429,41 +394,38 @@ We add a number of redundant constraints to make search more efficient.
 \begin{constraint}
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   \[
-    \variable{occ}[u] \cap \variable{occ}[v] = \emptyset.
+    \variable{occurrences}[u] \cap \variable{occurrences}[v] = \emptyset.
   \]
 \end{constraint}
 
 \begin{constraint} \label{constraint:diffbutzero}
-  $\variable{allDifferentExcept0}(\variable{intros})$.
+  $\variable{allDifferentExcept0}(\variable{introductions})$.
 \end{constraint}
 
 \begin{constraint}
   For $v \in \variables{}$,
   \[
-    \variable{intros}[v] \ne 0 \quad \iff \quad
-    \variable{intros}[v] - 1 \in \variable{occ}[v].
+    \variable{introductions}[v] \ne 0 \quad \implies \quad
+    \variable{introductions}[v] - 1 \in \variable{occurrences}[v].
   \]
 \end{constraint}
 
 \begin{definition}
   We define an auxiliary set variable
   \[
-    \variable{potentialIntros} \subseteq \{ 0, \dots, N \}
+    \variable{potentialIntroductions} \subseteq \{ 0, \dots, N \}
   \]
-  to act as a set of possible values that $\variable{intros}$ can take,
-  i.e., for $v \in \variables{}$, $\variable{intros}[v] \in
-  \variable{potentialIntros}$.
+  to act as a set of possible values that $\variable{introdutions}$ can take,
+  i.e., for $v \in \variables{}$, $\variable{introductions}[v] \in
+  \variable{potentialIntroductions}$.
 \end{definition}
 
 \begin{constraint} \label{constraint:potentialIntroductions}
-  For $i = 0, \dots, \maxNumNodes{} - 1$, let
+  For $i = 0, \dots, \maxNumNodes{} - 1$, if
+  $\variable{treeValues}[i].\variable{name} \not\in \predicates{}$, then
   \[
-    S = \{ \maxArity{} \times (i + 1) + j + 1 \mid j = 0, \dots, \maxArity{} - 1.
-    \}
-  \]
-  If $\variable{TV}[i].\variable{name} \not\in \predicates{}$, then
-  \[
-    \variable{potentialIntros} \cap S = \emptyset.
+    \variable{potentialIntroductions} \cap \{ \maxArity{} \times (i + 1) + j + 1
+    \mid j = 0, \dots, \maxArity{} - 1 \} = \emptyset.
   \]
 \end{constraint}
 In simpler terms, \cref{constraint:potentialIntroductions} says that if a node
@@ -487,13 +449,12 @@ constants into account. Let $T(n, a)$ denote the number of possible clause
 bodies with $n$ nodes and total arity $a$. Then $T(1, a)$ is the number of
 predicates in $\predicates{}$ with arity $a$, and the following recursive
 definition can be applied for $n > 1$:
-\begin{align*}
-  T(n, a) = T(n-1, a) + 2&\sum_{\substack{c_1 + \dots + c_k = n - 1,\\
+\[
+  T(n, a) = T(n-1, a) + 2\sum_{\substack{c_1 + \dots + c_k = n - 1,\\
       2 \le k \le \frac{a}{\min \arities{}},\\
-  c_i \ge 1 \text{ for all } i}}\\
-  &\sum_{\substack{d_1 + \dots + d_k = a,\\
-  d_i \ge \min \arities{} \text{ for all } i}} \prod_{i=1}^k T(c_i, d_i).
-\end{align*}
+      c_i \ge 1 \text{ for all } i}} \sum_{\substack{d_1 + \dots + d_k = a,\\
+    d_i \ge \min \arities{} \text{ for all } i}} \prod_{i=1}^k T(c_i, d_i).
+\]
 The first term here represents negation, i.e., negating an expression consumes
 one node but otherwise leaves the task unchanged. If the first operation is not
 negation, then it must be either conjunction or disjunction (hence the
@@ -514,11 +475,11 @@ any number of nodes) as
 Here, the empty clause is considered separately.
 
 The number of ways to fill $n$ gaps with terms can be expressed as
-\begin{align*}
-  P(n) = |\constants{}|^n + &\sum_{\substack{1 \le k \le |\variables{}|, \\ 0 =
-      s_0 < s_1 < \dots < s_k < s_{k+1} = n+1}}\\
-  &\prod_{i=0}^k (|\constants{}| + i)^{s_{i+1} - s_i - 1}.
-\end{align*}
+\[
+  P(n) = |\constants{}|^n + \sum_{\substack{1 \le k \le |\variables{}|, \\ 0 =
+      s_0 < s_1 < \dots < s_k < s_{k+1} = n+1}} \prod_{i=0}^k (|\constants{}| +
+  i)^{s_{i+1} - s_i - 1}.
+\]
 The first term is simply the number of ways to fill all $n$ gaps with
 constants. The parameter $k$ is the number of variables used in the clause, and
 $s_1, \dots, s_k$ mark the first occurrence of each variable. For each gap
@@ -588,32 +549,35 @@ also describe efficient algorithms for propagation and entailment checking.
 
 \begin{figure}[t]
   \centering
-  \begin{tikzpicture}
-    \node[draw,circle,gray,text=black] (and) at (0, 0) {$\land$};
-    \node[draw,circle,gray,text=black] (not) at (1.5, -1) {$\neg$};
-    \node[draw,gray,text=black] (parent) at (-1.5, -1) {$\mathsf{parent}(X, Y)$};
-    \node[draw,gray,text=black] (mother) at (1.5, -2) {$\mathsf{mother}(X, Y)$};
-    \draw[gray] (and) -- (parent);
-    \draw[gray] (and) -- (not);
-    \draw[gray] (not) -- (mother);
-  \end{tikzpicture}
-  \caption{The tree representation of the body of Clause~\eqref{eq:example_clause}.}
-  \label{fig:example_tree2}
-\end{figure}
-\begin{figure}
-  \centering
-  \begin{tikzpicture}
-    \node[draw] (parent) at (0, 0.5) {$\mathsf{parent}$};
-    \node[draw] (mother) at (0, -0.5) {$\mathsf{mother}$};
-    \node[draw] (sibling) at (2, 0.5) {$\mathsf{sibling}$};
-    \node[draw] (father) at (2, -0.5) {$\mathsf{father}$};
-    \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (sibling);
-    \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (father);
-    \draw[-{Stealth[scale=1.5]}] (mother) edge node[below] {$-$} (father);
-  \end{tikzpicture}
-  \caption{The predicate dependency graph of the program in \cref{ex:program}.
-    Positive edges are labeled with `$+$', and negative edges with `$-$'.}
-  \label{fig:predicate_dependencies}
+  \begin{minipage}{.5\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node[draw,circle,gray,text=black] (and) at (0, 0) {$\land$};
+      \node[draw,circle,gray,text=black] (not) at (1.5, -1) {$\neg$};
+      \node[draw,gray,text=black] (parent) at (-1.5, -1) {$\mathsf{parent}(X, Y)$};
+      \node[draw,gray,text=black] (mother) at (1.5, -2) {$\mathsf{mother}(X, Y)$};
+      \draw[gray] (and) -- (parent);
+      \draw[gray] (and) -- (not);
+      \draw[gray] (not) -- (mother);
+    \end{tikzpicture}
+    \caption{The tree representation of the body of Clause~\eqref{eq:example_clause}.}
+    \label{fig:example_tree2}
+  \end{minipage}
+  \begin{minipage}{.49\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node[draw] (parent) at (0, 0.5) {$\mathsf{parent}$};
+      \node[draw] (mother) at (0, -0.5) {$\mathsf{mother}$};
+      \node[draw] (sibling) at (2, 0.5) {$\mathsf{sibling}$};
+      \node[draw] (father) at (2, -0.5) {$\mathsf{father}$};
+      \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (sibling);
+      \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (father);
+      \draw[-{Stealth[scale=1.5]}] (mother) edge node[below] {$-$} (father);
+    \end{tikzpicture}
+    \caption{The predicate dependency graph of the program in \cref{ex:program}.
+      Positive edges are labeled with `$+$', and negative edges with `$-$'.}
+    \label{fig:predicate_dependencies}
+  \end{minipage}
 \end{figure}
 
 \begin{example} \label{ex:program}
@@ -629,9 +593,9 @@ also describe efficient algorithms for propagation and entailment checking.
 
   We can now list the dependencies of each predicate:
   \begin{alignat*}{3}
-    D_{\mathsf{parent}} &= \{ \mathsf{parent} \}, && D_{\mathsf{sibling}}
+    D_{\mathsf{parent}} &= \{ \mathsf{parent} \}, \quad && D_{\mathsf{sibling}}
     &&= \{\mathsf{sibling}, \mathsf{parent} \},\\
-    D_{\mathsf{mother}} &= \{ \mathsf{mother} \}, && D_{\mathsf{father}}
+    D_{\mathsf{mother}} &= \{ \mathsf{mother} \}, \quad && D_{\mathsf{father}}
     &&= \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent} \}.
   \end{alignat*}
   Hence, we have two pairs of independent predicates, i.e., $\mathsf{mother}$ is
@@ -640,10 +604,11 @@ also describe efficient algorithms for propagation and entailment checking.
 
 \begin{definition}[Adjacency matrix representation] \label{def:adjacency_matrix}
   An $|\predicates{}| \times |\predicates{}|$ adjacency matrix $\mathbf{A}$ with
-  $\{ 0, 1 \}$ as its domain is defined by stating that $\mathbf{A}[i][j] = 0$
-  if and only if, for all $k \in \{ 0, \dots, \maxNumClauses{} - 1 \}$, either
-$\variable{heads}[k].\variable{predicate} \ne j$ or $i \not\in \{
-a.\variable{name} \mid a \in \variable{bodies}[k].\variable{TV} \}$.
+  $\{ 0, 1 \}$ as its domain is defined by
+  \begin{align*}
+    \mathbf{A}[i][j] = 0 \iff &\nexists k \in \{ 0, \dots, \maxNumClauses{} \}: \variable{headsOfClauses}[k].\variable{predicate} = j \text{ and } \\
+    &i \in \{ a.\variable{name} \mid a \in \variable{bodiesOfClauses}[k].\variable{treeValues} \}.
+  \end{align*}
 \end{definition}
 
 Given an undetermined model, we can classify all dependencies of a predicate
@@ -665,7 +630,7 @@ exact type---we will refer to its predicate $p$ as $d.\variable{predicate}$. In
 describing the algorithms, we will use an underscore to replace any of $p$, $s$,
 $t$ in situations where the name is unimportant.
 
-\begin{algorithm*}
+\begin{algorithm}[p]
   \SetKwFunction{getDependencies}{getDependencies}
   \SetKwFunction{isDetermined}{isDetermined}
   \SetKwFunction{fail}{fail}
@@ -686,8 +651,8 @@ $t$ in situations where the name is unimportant.
     }
   }
   \caption{Propagation algorithm for predicate independence}
-\end{algorithm*}
-\begin{algorithm*}
+\end{algorithm}
+\begin{algorithm}[p]
   \SetKwFunction{getDependencies}{getDependencies}
   \SetKwFunction{isDetermined}{isDetermined}
   \SetKwData{predicate}{predicate}
@@ -700,8 +665,8 @@ $t$ in situations where the name is unimportant.
   \Return{\textsc{undefined}}\;
   \caption{Entailment check for predicate independence}
   \label{alg:independence_entailment}
-\end{algorithm*}
-\begin{algorithm*}
+\end{algorithm}
+\begin{algorithm}[p]
   \SetKwData{edgeExists}{edgeExists}
   \SetKwData{predicate}{predicate}
   \SetKwData{source}{source}
@@ -737,39 +702,42 @@ $t$ in situations where the name is unimportant.
     }
   }
   \caption{Computing the dependencies of a predicate}
-\end{algorithm*}
-\begin{figure}
+\end{algorithm}
+\begin{figure}[t]
   \centering
-  \[
-    \begin{blockarray}{ccccccc}
-      \begin{block}{ccc(cccc)}
-        \mathsf{father} & & & 0 & 0 & 0 & 0 \\
-        \mathsf{mother} & & & 1 & 0 & 0 & 0 \\
-        \mathsf{parent} & & & 1 & \fbox{\{ 0, 1 \}} & \{ 0, 1 \} & \{ 0, 1 \} \\
-        \mathsf{sibling} & & & 0 & 0 & 0 & 0 \\
-      \end{block}
-    \end{blockarray}
-  \]
-  \caption{The adjacency matrix defined using \cref{def:adjacency_matrix} for
-    \cref{example:independence}}
-  \label{fig:dependencies_matrix}
-\end{figure}
-\begin{figure}
-  \centering
-  \begin{tikzpicture}
-    \node[draw] (parent) at (0, 0.5) {$\mathsf{parent}$};
-    \node[draw] (mother) at (0, -0.5) {$\mathsf{mother}$};
-    \node[draw] (sibling) at (2, 0.5) {$\mathsf{sibling}$};
-    \node[draw] (father) at (2, -0.5) {$\mathsf{father}$};
-    \draw[-{Stealth}] (parent) edge (father);
-    \draw[-{Stealth}] (mother) edge (father);
-    \draw[-{Stealth},dashed,darkgray] (parent) edge (sibling);
-    \draw[-{Stealth},dashed,darkgray] (parent) edge (mother);
-  \end{tikzpicture}
-  \caption{The predicate dependency graph that corresponds to
-    \cref{fig:dependencies_matrix}. Dashed edges are undetermined---they may
-    or may not exist.}
-  \label{fig:dependencies2}
+  \begin{minipage}{.49\textwidth}
+    \centering
+    \[
+      \begin{blockarray}{ccccccc}
+        \begin{block}{ccc(cccc)}
+          \mathsf{father} & & & 0 & 0 & 0 & 0 \\
+          \mathsf{mother} & & & 1 & 0 & 0 & 0 \\
+          \mathsf{parent} & & & 1 & \fbox{\{ 0, 1 \}} & \{ 0, 1 \} & \{ 0, 1 \} \\
+          \mathsf{sibling} & & & 0 & 0 & 0 & 0 \\
+        \end{block}
+      \end{blockarray}
+    \]
+    \caption{The adjacency matrix defined using \cref{def:adjacency_matrix} for
+      \cref{example:independence}}
+    \label{fig:dependencies_matrix}
+  \end{minipage}
+  \begin{minipage}{.5\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node[draw] (parent) at (0, 0.5) {$\mathsf{parent}$};
+      \node[draw] (mother) at (0, -0.5) {$\mathsf{mother}$};
+      \node[draw] (sibling) at (2, 0.5) {$\mathsf{sibling}$};
+      \node[draw] (father) at (2, -0.5) {$\mathsf{father}$};
+      \draw[-{Stealth}] (parent) edge (father);
+      \draw[-{Stealth}] (mother) edge (father);
+      \draw[-{Stealth},dashed,darkgray] (parent) edge (sibling);
+      \draw[-{Stealth},dashed,darkgray] (parent) edge (mother);
+    \end{tikzpicture}
+    \caption{The predicate dependency graph that corresponds to
+      \cref{fig:dependencies_matrix}. Dashed edges are undetermined---they may
+      or may not exist.}
+    \label{fig:dependencies2}
+  \end{minipage}
 \end{figure}
 % TODO: make sure my definitions and examples are consistent with loops
 
@@ -809,18 +777,15 @@ $t$ in situations where the name is unimportant.
 % TODO: NB: the set of decision variables for this constraint must exclude all
 % arguments.
 % TODO: My paper has two slightly different graphs with the same name.
-% TODO: rename TS to 'structure' and TV to 'values'
 
 \begin{algorithm}[t]
-  \KwData{a program $\mathscr{P}$}
+  \KwData{a constraint model for a logic program $\mathscr{P}$ amid execution}
   \SetKwFunction{hasNegativeCycles}{hasNegativeCycles}
   Let $\mathscr{R} \subseteq \mathscr{P}$ be the largest subprogram of
-  $\mathscr{P}$ with its $\variable{TS}$ and predicates in both body
+  $\mathscr{P}$ with its $\variable{treeStructure}$ and predicates in both body
   and head fully determined\footnotemark\;
   \lIf{$\mathscr{R} = \emptyset$}{\Return{\textsc{undefined}}}
-  \If{\hasNegativeCycles($G_{\mathscr{R}}$)}{
-    \Return{\textsc{false}}\;
-  }
+  \lIf{\hasNegativeCycles($G_{\mathscr{R}}$)}{\Return{\textsc{false}}}
   \lIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}
   \Return{\textsc{undefined}}\;
   \caption{Entailment check for negative cycles}
@@ -846,10 +811,10 @@ We split the decision variables into the following groups:
 \item all head predicates,
 \item for each clause:
   \begin{enumerate}
-  \item $\variable{TS}$,
+  \item $\variable{treeStructure}$,
   \item body predicates,
   \item head arguments,
-  \item (if $|\variables{}| > 1$) $\variable{intros}$,
+  \item (if $|\variables{}| > 1$) $\variable{introductions}$,
   \item body arguments.
   \end{enumerate}
 \end{enumerate}
@@ -870,8 +835,8 @@ failures (contradictions).
 
 % TODO: consider replacing \maxNumClauses{} with max_num_additional_clauses
 \begin{itemize}
-\item $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$,
-  the number of additional clauses are in $\{ 1, 2, 4, 8, 16 \}$.
+\item $|\predicates{}|, |\variables{}|, |\constants{}|, \maxNumNodes{},
+  \text{the number of additional clauses} \in \{ 1, 2, 4, 8, 16 \}$.
 \item $\maxArity{} \in \{ 1, 2, 3, 4, 5 \}$.
 \item all possible numbers of independent pairs: $0, \dots,
   \binom{|\predicates{}|}{2}$.
@@ -915,16 +880,14 @@ Results:
 \item Could add statistics about what constraints tend to conflict.
 \end{itemize}
 
-\subsubsection*{Acknowledgements}
+\section*{Acknowledgments}
 
 % The author would like to thank Vaishak Belle for his comments.
 This work was supported by the EPSRC Centre for Doctoral Training in Robotics
 and Autonomous Systems, funded by the UK Engineering and Physical Sciences
 Research Council (grant EP/S023208/1).
 
-\subsubsection*{References}
-
-\bibliographystyle{apalike}
+\bibliographystyle{splncs04}
 \bibliography{paper}
 
 \end{document}

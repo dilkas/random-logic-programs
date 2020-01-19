@@ -189,13 +189,13 @@ public class Program {
             }
         }
 
-        // Another redundant constraint: if the introduction is not NULL, then it must be in the occurrences
+        // Another redundant constraint: if the introduction is not NULL, then it must be in the occurrences (and vice versa)
         for (int i = 0; i < maxNumClauses; i++) {
             for (int j = 0; j < variables.length; j++) {
                 Constraint introductionNotNull = model.arithm(introductions[i][j], ">", 0);
                 Constraint itMustBeInOccurrences = model.member(model.intOffsetView(introductions[i][j], -1),
                         occurrences[i][j]);
-                model.ifThen(introductionNotNull, itMustBeInOccurrences);
+                model.ifOnlyIf(introductionNotNull, itMustBeInOccurrences);
             }
         }
     }
