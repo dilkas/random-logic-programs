@@ -1,33 +1,64 @@
-data <- read.csv("src/runtime.csv", header = FALSE, sep = ";", skip = 1)
-names(data) <- c("numPredicates", "maxArity", "numVariables", "numConstants", "numAdditionalClauses", "numIndependentPairs", "maxNumNodes",
-                 "solutionCount", "buildingTime", "totalTime", "initTime", "nodes", "backtracks", "fails", "restarts")
-data$percentageIndependent <- round(ifelse(data$numIndependentPairs >= 2, data$numIndependentPairs / choose(data$numPredicates, 2), 0), 2)
-
-big <- data[data$totalTime == 60, ]
-nrow(big)/nrow(data)*100
-small <- data[data$totalTime < 1, ]
-nrow(small)/nrow(data)*100
-
 library(ggplot2)
+library(tikzDevice)
 
-boxplots <- function(x, y, xl = "", yl = "") {
-  ggplot(data, aes(factor(x), y, group = x)) + geom_boxplot(outlier.shape = NA) +
-    scale_y_continuous(limits = quantile(y, c(0.1, 0.9))) + xlab(xl) + ylab(yl)
+df <- read.csv("src/runtime.csv", header = FALSE, sep = ";", skip = 1)
+names(df) <- c("numPredicates", "maxArity", "numVariables", "numConstants", "numAdditionalClauses", "numIndependentPairs", "maxNumNodes",
+                 "solutionCount", "buildingTime", "totalTime", "initTime", "nodes", "backtracks", "fails", "restarts")
+df$percentageIndependent <- round(ifelse(df$numIndependentPairs >= 2, df$numIndependentPairs / choose(df$numPredicates, 2), 0), 2)
+
+small <- df[df$totalTime < 1, ]
+nrow(small)/nrow(df)*100
+tail(sort(df$totalTime))
+
+boxplots <- function(df, x, y) {
+  ggplot(df, aes(factor(x), y, group = x)) +
+    geom_boxplot(outlier.shape = NA) +
+    coord_trans(y = "log10", limy = c(10, quantile(y, 0.92))) +
+    scale_y_continuous(breaks = c(1, 10, 100, 1000, 10000),
+                       labels = c("1", "10", expression(10^2), expression(10^3), expression(10^4)))
 }
 
-boxplots(data$numVariables, data$totalTime)
-boxplots(data$numVariables, data$nodes)
-boxplots(data$numConstants, data$totalTime)
-boxplots(data$numConstants, data$nodes)
-boxplots(data$numAdditionalClauses, data$totalTime)
-boxplots(data$numAdditionalClauses, data$nodes)
-boxplots(data$maxNumNodes, data$totalTime)
-boxplots(data$maxNumNodes, data$nodes)
+big <- df[df$numPredicates == 8, ]
+tikz(file = "paper/phase_transition.tex", width = 6, height = 2)
+ggplot(big, aes(factor(numIndependentPairs), nodes, group = numIndependentPairs)) +
+  geom_boxplot(outlier.shape = NA) +
+  coord_trans(y = "log10", limy = c(100, quantile(big$nodes, 0.91))) +
+  scale_y_continuous(breaks = c(1, 20, 100, 1000, 10000),
+                     labels = c("1", "20", expression(10^2), expression(10^3), expression(10^4))) +
+  stat_summary(fun.y = mean, geom = "point") +
+  xlab("Independent pairs") +
+  ylab("Nodes")
+dev.off()
 
-boxplots(data$percentageIndependent, data$totalTime)
-boxplots(data$percentageIndependent, data$nodes)
+# Positive correlation
+cor.test(df$numVariables, df$totalTime)
+cor.test(df$numVariables, df$nodes)
+boxplots(df, df$numVariables, df$totalTime)
+boxplots(df, df$numVariables, df$nodes)
 
-boxplots <- function(x, y) {
-  ggplot(data, aes(factor(x), y, group = x)) + geom_boxplot(outlier.shape = NA) +
-    scale_y_continuous(limits = quantile(y, c(0.1, 0.9)))
+cor.test(df$numConstants, df$totalTime)
+cor.test(df$numConstants, df$nodes)
+boxplots(df, df$numConstants, df$totalTime)
+boxplots(df, df$numConstants, df$nodes)
+
+cor.test(df$numAdditionalClauses, df$totalTime)
+cor.test(df$numAdditionalClauses, df$nodes)
+boxplots(df, df$numAdditionalClauses, df$totalTime)
+boxplots(df, df$numAdditionalClauses, df$nodes)
+
+boxplots(df, df$maxNumNodes, df$totalTime)
+boxplots(df, df$maxNumNodes, df$nodes)
+
+# A phase transition in mean but not median, i.e., some instances become really hard, but most remain easy
+
+
+#               geom = "pointrange", color = "red")
+#  stat_summary(fun.y = mean, geom = "point", shape = 20, size = 4, color = "red", fill = "red")
+
+for (i in seq(1, 25)) {
+  print(max(big[big$numIndependentPairs == i, "nodes"]))
+  print(min(big[big$numIndependentPairs == i, "nodes"]))
 }
+
+interesting <- big[big$numIndependentPairs == 8, ]
+hist(interesting[interesting$nodes < 1000, ]$nodes)

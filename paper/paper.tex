@@ -230,7 +230,7 @@ The reason why $\Box$ must be a separate value will become clear in
 \begin{definition}
   The body of a clause is defined by:
   \begin{itemize}
-  \item $\arrayd{cstructure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ such
+  \item $\arrayd{structure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ such
     that:
     \begin{itemize}
     \item $\variable{structure}[i] = i$: the $i$-th node is a root.
@@ -334,12 +334,10 @@ We can use \cref{constr:arity} again to disable extra arguments.
   For $i = 0, \dots, \maxNumNodes{} - 1$, let $C_i$ be the number of times $i$
   appears in the \variable{struture} array with index greater than $i$. Then
   \begin{align*}
-    C = 0 &\iff \variable{values}[i].\variable{name} \in \predicates{} \cup \{ \top \},\\
-    C = 1 &\iff \variable{values}[i].\variable{name} = \neg,\\
-    C > 1 &\iff \variable{values}[i].\variable{name} \in \{ \land, \lor \},
+    C_i = 0 &\iff \variable{values}[i].\variable{name} \in \predicates{} \cup \{ \top \},\\
+    C_i = 1 &\iff \variable{values}[i].\variable{name} = \neg,\\
+    C_i > 1 &\iff \variable{values}[i].\variable{name} \in \{ \land, \lor \}.
   \end{align*}
-  where $\variable{structure}_{>i}$ denotes array $\variable{structure}$ with positions
-  greater than $i$.
 \end{constraint}
 Each of the three equivalences in \cref{constraint:node_types} corresponds to
 node $i$ having no children, one child, and multiple children, respectively.
@@ -590,7 +588,7 @@ also describe efficient algorithms for propagation and entailment checking.
   $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
 \end{definition}
 
-\begin{figure}[t]
+\begin{figure}
   \centering
   \begin{tikzpicture}
     \node[draw,circle,gray,text=black] (and) at (0, 0) {$\land$};
@@ -688,6 +686,7 @@ $t$ in situations where the name is unimportant.
     }
   }
   \caption{Propagation for independence}
+  \label{alg:independence_propagation}
 \end{algorithm}
 \begin{algorithm}
   \SetKwFunction{getDependencies}{deps}
@@ -737,6 +736,7 @@ $t$ in situations where the name is unimportant.
     }
   }
   \caption{Dependencies of a predicate}
+  \label{alg:dependencies}
 \end{algorithm}
 \begin{figure}
   \centering
@@ -771,10 +771,17 @@ $t$ in situations where the name is unimportant.
     or may not exist.}
   \label{fig:dependencies2}
 \end{figure}
-% TODO: make sure my definitions and examples are consistent with loops
 
+% TODO: start here
+% TODO: make sure my definitions and examples are consistent with loops
 % TODO: Discuss that the algorithms work in case there are multiple 'paths'
 % without any issues.
+
+Note that if there are multiple paths in the dependency graph from $\mathsf{Q}$
+to $\mathsf{P}$, when constructing $D_{\mathsf{P}}$, \cref{alg:dependencies}
+could include $\mathsf{Q}$ once for each possible type ($\Determined$,
+$\Undetermined$, and $\AlmostDetermined$). However,
+\cref{alg:independence_propagation,alg:independence_entailment}
 
 \begin{example} \label{example:independence}
   Consider this partially determined (fragment of a) program:
@@ -810,7 +817,7 @@ $t$ in situations where the name is unimportant.
 % arguments.
 % TODO: My paper has two slightly different graphs with the same name.
 
-\begin{algorithm}[t]
+\begin{algorithm}
   \KwData{a program $\mathscr{P}$}
   \SetKwFunction{hasNegativeCycles}{hasNegativeCycles}
   Let $\mathscr{R} \subseteq \mathscr{P}$ be the largest subprogram of
@@ -837,8 +844,14 @@ there seems to be no good way to extend \cref{def:adjacency_matrix} so that the
 adjacency matrix captures positivity/negativity.
 
 \section{EMPIRICAL PERFORMANCE}
-% TODO: describe the experimental setup (variables), hardware/software (CPU,
-% anything else?)
+% TODO: describe the experimental setup (variables), hardware/software (CPU, anything else?)
+% see Downloads/cp2019-wiggles.pdf for an example.
+
+\begin{figure*}[t]
+  \centering
+  \input{phase_transition.tex}
+  \caption{TODO}
+\end{figure*}
 
 We split the decision variables into the following groups:
 \begin{enumerate}
@@ -864,14 +877,14 @@ thrashing.
 
 Value ordering heuristic is random (to make the results random).
 
-We also employ a geometric restart policy, restarting after 10, 20, 40,...
+We also employ a geometric restart policy, restarting after $10, 20, 40,\dots$
 failures (contradictions).
 
 % TODO: consider replacing \maxNumClauses{} with max_num_additional_clauses
 \begin{itemize}
 \item $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$,
-  the number of additional clauses are in $\{ 1, 2, 4, 8, 16 \}$.
-\item $\maxArity{} \in \{ 1, 2, 3, 4, 5 \}$.
+  the number of additional clauses are in $\{ 1, 2, 4, 8 \}$.
+\item $\maxArity{} \in \{ 1, 2, 3, 4 \}$.
 \item all possible numbers of independent pairs: $0, \dots,
   \binom{|\predicates{}|}{2}$.
 \end{itemize}
@@ -886,11 +899,18 @@ Repeat 10 times:
 
 Results:
 \begin{itemize}
-\item ??\% of total running times is less than 1 s
-\item ??\% timed out. All of them had $\maxNumNodes{} = 16$.
-\item Out of the ten almost-identical runs with each set of parameters, the
-  number of runs that timed out was always less than ??.
-\item Running time (or number of nodes) as a function of various parameters.
+\item almost \num{400000} experiments.
+\item \SI{97.7}{\percent} of total running times is less than \SI{1}{\second}
+\item 4 timeouts: all with 8 predicates, 8 additional clauses, and
+  $\maxNumNodes{} = 8$; the rest of the parameters differ.
+\item Running time (or number of nodes) as a function of various parameters:
+  \begin{itemize}
+  \item The number of clauses has a clear impact on time but not number of
+    nodes.
+  \item $\maxNumNodes{}$ has a huge impact on both.
+  \item The proportion of independent pairs of predicates is acting weird.
+    Investigate.
+  \end{itemize}
 \end{itemize}
 
 \section{CONCLUSION \& FUTURE WORK}
@@ -898,19 +918,15 @@ Results:
 \begin{itemize}
 \item A constraint for logical equivalence. An algorithm to reduce each tree to
   some kind of normal form. Not doing this on purpose. Leaving for further work.
-\item Perhaps negative cycle detection could use the same graph as the
-  independence propagator? If we extend each domain to {-1, 0, 1}, but that
-  might make propagation weaker or slower.
 \item Could investigate how uniform the generated distribution of programs is.
   Distributions of individual parameters will often favour larger values
   because, e.g., there are more 5-tuples than 4-tuples.
-\item Inference options to explore. Logspace vs normal space. Symbolic vs
-  non-symbolic. Propagate evidence (might be irrelevant)? Propagate weights?
-  Supported knowledge compilation techniques: sdd, sddx, bdd, nnf, ddnnf, kbest,
-  fsdd, fbdd.
+%\item Inference options to explore. Logspace vs normal space. Symbolic vs
+%  non-symbolic. Propagate evidence (might be irrelevant)? Propagate weights?
+%  Supported knowledge compilation techniques: sdd, sddx, bdd, nnf, ddnnf, kbest,
+%  fsdd, fbdd.
 \item Mention the random heuristic. Mention that restarting gives better
-  randomness, but duplicates become possible. Restarting after each run is
-  expensive. Periodic restarts could be an option.
+  randomness, but duplicates become possible.
 \item Could add statistics about what constraints tend to conflict.
 \end{itemize}
 
