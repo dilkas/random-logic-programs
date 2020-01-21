@@ -45,9 +45,11 @@
 \DeclareMathOperator{\Undetermined}{\Upsilon}
 \DeclareMathOperator{\AlmostDetermined}{\Gamma}
 
+\Crefname{constraint}{Constraint}{Constraints}
+\Crefname{clause}{Clause}{Clauses}
+\creflabelformat{clause}{#2(#1)#3}
 
 \usetikzlibrary{arrows.meta}
-\Crefname{constraint}{Constraint}{Constraints}
 \relpenalty=10000
 \binoppenalty=10000
 \def\multiset#1#2{\ensuremath{\left(\kern-.3em\left(\genfrac{}{}{0pt}{}{#1}{#2}\right)\kern-.3em\right)}}
@@ -97,13 +99,16 @@
 % \end{center}
 % \end{table}
 
+% UAI format: section/subsection titles are in all caps, figure/table titles are
+% in TitleCase, table caption above the table
+
 \begin{document}
 \bibliographystyle{plainnat}
 \maketitle
 
 \begin{abstract}
 The Abstract paragraph should be indented 0.25 inch (1.5 picas) on
-both left and right-hand margins.  Use 10~point type, with a vertical
+both left and right-hand margins. Use 10~point type, with a vertical
 spacing of 11~points.  {\bf Abstract} must be centered, bold, and in
 point size 12. Two line spaces precede the Abstract. The Abstract must
 be limited to one paragraph.
@@ -255,7 +260,7 @@ The reason why $\Box$ must be a separate value will become clear in
     \draw[gray] (and) -- (Q);
     \draw[gray] (and) -- (R);
   \end{tikzpicture}
-  \caption{A tree representation of the formula from \cref{example:formula}}
+  \caption{A Tree Representation of the Formula From \cref{example:formula}}
   \label{fig:example_tree}
 \end{figure}
 
@@ -599,7 +604,7 @@ also describe efficient algorithms for propagation and entailment checking.
     \draw[gray] (and) -- (not);
     \draw[gray] (not) -- (mother);
   \end{tikzpicture}
-  \caption{The tree representation of the body of Clause~\eqref{eq:example_clause}.}
+  \caption{A Tree Representation of the Body of \cref{eq:example_clause}}
   \label{fig:example_tree2}
 \end{figure}
 \begin{figure}
@@ -613,8 +618,8 @@ also describe efficient algorithms for propagation and entailment checking.
     \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (father);
     \draw[-{Stealth[scale=1.5]}] (mother) edge node[below] {$-$} (father);
   \end{tikzpicture}
-  \caption{The predicate dependency graph of the program in \cref{ex:program}.
-    Positive edges are labeled with `$+$', and negative edges with `$-$'.}
+  \caption{The Predicate Dependency Graph of the Program In \cref{ex:program}.
+    Positive Edges Are Labelled with `$+$', and Negative Edges with `$-$'.}
   \label{fig:predicate_dependencies}
 \end{figure}
 
@@ -622,7 +627,7 @@ also describe efficient algorithms for propagation and entailment checking.
   Consider the following (fragment of a) program:
   \begin{align}
     \mathsf{sibling}(X, Y) &\gets \mathsf{parent}(X, Z) \land \mathsf{parent}(Y, Z), \nonumber \\
-    \mathsf{father}(X, Y) &\gets \mathsf{parent}(X, Y) \land \neg\mathsf{mother}(X, Y). \label{eq:example_clause}
+    \mathsf{father}(X, Y) &\gets \mathsf{parent}(X, Y) \land \neg\mathsf{mother}(X, Y). \label[clause]{eq:example_clause}
   \end{align}
   Its predicate dependency graph is in \cref{fig:predicate_dependencies}.
   Because of the negation in \cref{eq:example_clause} (as seen in
@@ -685,7 +690,7 @@ $t$ in situations where the name is unimportant.
       $\mathbf{A}[s][t]$.\removeValue{$1$}\;
     }
   }
-  \caption{Propagation for independence}
+  \caption{Propagation for Independence}
   \label{alg:independence_propagation}
 \end{algorithm}
 \begin{algorithm}
@@ -698,7 +703,7 @@ $t$ in situations where the name is unimportant.
   \lIf{$D = \emptyset$}{\Return{\textsc{true}}}
   \lIf{$\exists (\Determined \_, \Determined \_) \in D$}{\Return{\textsc{false}}}
   \Return{\textsc{undefined}}\;
-  \caption{Entailment for independence}
+  \caption{Entailment for Independence}
   \label{alg:independence_entailment}
 \end{algorithm}
 \begin{algorithm}
@@ -735,7 +740,7 @@ $t$ in situations where the name is unimportant.
       $D \gets D'$\;
     }
   }
-  \caption{Dependencies of a predicate}
+  \caption{Dependencies of a Predicate}
   \label{alg:dependencies}
 \end{algorithm}
 \begin{figure}
@@ -750,11 +755,11 @@ $t$ in situations where the name is unimportant.
       \end{block}
     \end{blockarray}
   \]
-  \caption{The adjacency matrix defined using \cref{def:adjacency_matrix} for
+  \caption{The Adjacency Matrix Defined Using \cref{def:adjacency_matrix} For
     \cref{example:independence}}
   \label{fig:dependencies_matrix}
 \end{figure}
-\begin{figure}
+\begin{figure}[t]
   \centering
   \begin{tikzpicture}
     \node[draw] (parent) at (0, 0.5) {$\mathsf{parent}$};
@@ -766,9 +771,9 @@ $t$ in situations where the name is unimportant.
     \draw[-{Stealth},dashed,darkgray] (parent) edge (sibling);
     \draw[-{Stealth},dashed,darkgray] (parent) edge (mother);
   \end{tikzpicture}
-  \caption{The predicate dependency graph that corresponds to
-    \cref{fig:dependencies_matrix}. Dashed edges are undetermined---they may
-    or may not exist.}
+  \caption{The Predicate Dependency Graph That Corresponds To
+    \cref{fig:dependencies_matrix}. Dashed Edges Are Undetermined---They May
+    Or May Not Exist.}
   \label{fig:dependencies2}
 \end{figure}
 
@@ -829,7 +834,7 @@ $\Undetermined$, and $\AlmostDetermined$). However,
   }
   \lIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}
   \Return{\textsc{undefined}}\;
-  \caption{Entailment check for negative cycles}
+  \caption{Entailment Check for Negative Cycles}
   \label{alg:negative_cycles}
 \end{algorithm}
 \footnotetext{The arguments (whether variables or constants) are irrelevant to
@@ -846,12 +851,6 @@ adjacency matrix captures positivity/negativity.
 \section{EMPIRICAL PERFORMANCE}
 % TODO: describe the experimental setup (variables), hardware/software (CPU, anything else?)
 % see Downloads/cp2019-wiggles.pdf for an example.
-
-\begin{figure*}[t]
-  \centering
-  \input{phase_transition.tex}
-  \caption{TODO}
-\end{figure*}
 
 We split the decision variables into the following groups:
 \begin{enumerate}
@@ -883,7 +882,7 @@ failures (contradictions).
 % TODO: consider replacing \maxNumClauses{} with max_num_additional_clauses
 \begin{itemize}
 \item $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$,
-  the number of additional clauses are in $\{ 1, 2, 4, 8 \}$.
+  $\maxNumClauses{} - |\predicates{}|$ are in $\{ 1, 2, 4, 8 \}$.
 \item $\maxArity{} \in \{ 1, 2, 3, 4 \}$.
 \item all possible numbers of independent pairs: $0, \dots,
   \binom{|\predicates{}|}{2}$.
@@ -899,7 +898,9 @@ Repeat 10 times:
 
 Results:
 \begin{itemize}
-\item almost \num{400000} experiments.
+\item almost \num{400000} experiments, almost \num{300000} of which are with
+  $|\predicates{}| = 8$ (since the maximum number of independent pairs grows
+  with $|\predicates{}|$).
 \item \SI{97.7}{\percent} of total running times is less than \SI{1}{\second}
 \item 4 timeouts: all with 8 predicates, 8 additional clauses, and
   $\maxNumNodes{} = 8$; the rest of the parameters differ.
@@ -911,6 +912,37 @@ Results:
   \item The proportion of independent pairs of predicates is acting weird.
     Investigate.
   \end{itemize}
+\end{itemize}
+
+% TODO: describe the phase transition in this figure. still, almost 300k
+% data points. A phase transition in mean but not
+% median, i.e., some instances become really hard, but most remain easy.
+\begin{figure*}[t]
+  \centering
+  \input{phase_transition.tex}
+  \caption{The Distribution of the Number of Nodes in the Binary Search Tree as
+    a Function of the Number of Independent Pairs of Predicates for
+    $|\predicates| = 8$. Significant Outliers Are Hidden, The Dots Denote Mean
+    Values, and the Vertical Axis Is on a $\log_{10}$ Scale.}
+\end{figure*}
+
+\begin{figure}[t]
+  \centering
+  \input{impact.tex}
+  \caption{The Mean Number of Nodes in the Binary Search Tree for Each Value of
+    Each Experimental Parameter. Note That the Horizontal Axis Is on a $\log_2$
+    Scale.}
+  \label{fig:impact}
+\end{figure}
+
+Observations about \cref{fig:impact}:
+\begin{itemize}
+\item The same plot for the median is very similar.
+\item The growth of each curve suggest how well/poorly the model scales with
+  higher values of the parameter.
+\item It is clear that the number of nodes that can represent a body of a clause
+  is the limiting factor. A big tree significantly increases the search space,
+  and it becomes harder to ensure that there are no negative cycle and 
 \end{itemize}
 
 \section{CONCLUSION \& FUTURE WORK}
