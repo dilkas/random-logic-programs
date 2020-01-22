@@ -12,6 +12,7 @@
 \usepackage{siunitx}
 \usepackage{amsthm}
 \usepackage[round]{natbib}
+\usepackage[inline]{enumitem}
 
 \newtheorem{constraint}{Constraint}
 \theoremstyle{definition}
@@ -126,6 +127,7 @@ Motivation:
 \end{itemize}
 
 TODO: define all the relevant terminology from logic and constraint programming.
+% TODO: decide between 'argument' and 'gap' and be consistent.
 
 If a predicate has arity $n$ and it is as of yet undecided what $n$ terms will
 fill those spots, we will say that the predicate has $n$ \emph{gaps}. We say
@@ -260,7 +262,7 @@ The reason why $\Box$ must be a separate value will become clear in
     \draw[gray] (and) -- (Q);
     \draw[gray] (and) -- (R);
   \end{tikzpicture}
-  \caption{A Tree Representation of the Formula From \cref{example:formula}}
+  \caption{A tree representation of the formula from \cref{example:formula}}
   \label{fig:example_tree}
 \end{figure}
 
@@ -417,7 +419,7 @@ $\variable{intros}$ shifts all indices by one.
   $\variable{intros}$ are sorted.
 \end{constraint}
 
-\begin{example}
+\begin{example} \label{example:sibling}
   Let $\constants{} = \emptyset$, $\variables{} = \{ X, Y, Z \}$, $\maxArity{} =
   2$, $\maxNumNodes{} = 3$, and consider the clause
   \[
@@ -604,7 +606,7 @@ also describe efficient algorithms for propagation and entailment checking.
     \draw[gray] (and) -- (not);
     \draw[gray] (not) -- (mother);
   \end{tikzpicture}
-  \caption{A Tree Representation of the Body of \cref{eq:example_clause}}
+  \caption{A tree representation of the body of \cref{eq:example_clause}}
   \label{fig:example_tree2}
 \end{figure}
 \begin{figure}
@@ -618,8 +620,8 @@ also describe efficient algorithms for propagation and entailment checking.
     \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (father);
     \draw[-{Stealth[scale=1.5]}] (mother) edge node[below] {$-$} (father);
   \end{tikzpicture}
-  \caption{The Predicate Dependency Graph of the Program In \cref{ex:program}.
-    Positive Edges Are Labelled with `$+$', and Negative Edges with `$-$'.}
+  \caption{The predicate dependency graph of the program in \cref{ex:program}.
+    Positive edges are labelled with `$+$', and negative edges with `$-$'.}
   \label{fig:predicate_dependencies}
 \end{figure}
 
@@ -690,7 +692,7 @@ $t$ in situations where the name is unimportant.
       $\mathbf{A}[s][t]$.\removeValue{$1$}\;
     }
   }
-  \caption{Propagation for Independence}
+  \caption{Propagation for independence}
   \label{alg:independence_propagation}
 \end{algorithm}
 \begin{algorithm}
@@ -703,7 +705,7 @@ $t$ in situations where the name is unimportant.
   \lIf{$D = \emptyset$}{\Return{\textsc{true}}}
   \lIf{$\exists (\Determined \_, \Determined \_) \in D$}{\Return{\textsc{false}}}
   \Return{\textsc{undefined}}\;
-  \caption{Entailment for Independence}
+  \caption{Entailment for independence}
   \label{alg:independence_entailment}
 \end{algorithm}
 \begin{algorithm}
@@ -740,7 +742,7 @@ $t$ in situations where the name is unimportant.
       $D \gets D'$\;
     }
   }
-  \caption{Dependencies of a Predicate}
+  \caption{Dependencies of a predicate}
   \label{alg:dependencies}
 \end{algorithm}
 \begin{figure}
@@ -755,7 +757,7 @@ $t$ in situations where the name is unimportant.
       \end{block}
     \end{blockarray}
   \]
-  \caption{The Adjacency Matrix Defined Using \cref{def:adjacency_matrix} For
+  \caption{The adjacency matrix defined using \cref{def:adjacency_matrix} for
     \cref{example:independence}}
   \label{fig:dependencies_matrix}
 \end{figure}
@@ -771,9 +773,9 @@ $t$ in situations where the name is unimportant.
     \draw[-{Stealth},dashed,darkgray] (parent) edge (sibling);
     \draw[-{Stealth},dashed,darkgray] (parent) edge (mother);
   \end{tikzpicture}
-  \caption{The Predicate Dependency Graph That Corresponds To
-    \cref{fig:dependencies_matrix}. Dashed Edges Are Undetermined---They May
-    Or May Not Exist.}
+  \caption{The predicate dependency graph that corresponds to
+    \cref{fig:dependencies_matrix}. Dashed edges are undetermined---they may
+    or may not exist.}
   \label{fig:dependencies2}
 \end{figure}
 
@@ -834,7 +836,7 @@ $\Undetermined$, and $\AlmostDetermined$). However,
   }
   \lIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}
   \Return{\textsc{undefined}}\;
-  \caption{Entailment Check for Negative Cycles}
+  \caption{Entailment check for negative cycles}
   \label{alg:negative_cycles}
 \end{algorithm}
 \footnotetext{The arguments (whether variables or constants) are irrelevant to
@@ -849,101 +851,105 @@ there seems to be no good way to extend \cref{def:adjacency_matrix} so that the
 adjacency matrix captures positivity/negativity.
 
 \section{EMPIRICAL PERFORMANCE}
-% TODO: describe the experimental setup (variables), hardware/software (CPU, anything else?)
-% see Downloads/cp2019-wiggles.pdf for an example.
 
-We split the decision variables into the following groups:
-\begin{enumerate}
-\item all head predicates,
-\item for each clause:
-  \begin{enumerate}
-  \item $\variable{structure}$,
-  \item body predicates,
-  \item head arguments,
-  \item (if $|\variables{}| > 1$) $\variable{intros}$,
-  \item body arguments.
-  \end{enumerate}
-\end{enumerate}
-And use the `fail first' variable ordering heuristic within each group.
-
-We make no claim that this is optimal, but it does avoid major sources of
-thrashing.
-% Example of thrashing: P(X, a) <- ~P(X, b) contradicts the negative cycle
-% constrant. Let's try P(X, a) <- P(X, c) instead (and so on).
-
-%If we're thrashing on the negative cycle constraint, there's not much I can do
-%about that.
-
-Value ordering heuristic is random (to make the results random).
-
-We also employ a geometric restart policy, restarting after $10, 20, 40,\dots$
-failures (contradictions).
-
-% TODO: consider replacing \maxNumClauses{} with max_num_additional_clauses
-\begin{itemize}
-\item $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$,
-  $\maxNumClauses{} - |\predicates{}|$ are in $\{ 1, 2, 4, 8 \}$.
-\item $\maxArity{} \in \{ 1, 2, 3, 4 \}$.
-\item all possible numbers of independent pairs: $0, \dots,
-  \binom{|\predicates{}|}{2}$.
-\end{itemize}
-Repeat 10 times:
-\begin{itemize}
-\item Pick a random combination of $|\predicates{}|$ arities such that
-  $\maxArity{}$ is occurs at least once (in an ordered way, since order doesn't
-  matter).
-\item Pick the required number of independent pairs (without repetition).
-\item Run the solver with a \SI{60}{\second} timeout.
-\end{itemize}
-
-Results:
-\begin{itemize}
-\item almost \num{400000} experiments, almost \num{300000} of which are with
-  $|\predicates{}| = 8$ (since the maximum number of independent pairs grows
-  with $|\predicates{}|$).
-\item \SI{97.7}{\percent} of total running times is less than \SI{1}{\second}
-\item 4 timeouts: all with 8 predicates, 8 additional clauses, and
-  $\maxNumNodes{} = 8$; the rest of the parameters differ.
-\item Running time (or number of nodes) as a function of various parameters:
-  \begin{itemize}
-  \item The number of clauses has a clear impact on time but not number of
-    nodes.
-  \item $\maxNumNodes{}$ has a huge impact on both.
-  \item The proportion of independent pairs of predicates is acting weird.
-    Investigate.
-  \end{itemize}
-\end{itemize}
-
-% TODO: describe the phase transition in this figure. still, almost 300k
-% data points. A phase transition in mean but not
-% median, i.e., some instances become really hard, but most remain easy.
-\begin{figure*}[t]
-  \centering
-  \input{phase_transition.tex}
-  \caption{The Distribution of the Number of Nodes in the Binary Search Tree as
-    a Function of the Number of Independent Pairs of Predicates for
-    $|\predicates| = 8$. Significant Outliers Are Hidden, The Dots Denote Mean
-    Values, and the Vertical Axis Is on a $\log_{10}$ Scale.}
-\end{figure*}
-
-\begin{figure}[t]
+\begin{figure}
   \centering
   \input{impact.tex}
-  \caption{The Mean Number of Nodes in the Binary Search Tree for Each Value of
-    Each Experimental Parameter. Note That the Horizontal Axis Is on a $\log_2$
-    Scale.}
+  \caption{The mean number of nodes in the binary search tree for each value of
+    each experimental parameter. Note that the horizontal axis is on a $\log_2$
+    scale.}
   \label{fig:impact}
 \end{figure}
 
-Observations about \cref{fig:impact}:
-\begin{itemize}
-\item The same plot for the median is very similar.
-\item The growth of each curve suggest how well/poorly the model scales with
-  higher values of the parameter.
-\item It is clear that the number of nodes that can represent a body of a clause
-  is the limiting factor. A big tree significantly increases the search space,
-  and it becomes harder to ensure that there are no negative cycle and 
-\end{itemize}
+\begin{figure*}
+  \centering
+  \input{phase_transition.tex}
+  \caption{The distribution of the number of nodes in the binary search tree as
+    a function of the number of independent pairs of predicates for
+    $|\predicates| = 8$. Significant outliers are hidden, the dots denote mean
+    values, and the vertical axis is on a $\log_{10}$ scale.}
+  \label{fig:phase_transition}
+\end{figure*}
+
+Along with constraints, variables, and their domains, two more design decisions
+are needed to complete the model: heuristics and restarts. By trial and error,
+the variable ordering heuristic was devised to eliminate sources of thrashing,
+i.e., situations where a contradiction is being `fixed' by making changes that
+have no hope to fix the contradiction. Thus, we partition all decision variables
+into an ordered list of groups, and require the values of all variables from one
+group to be determined before moving to the next group. Within each group, we
+use the `fail first' variable ordering heuristic. The first group consists of
+all head predicates. Afterwards, we handle all remaining decision variables from
+the first clause before proceeding to the next. The decision variables within
+each clause are divided into:
+\begin{enumerate*}
+\item the $\variable{structure}$ array,
+\item body predicates,
+\item head arguments,
+\item (if $|\variables{}| > 1$) the $\variable{intros}$ array,
+\item body arguments.
+\end{enumerate*}
+For instance, in the clause from \cref{example:sibling}, all visible parts of
+the clause would be decided in this order:
+\[
+  \overset{1}{\mathsf{sibling}}(\overset{3}{X}, \overset{3}{Y}) \gets
+  \overset{2}{\mathsf{parent}}(\overset{4}{X}, \overset{4}{Z})
+  \overset{2}{\land} \overset{2}{\mathsf{parent}}(\overset{4}{Y},
+  \overset{4}{Z}).
+\]
+We also employ a geometric restart policy, restarting after $10, 20, 40,
+80, \dots$ contradictions.
+
+We ran close to \num{400000} experiments, investigating whether the model is
+efficient enough to generate reasonably-sized programs and gaining insight into
+what parameter values make the constraint satisfaction problem harder. For these
+experiments, we use Choco~4.10.2 \citep{choco} with Java~8 on a personal
+computer with an Intel Core i5-8250U processor and Arch Linux 5.4.12-arch1-1
+operating system. For $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$,
+$\maxNumNodes{}$, and $\maxNumClauses{} - |\predicates{}|$ (i.e., the number of
+clauses in addition to the mandatory $|\predicates{}|$ clauses), we assign all
+combinations of 1, 2, 4, 8. $\maxArity{}$ is assigned to values 1--4. For each
+$|\predicates{}|$, we also iterate over all possible numbers of independent
+pairs of predicates, ranging from 0 up to $\binom{|\predicates{}|}{2}$. For each
+combination of the above-mentioned parameters, we pick ten random pairs of:
+$\arities{}$ (such that $\maxArity{}$ occurs at least once) and the required
+number of independent pairs (without repetition). We then run the solver with a
+\SI{60}{\second} timeout.
+
+The vast majority (\SI{97.7}{\percent}) of runs finished in under
+\SI{1}{\second}, while four instances timed out: all with $|\predicates| =
+\maxNumClauses{} - |\predicates{}| = \maxNumNodes{} = 8$ and the remaining
+parameters all different. This suggests that---regardless of parameter
+values---most of the time a solution can be identified instantaneously while
+occasionally a series of wrong decisions can lead the solver into a part of the
+search space with no solutions.
+
+In \cref{fig:impact}, we plot how the mean number of nodes in the binary search
+tree grows as a function of each parameter (the plot for the median is very
+similar). The growth of each curve suggest how well/poorly the model scales with
+higher values of the parameter. From this plot, it is clear that
+$\maxNumNodes{}$ is the limiting factor. This is because some tree structures
+can be impossible to fill with predicates without creating either a negative
+cycle or a forbidden dependence, and such trees become more common as the number
+of nodes increases.
+
+\cref{fig:phase_transition} takes the data for $|\predicates{}| = 8$ (almost
+\num{300000} observations) and shows how the number of nodes in the search tree
+varies with the number of independent pairs of predicates. The box plots show
+that the median number of nodes stays about the same while the dots
+(representing the means) draw an arc. This suggests a type of phase transition,
+but only in mean rather than median, i.e., most problems remain easy, but with
+some parameter values hard problems become more likely. On the one hand, with
+few pairs of independent predicates, one can easily find the right combination
+of predicates to use in each clause. On the other hand, if most predicates must
+be independent, this leaves fewer predicates that can be used in the body of
+each clause (since all of them have to be independent with the head predicate),
+and we can either quickly find a solution or identify that there is none.
+
+% TODO: talk about randomness. The value heuristic is random because we want
+% randomness. After finding one solution, one can continue the search for more,
+% but they will be similar (acceptable if the search space is small and we want
+% to find all solutions).
 
 \section{CONCLUSION \& FUTURE WORK}
 
