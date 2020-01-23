@@ -108,7 +108,7 @@ for (Variable in c('numPredicates', 'maxArity', 'numVariables', 'numConstants', 
 effects$label <- ifelse(effects$Value == 8, sapply(as.character(effects$Variable), mytolatex), "")
 effects$aritylabel[effects$Variable == "maxArity" & effects$Value == 4] <- "$\\mathcal{M}_{\\mathcal{A}}$"
 
-tikz(file = "paper/impact.tex", width = 3.25, height = 2.4375)
+tikz(file = "paper/impact.tex", width = 3, height = 2.4375)
 ggplot(effects, aes(Value, mean, color = factor(Variable))) +
   geom_line(alpha = 0.5) +
   geom_point(aes(shape = factor(Variable), size = 1), alpha = 0.75) +
