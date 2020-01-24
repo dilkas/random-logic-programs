@@ -1,6 +1,8 @@
 \documentclass[letterpaper]{article}
-\usepackage{uai2019}
+\usepackage{uai2020}
 \usepackage[margin=1in]{geometry}
+\usepackage{times}
+
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{amssymb}
 \usepackage{mathtools}
@@ -54,9 +56,6 @@
 \relpenalty=10000
 \binoppenalty=10000
 \def\multiset#1#2{\ensuremath{\left(\kern-.3em\left(\genfrac{}{}{0pt}{}{#1}{#2}\right)\kern-.3em\right)}}
-
-% Set the typeface to Times Roman
-\usepackage{times}
 
 \title{Generating Random Logic Programs Using Constraint Programming}
 
@@ -132,13 +131,10 @@ Motivation:
 % programming: predicates ,arities, (logic) variables, constants, clauses, atoms,
 % heads, bodies,
 % CP: decision variables, constraints.
-% TODO: decide between 'argument' and 'gap' and be consistent.
 % TODO: need to introduce the idea of predicate independence
 
-If a predicate has arity $n$ and it is as of yet undecided what $n$ terms will
-fill those spots, we will say that the predicate has $n$ \emph{gaps}. We say
-that a constraint variable is \emph{(fully) determined} if its domain (at the
-given moment in the execution) has exactly one value.
+We say that a constraint variable is \emph{(fully) determined} if its domain (at
+the given moment in the execution) has exactly one value.
 
 A \emph{(logic) program} is a multiset of clauses. Given a program
 $\mathscr{P}$, a \emph{subprogram} $\mathscr{R}$ of $\mathscr{P}$ is a subset of
@@ -201,15 +197,16 @@ to eliminate permutation symmetries.
 \section{HEADS OF CLAUSES}
 
 \begin{definition}
-  The \emph{head} of a clause is composed of
-  \begin{itemize}
-  \item a $\variable{predicate} \in \predicates \cup \{ \Box \}$.
-  \item and $\arrayd{arguments}{\maxArity{}}{\constants{} \cup \variables{}}
-    \cup \{ \Box \}$
-  \end{itemize}
+  The \emph{head} of a clause is composed of a $\variable{predicate} \in
+  \predicates \cup \{ \Box \}$, and
+  $\arrayd{arguments}{\maxArity{}}{\constants{} \cup \variables{}} \cup \{ \Box
+  \}$.
 \end{definition}
-The reason why $\Box$ must be a separate value will become clear in
-\cref{sec:variable_symmetry}.
+Here, we use $\Box$ to denote either a disabled clause that we choose not to use
+or disabled arguments if the arity of the $\variable{predicate}$ is less than
+$\maxArity{}$. The reason why we need a separate value for the latter (i.e., why
+it is not enough to fix disabled arguments to a single already-existing value)
+will become clear in \cref{sec:variable_symmetry}.
 
 \begin{definition} \label{def:arity}
   The \variable{predicate}'s $\variable{arity} \in [0, \maxArity{}]$ can then be
@@ -218,6 +215,8 @@ The reason why $\Box$ must be a separate value will become clear in
   otherwise.
 \end{definition}
 
+Having defined arity, we can now fix the superfluous arguments:
+
 \begin{constraint} \label{constr:arity}
   For $i = 0, \dots, \maxArity{} - 1$,
   \[
@@ -225,8 +224,11 @@ The reason why $\Box$ must be a separate value will become clear in
   \]
 \end{constraint}
 
+We can also add a constraint that each predicate $\mathsf{P} \in \predicates{}$
+should have at least one clause with $\mathsf{P}$ at its head:
+
 \begin{constraint}
-  Each predicate gets at least one clause. Let
+Let
   \[
     P = \{ h.\variable{predicate} \mid h \in \variable{heads} \}.
   \]
@@ -238,22 +240,43 @@ The reason why $\Box$ must be a separate value will become clear in
       |\predicates{}| & \text{otherwise.}
     \end{cases}
   \]
-  Here, $\variable{nValues}(P)$ counts the number of unique values in $P$.
 \end{constraint}
+
+Here, $\variable{nValues}(P)$ counts the number of unique values in $P$.
 
 \section{BODIES OF CLAUSES} \label{sec:bodies}
 
+As was briefly mentioned before, the body of a clause is represented by a tree.
+
 \begin{definition}
-  The body of a clause is defined by:
-  \begin{itemize}
-  \item $\arrayd{structure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ such
-    that:
-    \begin{itemize}
-    \item $\variable{structure}[i] = i$: the $i$-th node is a root.
-    \item $\variable{structure}[i] = j$: the $i$-th node's parent is node $j$.
-    \end{itemize}
-  \item $\arrayt{values}{\maxNumNodes{}}{Node}$.
-  \end{itemize}
+  The \emph{body} of a clause has two parts. First, we have the
+  $\arrayd{structure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ array that
+  encodes the structure of the tree using the following two rules:
+  $\variable{structure}[i] = i$ means that the $i$-th node is a root, and
+  $\variable{structure}[i] = j$ (for $j \ne i$) means that the $i$-th node's
+  parent is node $j$. The second part is the array
+  $\arrayt{values}{\maxNumNodes{}}{Node}$ such that $\variable{values}[i]$ holds
+  the value of the $i$-th node.
+\end{definition}
+
+We can use the $\variable{tree}$ constraint \citep{DBLP:conf/cp/FagesL11} to
+forbid cycles in the $\variable{structure}$ array and simultaneously define
+$\variable{numTrees} \in \{ 1, \dots, \maxNumNodes{} \}$ to count the number of
+trees. We will view the tree rooted at the zeroth node as the main tree and
+restrict all other trees to single nodes. For this to work, we need to make sure
+that the zeroth node is indeed a root:
+
+\begin{constraint}
+  $\variable{structure}[0] = 0$.
+\end{constraint}
+
+\begin{definition}
+  For convenience, we also define $\variable{numNodes} \in \{ 1, \dots,
+  \maxNumNodes{} \}$ to count the number of nodes in the main tree. We define it
+  as
+  \[
+    \variable{numNodes} = \maxNumNodes{} - \variable{numTrees} + 1.
+  \]
 \end{definition}
 
 \begin{figure}
@@ -276,19 +299,21 @@ The reason why $\Box$ must be a separate value will become clear in
 \end{figure}
 
 \begin{example} \label{example:formula}
-  Let $\maxNumNodes{} = 8$. Then $\neg\mathsf{P}(X) \lor (\mathsf{Q}(X)
-  \land \mathsf{P}(X))$ corresponds to the tree in \cref{fig:example_tree} and
-  can be encoded as:
+  Let $\maxNumNodes{} = 8$. Then
+  \[
+    \neg\mathsf{P}(X) \lor (\mathsf{Q}(X) \land \mathsf{P}(X))
+  \]
+  corresponds to the tree in \cref{fig:example_tree} and can be encoded as:
   \begin{alignat*}{8}
     \variable{structure} &= [0, &&0, &&0, &&1, &&2, &&2, &&6, &&7],\\
     \variable{values} &= [{\lor}, &&{\neg}, &&{\land}, \mathsf{P}(&&X), \mathsf{Q}(&&X), \mathsf{P}(&&X), &&\top, &&\top],\\
     \variable{numNodes} &= 6, && && && && && && &&\\
     \variable{numTrees} &= 3. && && && && && && &&
   \end{alignat*}
-  In the rest of this section, we will describe how the elements of
-  $\variable{values}$ are encoded and list a series of constraints that make
-  this representation unique.
 \end{example}
+
+Here, $\top$ is the value we use for the remaining one-node trees. The
+elements of the $\variable{values}$ array are \emph{nodes}.
 
 \begin{definition} \label{def:node}
   A \emph{node} has a $\variable{name} \in \tokens{} \cup \predicates{}$ and
@@ -297,12 +322,12 @@ The reason why $\Box$ must be a separate value will become clear in
   defined analogously to \cref{def:arity}.
 \end{definition}
 
-We can use \cref{constr:arity} again to disable extra arguments.
+Furthermore, we can use \cref{constr:arity} again to disable the extra
+arguments.
 
 \begin{example}
-  Let $\maxArity{} = 2$, $\predicates{} = [\mathsf{P}, \dots]$, $\arities{}
-  = [1, \dots]$, and $X \in \variables{}$. Then the node representing atom
-  $\mathsf{P}(X)$ has:
+  Let $\maxArity{} = 2$, $X \in \variables{}$, and let $\mathsf{P}$ be a
+  predicate with arity 1. Then the node representing atom $\mathsf{P}(X)$ has:
   \begin{align*}
     \variable{name} &= \mathsf{P},\\
     \variable{arguments} &= [X, \Box],\\
@@ -310,30 +335,20 @@ We can use \cref{constr:arity} again to disable extra arguments.
   \end{align*}
 \end{example}
 
-\subsection{CONSTRAINTS}
-
-\begin{definition}
-  Let $\variable{numTrees} \in \{ 1, \dots, \maxNumNodes{} \}$ be the number of
-  trees in $\variable{structure}$, defined using the $\variable{tree}$
-  constraint \citep{DBLP:conf/cp/FagesL11}.
-\end{definition}
-
-\begin{definition}
-  For convenience, we also define $\variable{numNodes} \in \{ 1, \dots,
-  \maxNumNodes{} \}$ to count the number of nodes in the main tree. We define it
-  as
-  \[
-    \variable{numNodes} = \maxNumNodes{} - \variable{numTrees} + 1.
-  \]
-\end{definition}
-
-\begin{constraint}
-  $\variable{structure}[0] = 0$.
-\end{constraint}
+It remains to constrain the forest represented by the $\variable{structure}$
+array together with its $\variable{values}$ to eliminate unnecessary symmetries
+and adhere to our desired format. First, we can recognise that the order of the
+elements in the $\variable{structure}$ array does not matter, i.e., the
+structure is only defined by how the elements link to each other, so we can add
+a constraint saying that:
 
 \begin{constraint}
   \variable{structure} is sorted.
 \end{constraint}
+
+Next, since we already have a variable that counts the number of nodes in the
+main tree, we can fix the structure and the values of the remaining trees to
+some constant values:
 
 \begin{constraint}
   For $i = 1, \dots, \maxNumNodes{} - 1$, if $i \ge \variable{numNodes}$, then
@@ -344,6 +359,12 @@ We can use \cref{constr:arity} again to disable extra arguments.
   else $\variable{structure}[i] < i$.
 \end{constraint}
 
+The second part of this constraint states that every node in the main tree
+except the zeroth node cannot be a root and must have its parent located to
+the left of itself. Next, we classify all nodes into three classes: predicate
+(or empty) nodes, negation nodes, and conjunction/disjunction nodes based on the
+number of children (zero, one, and two, respectively).
+
 \begin{constraint} \label{constraint:node_types}
   For $i = 0, \dots, \maxNumNodes{} - 1$, let $C_i$ be the number of times $i$
   appears in the \variable{struture} array with index greater than $i$. Then
@@ -353,19 +374,23 @@ We can use \cref{constr:arity} again to disable extra arguments.
     C_i > 1 &\iff \variable{values}[i].\variable{name} \in \{ \land, \lor \}.
   \end{align*}
 \end{constraint}
-Each of the three equivalences in \cref{constraint:node_types} corresponds to
-node $i$ having no children, one child, and multiple children, respectively.
+
+The value $\top$ serves a twofold purpose: it is used as the fixed value for
+nodes outside the main tree, and, when located at the zeroth node, it can
+represent a clause with no body. Thus, we can say that only root nodes can have
+$\top$ as the value:
 
 \begin{constraint}
-  Only root nodes can have $\top$ as the value. For $i = 0, \dots,
-  \maxNumNodes{} - 1$,
+  For $i = 0, \dots, \maxNumNodes{} - 1$,
   \[
     \variable{structure}[i] \ne i \implies
     \variable{values}[i].\variable{name} \ne \top.
   \]
 \end{constraint}
 
-A way to `disable' a clause:
+Finally, we add a way to disable a clause by setting its head predicate to
+$\Box$:
+
 \begin{constraint}
   For $i = 0, \dots, \maxNumClauses{} - 1$, if
   $\variable{heads}[i].\variable{predicate} = \Box$, then
@@ -392,7 +417,7 @@ note that all definitions and constraints here are on a per-clause basis.
 \begin{definition}
   Let $N = \maxArity{} \times (\maxNumNodes{} + 1)$. Let
   $\variable{terms}[N] \in \constants{} \cup \variables{} \cup \{ \Box
-  \}$ be a flattened array of all gaps in a particular clause.
+  \}$ be a flattened array of all arguments in a particular clause.
 
   Then we can use the $\variable{setsIntsChanneling}$ constraint
   to define $\variable{occ}[|\constants{}| + |\variables{}| + 1]$ as an
@@ -529,18 +554,18 @@ any number of nodes) as
 \]
 Here, the empty clause is considered separately.
 
-The number of ways to fill $n$ gaps with terms can be expressed as
+The number of ways to select $n$ terms is
 \begin{align*}
   P(n) = |\constants{}|^n + &\sum_{\substack{1 \le k \le |\variables{}|, \\ 0 =
       s_0 < s_1 < \dots < s_k < s_{k+1} = n+1}}\\
   &\prod_{i=0}^k (|\constants{}| + i)^{s_{i+1} - s_i - 1}.
 \end{align*}
-The first term is the number of ways to fill all $n$ gaps with
-constants. The parameter $k$ is the number of variables used in the clause, and
-$s_1, \dots, s_k$ mark the first occurrence of each variable. For each gap
-between any two introductions (or before the first introduction, or after the last
-introduction), we have $s_{i+1}-s_i-1$ spaces to be filled with any of the
-$\constants{}$ constants or any of the $i$ already-introduced variables.
+The first term is the number of ways select $n$ constants. The parameter $k$ is
+the number of variables used in the clause, and $s_1, \dots, s_k$ mark the first
+occurrence of each variable. For each gap between any two introductions (or
+before the first introduction, or after the last introduction), we have
+$s_{i+1}-s_i-1$ spaces to be filled with any of the $|\constants{}|$ constants
+or any of the $i$ already-introduced variables.
 
 Let us order the elements of $\predicates{}$, and let $a_i$ be the arity of the
 $i$-th predicate. The number of programs is then:
@@ -561,8 +586,8 @@ predicates so that each predicate gets at least one clause. For each predicate,
 we can then count the number of ways to select its clauses out of all possible
 clauses. The number of possible clauses can be computed by considering each
 possible arity $a$, and multiplying the number of `unfinished' clauses $C(a)$ by
-the number of ways to fill the $a+a_i$ gaps in the body and the head of the
-clause with terms.
+the number of ways to select the required $a+a_i$ terms in the body and the head
+of the clause.
 
 \section{PREDICATE INDEPENDENCE} \label{sec:independence}
 
@@ -654,12 +679,20 @@ also describe efficient algorithms for propagation and entailment checking.
   independent from $\mathsf{parent}$ and $\mathsf{sibling}$.
 \end{example}
 
-\begin{definition}[Adjacency matrix representation] \label{def:adjacency_matrix}
+We can now add a constraint to define an adjacency matrix for the predicate
+dependency graph but without positivity/negativity.
+\begin{definition} \label{def:adjacency_matrix}
   An $|\predicates{}| \times |\predicates{}|$ adjacency matrix $\mathbf{A}$ with
   $\{ 0, 1 \}$ as its domain is defined by stating that $\mathbf{A}[i][j] = 0$
   if and only if, for all $k \in \{ 0, \dots, \maxNumClauses{} - 1 \}$, either
-$\variable{heads}[k].\variable{predicate} \ne j$ or $i \not\in \{
-a.\variable{name} \mid a \in \variable{bodies}[k].\variable{values} \}$.
+  \[
+    \variable{heads}[k].\variable{predicate} \ne j
+  \]
+  or
+  \[
+    i \not\in \{a.\variable{name} \mid a \in
+    \variable{bodies}[k].\variable{values} \}.
+  \]
 \end{definition}
 
 Given an undetermined model, we can classify all dependencies of a predicate
@@ -673,35 +706,16 @@ sum type:
   <dependency> ::= $\Determined(p)$ | $\Undetermined(p)$ | $\AlmostDetermined(p,
   s, t)$
 \end{grammar}
-where $p \in \predicates{}$ is the name of the predicate which is the
-dependency of $\mathsf{P}$, and---in the case of $\AlmostDetermined$---$(s, t)
-\in \predicates{}^2$ is the one undetermined edge in $\mathbf{A}$ that prevents
-the dependency from being determined. For a dependency $d$---regardless of its
-exact type---we will refer to its predicate $p$ as $d.\variable{predicate}$. In
-describing the algorithms, we will use an underscore to replace any of $p$, $s$,
-$t$ in situations where the name is unimportant.
+where each alternative represents a determined, undetermined, and almost
+determined dependency, respectively. Here, $p \in \predicates{}$ is the name of
+the predicate which is the dependency of $\mathsf{P}$, and---in the case of
+$\AlmostDetermined$---$(s, t) \in \predicates{}^2$ is the one undetermined edge
+in $\mathbf{A}$ that prevents the dependency from being determined. For a
+dependency $d$---regardless of its exact type---we will refer to its predicate
+$p$ as $d.\mathsf{predicate}$. In describing the algorithms, we will use an
+underscore to replace any of $p$, $s$, $t$ in situations where the name is
+unimportant.
 
-\begin{algorithm}
-  \SetKwFunction{getDependencies}{deps}
-  \SetKwFunction{fail}{fail}
-  \SetKwFunction{removeValue}{removeValue}
-  \SetKwData{predicate}{predicate}
-  \SetKwData{source}{source}
-  \SetKwData{target}{target}
-  \KwData{predicates $p_1$, $p_2$; adjacency matrix $\mathbf{A}$}
-  \For{$(d_1, d_2) \in \getDependencies{$p_1$, 0} \times \getDependencies{$p_2$,
-      0}$ such that $d_1.\predicate = d_2.\predicate$}{
-    \lIf{$d_1$ {\bf is} $\Determined(\_)$ {\bf and} $d_2$ {\bf is}
-      $\Determined(\_)$}{\fail{}}
-    \If{$d_1$ {\bf is} $\Determined(\_)$ {\bf and} $d_2$ {\bf is}
-      $\AlmostDetermined(\_, s, t)$ {\bf or} \hspace{50pt} $d_2$ {\bf is}
-      $\Determined(\_)$ {\bf and} $d_1$ {\bf is} $\AlmostDetermined(\_, s, t)$}{
-      $\mathbf{A}[s][t]$.\removeValue{$1$}\;
-    }
-  }
-  \caption{Propagation for independence}
-  \label{alg:independence_propagation}
-\end{algorithm}
 \begin{algorithm}
   \SetKwFunction{getDependencies}{deps}
   \SetKwFunction{isDetermined}{isDetermined}
@@ -715,13 +729,60 @@ $t$ in situations where the name is unimportant.
   \caption{Entailment for independence}
   \label{alg:independence_entailment}
 \end{algorithm}
+
+Each entailment algorithm returns one out of three different values:
+\textsc{true} if the constraint is guaranteed to hold, \textsc{false} if the
+constraint is violated, and \textsc{undefined} if whether the constraint will be
+satisfied or not depends on the future decisions made by the solver.
+\cref{alg:independence_entailment} outlines a simple entailment algorithm for
+the independence of two predicates $p_1$ and $p_2$. First, we separately
+calculate all dependencies of $p_1$ and $p_2$, and look at the set $D$ of
+dependencies that $p_1$ and $p_2$ have in common. If there are none, then the
+predicates are clearly independent. If they have a dependency in common that is
+already fully determined ($\Determined$) for both predicates, then they cannot be
+independent. Otherwise, we return \textsc{undefined}.
+
+\begin{algorithm}
+  \LinesNumbered
+  \SetKwFunction{getDependencies}{deps}
+  \SetKwFunction{fail}{fail}
+  \SetKwFunction{removeValue}{removeValue}
+  \SetKwData{predicate}{predicate}
+  \SetKwData{source}{source}
+  \SetKwData{target}{target}
+  \KwData{predicates $p_1$, $p_2$; adjacency matrix $\mathbf{A}$}
+  \For{$(d_1, d_2) \in \getDependencies{$p_1$, 0} \times \getDependencies{$p_2$,
+      0}$ such that $d_1.\predicate = d_2.\predicate$}{
+    \lIf{$d_1$ {\bf is} $\Determined(\_)$ {\bf and} $d_2$ {\bf is}
+      $\Determined(\_)$}{\fail{}} \label{line:fail}
+    \If{$d_1$ {\bf is} $\Determined(\_)$ {\bf and} $d_2$ {\bf is}
+      $\AlmostDetermined(\_, s, t)$ {\bf or} \hspace{50pt} $d_2$ {\bf is}
+      $\Determined(\_)$ {\bf and} $d_1$ {\bf is} $\AlmostDetermined(\_, s,
+      t)$ \label{line:propagation_condition}}{
+      $\mathbf{A}[s][t]$.\removeValue{$1$}\; \label{line:propagation_result}
+    }
+  }
+  \caption{Propagation for independence}
+  \label{alg:independence_propagation}
+\end{algorithm}
+
+Propagation algorithms have two goals: causing a contradiction (failing) in
+situations where the corresponding entailment algorithm would return
+\textsc{false}, and eliminating values from domains of variables that are
+guaranteed to cause a contradiction. \cref{alg:independence_propagation} does
+the former on \cref{line:fail}. Furthermore, for any dependency shared between
+predicates $p_1$ and $p_2$, if it is determined ($\Determined$) for one
+predicate and almost determined ($\AlmostDetermined$) for another, then the edge
+that prevents the $\AlmostDetermined$ from becoming a $\Determined$ cannot
+exist--\cref{line:propagation_condition,line:propagation_result} take care of
+that.
+
 \begin{algorithm}
   \SetKwData{edgeExists}{edge}
   \SetKwData{predicate}{predicate}
   \SetKwData{source}{source}
   \SetKwData{target}{target}
   \SetKwData{all}{allDependencies}
-  \SetKwFunction{isDetermined}{isDetermined}
   \SetKwFunction{getDependencies}{deps}
   \SetKwProg{Fn}{Function}{:}{}
   \KwData{adjacency matrix $\mathbf{A}$}
@@ -752,15 +813,36 @@ $t$ in situations where the name is unimportant.
   \caption{Dependencies of a predicate}
   \label{alg:dependencies}
 \end{algorithm}
+
+The function $\getDependencies$ in \cref{alg:dependencies} calculates $D_p$ for
+any predicate $p$. It has two versions: $\getDependencies(p, 1)$ returns all
+dependencies, while $\getDependencies(p, 0)$ returns only determined and
+almost-determined dependencies. It starts by establishing the predicate $p$
+itself as a dependence and continues to add dependencies of dependencies until
+the set $D$ stabilises. For each dependency $d \in D$, we look at the in-links
+of $d$ in the predicate dependency graph. If the edge from some predicate $q$ to
+$d.\mathsf{predicate}$ is fully determined and $d$ is determined, then $q$ is
+another determined dependency of $p$. If the edge is determined but $d$ is
+almost determined, then $q$ is an almost-determined dependency. The same outcome
+applies if $d$ is fully determined but the edge is undetermined. Finally, if we
+are interested in collecting all dependencies regardless of their status, then
+$q$ is a dependency of $p$ as long as the edge from $q$ to
+$d.\mathsf{predicate}$ is possible. Note that if there are multiple paths in the
+dependency graph from $q$ to $p$, \cref{alg:dependencies} could include $q$ once
+for each possible type ($\Determined$, $\Undetermined$, and
+$\AlmostDetermined$), but
+\cref{alg:independence_propagation,alg:independence_entailment} would still work
+as intended.
+
 \begin{figure}
   \centering
   \[
-    \begin{blockarray}{ccccccc}
-      \begin{block}{ccc(cccc)}
-        \mathsf{father} & & & 0 & 0 & 0 & 0 \\
-        \mathsf{mother} & & & 1 & 0 & 0 & 0 \\
-        \mathsf{parent} & & & 1 & \fbox{\{ 0, 1 \}} & \{ 0, 1 \} & \{ 0, 1 \} \\
-        \mathsf{sibling} & & & 0 & 0 & 0 & 0 \\
+    \begin{blockarray}{ccccc}
+      \begin{block}{c(cccc)}
+        \mathsf{father} & 0 & 0 & 0 & 0 \\
+        \mathsf{mother} & 1 & 0 & 0 & 0 \\
+        \mathsf{parent} & 1 & \fbox{\{ 0, 1 \}} & \{ 0, 1 \} & \{ 0, 1 \} \\
+        \mathsf{sibling} & 0 & 0 & 0 & 0 \\
       \end{block}
     \end{blockarray}
   \]
@@ -768,7 +850,8 @@ $t$ in situations where the name is unimportant.
     \cref{example:independence}}
   \label{fig:dependencies_matrix}
 \end{figure}
-\begin{figure}[t]
+
+\begin{figure}
   \centering
   \begin{tikzpicture}
     \node[draw] (parent) at (0, 0.5) {$\mathsf{parent}$};
@@ -785,17 +868,6 @@ $t$ in situations where the name is unimportant.
     or may not exist.}
   \label{fig:dependencies2}
 \end{figure}
-
-% TODO: start here
-% TODO: make sure my definitions and examples are consistent with loops
-% TODO: Discuss that the algorithms work in case there are multiple 'paths'
-% without any issues.
-
-Note that if there are multiple paths in the dependency graph from $\mathsf{Q}$
-to $\mathsf{P}$, when constructing $D_{\mathsf{P}}$, \cref{alg:dependencies}
-could include $\mathsf{Q}$ once for each possible type ($\Determined$,
-$\Undetermined$, and $\AlmostDetermined$). However,
-\cref{alg:independence_propagation,alg:independence_entailment}
 
 \begin{example} \label{example:independence}
   Consider this partially determined (fragment of a) program:
@@ -827,9 +899,21 @@ $\Undetermined$, and $\AlmostDetermined$). However,
 \end{example}
 
 \section{NEGATIVE CYCLES} \label{sec:cycles}
+% TODO: My paper has two slightly different graphs with the same name.
 % TODO: NB: the set of decision variables for this constraint must exclude all
 % arguments.
-% TODO: My paper has two slightly different graphs with the same name.
+% TODO: maybe move some of the definition 10 here.
+
+Having no negative cycles in the predicate dependency graph is a requirement for
+probabilistic logic programming language ProbLog \citep{kimmig2009trading},
+although it has been shown how the requirement can be alleviated by introducing
+negative probabilities \citep{DBLP:journals/ijar/BuchmanP17}. Ideally, we would
+like to design a constraint for that similar to the constraint for independence
+in the previous section. However, the difficulty with creating a propagation
+algorithm for negative cycles is that there seems to be no good way to extend
+\cref{def:adjacency_matrix} so that the adjacency matrix captures
+positivity/negativity. Thus, we settle for an entailment algorithm with no
+propagation.
 
 \begin{algorithm}
   \KwData{a program $\mathscr{P}$}
@@ -837,25 +921,33 @@ $\Undetermined$, and $\AlmostDetermined$). However,
   Let $\mathscr{R} \subseteq \mathscr{P}$ be the largest subprogram of
   $\mathscr{P}$ with its $\variable{structure}$ and predicates in both body
   and head fully determined\footnotemark\;
-  \lIf{$\mathscr{R} = \emptyset$}{\Return{\textsc{undefined}}}
   \If{\hasNegativeCycles($G_{\mathscr{R}}$)}{
     \Return{\textsc{false}}\;
   }
   \lIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}
   \Return{\textsc{undefined}}\;
-  \caption{Entailment check for negative cycles}
+  \caption{Entailment for negative cycles}
   \label{alg:negative_cycles}
 \end{algorithm}
 \footnotetext{The arguments (whether variables or constants) are irrelevant to
   our definition of independence.}
 
-The \texttt{hasNegativeCycles} function is just a simple extension of the cycle
-detection algorithm that `travels' around the graph following edges and
-checking if each vertex has already been visited or not.
+The algorithm takes all clauses whose structure and predicates have been fully
+determined and uses them to construct a full dependency graph. In our
+implementation, \texttt{hasNegativeCycles} function is just a simple extension
+of the backtracking cycle detection algorithm that `travels' around the graph
+following edges and checking if each vertex has already been visited or not.
+Alternatively, one could assign weights to the edges (e.g., $1$ for positive
+and $-\infty$ for negative edges), thus reducing our negative cycle detection
+problem to what is typically known as the negative cycle detection problem in
+the literature, and use an algorithm such as Bellman-Ford
+\citep{shimbel1954structure}.
 
-The difficulty with creating a propagation algorithm for negative cycles is that
-there seems to be no good way to extend \cref{def:adjacency_matrix} so that the
-adjacency matrix captures positivity/negativity.
+If the algorithm finds a negative cycle in this fully-determined part of the
+program, then it is unavoidable and we must return \textsc{false}. If there was
+no negative cycle and the entire program is determined-enough to contribute to
+the graph, then there cannot be any negative cycles. In all other cases, it
+is too early to tell.
 
 \section{EMPIRICAL PERFORMANCE}
 
