@@ -84,16 +84,22 @@
 \bibliographystyle{plainnat}
 \maketitle
 
-\begin{abstract}
-The Abstract paragraph should be indented 0.25 inch (1.5 picas) on
-both left and right-hand margins. Use 10~point type, with a vertical
-spacing of 11~points.  {\bf Abstract} must be centered, bold, and in
-point size 12. Two line spaces precede the Abstract. The Abstract must
-be limited to one paragraph.
+\begin{abstract} % TODO: rewrite
+  We present a novel approach to generate random logic programs using constraint
+  programming. The constraint programming approach to the problem has a major
+  advantage in that one can easily add additional conditions for the generated
+  programs. Some of these conditions can be expressed using constraints native to
+  the constraint solver Choco \citep{choco}, while novel propagation and entailment
+  checking algorithms have been developed for ensuring independence and/or
+  conditional independence amongst predicates. A constraint programming approach
+  also benefits from many years of research into efficient constraint propagation
+  algorithms which makes it likely that our model can generate larger programs
+  relatively quickly.
 \end{abstract}
 
 \section{INTRODUCTION}
-% TODO: import stuff (+references) from my proposal
+
+% TODO: import related work from my proposal
 
 Motivation:
 \begin{itemize}
@@ -396,7 +402,7 @@ constrains described in this section only make sense if $|\variables| > 1$. Also
 note that all definitions and constraints here are on a per-clause basis.
 
 \begin{definition}
-  Let $N = \maxArity{} \times (\maxNumNodes{} + 1)$. Let
+  Let $N = \maxArity{} \times (\maxNumNodes{} + 1)$, and let
   $\variable{terms}[N] \in \constants{} \cup \variables{} \cup \{ \Box
   \}$ be a flattened array of all arguments in a particular clause.
 
@@ -410,8 +416,9 @@ note that all definitions and constraints here are on a per-clause basis.
   \]
 \end{definition}
 
-We introduce an array that, for each variable, holds the position of its first
-occurrence.
+Next, we introduce an array that, for each variable, holds the position of its
+first occurrence:
+
 \begin{definition}
   Let $\arrayd{intros}{|\variables{}|}{\{ 0, \dots, N \}}$ be such that
   for $v \in \variables{}$,
@@ -423,14 +430,20 @@ occurrence.
     \end{cases}
   \]
 \end{definition}
+
 Here, a value of zero means that the variable does not occur in the clause. We
 want to use specifically zero for this so that we could use
 \cref{constraint:diffbutzero} later. Because of this choice, the definition of
-$\variable{intros}$ shifts all indices by one.
+$\variable{intros}$ shifts all indices by one. Lastly, we add the constraint
+that eliminates variable symmetries:
 
 \begin{constraint}
   $\variable{intros}$ are sorted.
 \end{constraint}
+
+In other words, we constrain the model so that the variable listed first in
+whatever order $\variables{}$ is presented in has to occur first in our
+representation of a clause.
 
 \begin{example} \label{example:sibling}
   Let $\constants{} = \emptyset$, $\variables{} = \{ X, Y, Z \}$, $\maxArity{} =
@@ -439,25 +452,39 @@ $\variable{intros}$ shifts all indices by one.
     \mathsf{sibling}(X, Y) \gets \mathsf{parent}(X, Z) \land
     \mathsf{parent}(Y, Z).
   \]
-  Then $\variable{terms} = [X, Y, \Box, \Box, X, Z, Y, Z]$ (the boxes represent
-  the conjunction node), $\variable{occ} = [\{ 0, 4 \}, \{ 1, 6 \},
-  \{ 5, 7 \}, \{ 2, 3 \}]$, and $\variable{intros} = [0, 1, 5]$.
+  Then
+  \begin{align*}
+    \variable{terms} &= [X, Y, \Box, \Box, X, Z, Y, Z], \\
+    \variable{occ} &= [\{ 0, 4 \}, \{ 1, 6 \}, \{ 5, 7 \}, \{ 2, 3 \}], \\
+    \variable{intros} &= [0, 1, 5],
+  \end{align*}
+  where the $\Box$'s correspond to the conjunction node.
 \end{example}
 
 \subsection{REDUNDANT CONSTRAINTS}
 
-We add a number of redundant constraints to make search more efficient.
+We add a number of redundant constraints to make search more efficient. First,
+we can formally state that the positions occupied by different terms must be
+different:
 
-\begin{constraint}
+\begin{constraint} \label{constraint:all_diff}
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   \[
     \variable{occ}[u] \cap \variable{occ}[v] = \emptyset.
   \]
 \end{constraint}
 
+The reason why we used zero to represent a variable not being introduced is so
+that we could efficiently rephrase \cref{constraint:all_diff} for the
+$\variable{intros}$ array:
+
 \begin{constraint} \label{constraint:diffbutzero}
   $\variable{allDifferentExcept0}(\variable{intros})$.
 \end{constraint}
+
+We can also add another link between $\variable{intros}$ and $\variable{occ}$
+that essentially says that the smallest element of a set is an element of the
+set:
 
 \begin{constraint}
   For $v \in \variables{}$,
@@ -467,31 +494,28 @@ We add a number of redundant constraints to make search more efficient.
   \]
 \end{constraint}
 
+
+Finally, we define an auxiliary set variable to act as a set of possible values
+that $\variable{intros}$ can take:
+
 \begin{definition}
-  We define an auxiliary set variable
-  \[
-    \variable{potentialIntros} \subseteq \{ 0, \dots, N \}
-  \]
-  to act as a set of possible values that $\variable{intros}$ can take,
-  i.e., for $v \in \variables{}$, $\variable{intros}[v] \in
-  \variable{potentialIntros}$.
+  Let $\variable{potentials} \subseteq \{ 0, \dots, N \}$ be such that for $v
+  \in \variables{}$, $\variable{intros}[v] \in \variable{potentials}$.
 \end{definition}
+
+Using this new variable, we can easily add a constraint saying that
+non-predicate nodes in the tree representation of a clause cannot have variables
+as arguments:
 
 \begin{constraint} \label{constraint:potentialIntroductions}
   For $i = 0, \dots, \maxNumNodes{} - 1$, let
   \[
-    S = \{ \maxArity{} \times (i + 1) + j + 1 \mid j = 0, \dots, \maxArity{} - 1.
-    \}
+    S = \{ \maxArity{} \times (i + 1) + j + 1 \mid j = 0, \dots, \maxArity{} - 1
+    \}.
   \]
   If $\variable{values}[i].\variable{name} \not\in \predicates{}$, then
-  \[
-    \variable{potentialIntros} \cap S = \emptyset.
-  \]
+  $\variable{potentials} \cap S = \emptyset$.
 \end{constraint}
-
-In simpler terms, \cref{constraint:potentialIntroductions} says that if a node
-in the tree representation of a clause represents something other than a
-predicate, then a variable cannot be introduced as one of its `arguments'.
 
 \section{COUNTING PROGRAMS}
 
@@ -592,6 +616,10 @@ also describe efficient algorithms for propagation and entailment checking.
   \emph{negative cycle} if $G_{\mathscr{P}}$ has a cycle with at least one
   negative edge.
 \end{definition}
+
+Labelling the edges as positive/negative will be immaterial for predicate
+independence, but the same graph will play a crucial role in negative cycle
+detection in the next section.
 
 \begin{definition}
   Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The set of
@@ -862,8 +890,8 @@ as intended.
     D = \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent}, \mathsf{sibling}
     \}.
   \]
-  The predicate dependency graph (without positivity/negativity) defined by
-  \cref{def:adjacency_matrix} is represented in
+  The predicate dependency graph (without positivity/negativity)---as defined by
+  \cref{def:adjacency_matrix}---is represented in
   \cref{fig:dependencies_matrix,fig:dependencies2}.
 
   Suppose we have a constraint that $\mathsf{mother}$ and $\mathsf{parent}$ must
@@ -881,10 +909,6 @@ as intended.
 \end{example}
 
 \section{NEGATIVE CYCLES} \label{sec:cycles}
-% TODO: My paper has two slightly different graphs with the same name.
-% TODO: NB: the set of decision variables for this constraint must exclude all
-% arguments.
-% TODO: maybe move some of the definition 10 here.
 
 Having no negative cycles in the predicate dependency graph is a requirement for
 probabilistic logic programming language ProbLog \citep{kimmig2009trading},
@@ -1031,9 +1055,8 @@ and we can either quickly find a solution or identify that there is none.
 % randomness. After finding one solution, one can continue the search for more,
 % but they will be similar (acceptable if the search space is small and we want
 % to find all solutions).
-% Mention the random heuristic. Mention that restarting gives better randomness,
-% but duplicates become possible.
-% TODO: the number of predicates is also important.
+% On the other hand, with restarts, duplicates become possible.
+% TODO: the number of predicates is also important for performance.
 
 \section{CONCLUSIONS}
 
