@@ -80,28 +80,6 @@
 %(if needed)\\
 %}
 
-% \begin{figure}[h]
-% \vspace{1in}
-% \caption{Sample Figure Caption}
-% \end{figure}
-
-% \begin{table}[h]
-% \caption{Sample Table Title}
-% \label{sample-table}
-% \begin{center}
-% \begin{tabular}{ll}
-% \multicolumn{1}{c}{\bf PART}  &\multicolumn{1}{c}{\bf DESCRIPTION} \\
-% \hline \\
-% Dendrite         &Input terminal \\
-% Axon             &Output terminal \\
-% Soma             &Cell body (contains cell nucleus) \\
-% \end{tabular}
-% \end{center}
-% \end{table}
-
-% UAI format: section/subsection titles are in all caps, figure/table titles are
-% in TitleCase, table caption above the table
-
 \begin{document}
 \bibliographystyle{plainnat}
 \maketitle
@@ -129,8 +107,8 @@ Motivation:
 
 %TODO: define all the relevant terminology from logic and constraint
 % programming: predicates ,arities, (logic) variables, constants, clauses, atoms,
-% heads, bodies,
-% CP: decision variables, constraints.
+% heads, bodies, formulas.
+% CP: decision variables, constraints. So the word 'variable' has two meanings.
 % TODO: need to introduce the idea of predicate independence
 
 We say that a constraint variable is \emph{(fully) determined} if its domain (at
@@ -188,9 +166,11 @@ variables are contained in two arrays: $\arrayt{bodies}{\maxNumClauses{}}{Body}$
 and $\arrayt{heads}{\maxNumClauses{}}{Head}$. Since the order of the clauses
 does not change the meaning of the program, we can also state our first
 constraint:
+
 \begin{constraint}
   Clauses are sorted.
 \end{constraint}
+
 Here and henceforth, the exact ordering is immaterial: we only impose an order
 to eliminate permutation symmetries.
 
@@ -202,6 +182,7 @@ to eliminate permutation symmetries.
   $\arrayd{arguments}{\maxArity{}}{\constants{} \cup \variables{}} \cup \{ \Box
   \}$.
 \end{definition}
+
 Here, we use $\Box$ to denote either a disabled clause that we choose not to use
 or disabled arguments if the arity of the $\variable{predicate}$ is less than
 $\maxArity{}$. The reason why we need a separate value for the latter (i.e., why
@@ -507,6 +488,7 @@ We add a number of redundant constraints to make search more efficient.
     \variable{potentialIntros} \cap S = \emptyset.
   \]
 \end{constraint}
+
 In simpler terms, \cref{constraint:potentialIntroductions} says that if a node
 in the tree representation of a clause represents something other than a
 predicate, then a variable cannot be introduced as one of its `arguments'.
@@ -535,7 +517,7 @@ definition can be applied for $n > 1$:
   &\sum_{\substack{d_1 + \dots + d_k = a,\\
   d_i \ge \min \arities{} \text{ for all } i}} \prod_{i=1}^k T(c_i, d_i).
 \end{align*}
-The first term here represents negation, i.e., negating an expression consumes
+The first term here represents negation, i.e., negating a formula consumes
 one node but otherwise leaves the task unchanged. If the first operation is not
 negation, then it must be either conjunction or disjunction (hence the
 coefficient `2'). In the first sum, $k$ represents the number of children of the
@@ -681,6 +663,7 @@ also describe efficient algorithms for propagation and entailment checking.
 
 We can now add a constraint to define an adjacency matrix for the predicate
 dependency graph but without positivity/negativity.
+
 \begin{definition} \label{def:adjacency_matrix}
   An $|\predicates{}| \times |\predicates{}|$ adjacency matrix $\mathbf{A}$ with
   $\{ 0, 1 \}$ as its domain is defined by stating that $\mathbf{A}[i][j] = 0$
@@ -850,7 +833,6 @@ as intended.
     \cref{example:independence}}
   \label{fig:dependencies_matrix}
 \end{figure}
-
 \begin{figure}
   \centering
   \begin{tikzpicture}
@@ -951,25 +933,6 @@ is too early to tell.
 
 \section{EMPIRICAL PERFORMANCE}
 
-\begin{figure}
-  \centering
-  \input{impact.tex}
-  \caption{The mean number of nodes in the binary search tree for each value of
-    each experimental parameter. Note that the horizontal axis is on a $\log_2$
-    scale.}
-  \label{fig:impact}
-\end{figure}
-
-\begin{figure*}
-  \centering
-  \input{phase_transition.tex}
-  \caption{The distribution of the number of nodes in the binary search tree as
-    a function of the number of independent pairs of predicates for
-    $|\predicates| = 8$. Significant outliers are hidden, the dots denote mean
-    values, and the vertical axis is on a $\log_{10}$ scale.}
-  \label{fig:phase_transition}
-\end{figure*}
-
 Along with constraints, variables, and their domains, two more design decisions
 are needed to complete the model: heuristics and restarts. By trial and error,
 the variable ordering heuristic was devised to eliminate sources of thrashing,
@@ -1023,6 +986,15 @@ values---most of the time a solution can be identified instantaneously while
 occasionally a series of wrong decisions can lead the solver into a part of the
 search space with no solutions.
 
+\begin{figure}
+  \centering
+  \input{impact.tex}
+  \caption{The mean number of nodes in the binary search tree for each value of
+    each experimental parameter. Note that the horizontal axis is on a $\log_2$
+    scale.}
+  \label{fig:impact}
+\end{figure}
+
 In \cref{fig:impact}, we plot how the mean number of nodes in the binary search
 tree grows as a function of each parameter (the plot for the median is very
 similar). The growth of each curve suggest how well/poorly the model scales with
@@ -1031,6 +1003,16 @@ $\maxNumNodes{}$ is the limiting factor. This is because some tree structures
 can be impossible to fill with predicates without creating either a negative
 cycle or a forbidden dependence, and such trees become more common as the number
 of nodes increases.
+
+\begin{figure*}
+  \centering
+  \input{phase_transition.tex}
+  \caption{The distribution of the number of nodes in the binary search tree as
+    a function of the number of independent pairs of predicates for
+    $|\predicates| = 8$. Significant outliers are hidden, the dots denote mean
+    values, and the vertical axis is on a $\log_{10}$ scale.}
+  \label{fig:phase_transition}
+\end{figure*}
 
 \cref{fig:phase_transition} takes the data for $|\predicates{}| = 8$ (almost
 \num{300000} observations) and shows how the number of nodes in the search tree
@@ -1049,23 +1031,39 @@ and we can either quickly find a solution or identify that there is none.
 % randomness. After finding one solution, one can continue the search for more,
 % but they will be similar (acceptable if the search space is small and we want
 % to find all solutions).
+% Mention the random heuristic. Mention that restarting gives better randomness,
+% but duplicates become possible.
+% TODO: the number of predicates is also important.
 
-\section{CONCLUSION \& FUTURE WORK}
+\section{CONCLUSIONS}
 
-\begin{itemize}
-\item A constraint for logical equivalence. An algorithm to reduce each tree to
-  some kind of normal form. Not doing this on purpose. Leaving for further work.
-\item Could investigate how uniform the generated distribution of programs is.
-  Distributions of individual parameters will often favour larger values
-  because, e.g., there are more 5-tuples than 4-tuples.
-%\item Inference options to explore. Logspace vs normal space. Symbolic vs
-%  non-symbolic. Propagate evidence (might be irrelevant)? Propagate weights?
-%  Supported knowledge compilation techniques: sdd, sddx, bdd, nnf, ddnnf, kbest,
-%  fsdd, fbdd.
-\item Mention the random heuristic. Mention that restarting gives better
-  randomness, but duplicates become possible.
-\item Could add statistics about what constraints tend to conflict.
-\end{itemize}
+% TODO: the positive side (what did we achieve?)
+
+One major question that was not addressed in this paper is that of logical
+equivalence. We eliminated permutation symmetries and constrained variable usage
+so that the same `functionality' is always assigned to the same variable, but
+syntactically different logical formulas are always treated as being different.
+For example, all three of these formulas are logically equivalent but
+syntactically different: $\neg(\mathsf{P}(X) \lor \mathsf{Q}(X))$,
+$\neg\mathsf{P}(X) \land \neg\mathsf{Q}(X)$, and $\neg\mathsf{Q}(X) \land
+\neg\mathsf{P}(X)$. While there are many situations where one would prefer to
+treat logically equivalent formulas as symmetries that should be eliminated,
+there are also situations where we do care about enumerating different ways to
+express the same probability distribution or knowledge base. For instance,
+one could look for the `best' logically equivalent formula, or investigate
+whether some formulas result in faster inference than others.
+
+Another issue worth discussing is that of randomness. Most random models sample
+from a well-defined probability distribution whereas a constraint model, while
+potentially sufficiently random, provides no such guarantees. In future work, it
+would be interesting to examine the probability distribution of logic programs
+as generated by our model, although it is not obvious how such a
+probability distribution could be characterised. One example of a clear bias
+exhibited by our model is that of complexity over simplicity, i.e., if a tree
+that represents the body of a clause can have up to $\maxNumNodes{}$
+nodes---because the number of possible trees with $n$ nodes grows with $n$---it
+is much more likely to have $\maxNumNodes{}$ or $\maxNumNodes{} - 1$ nodes than,
+e.g., one or two.
 
 \subsubsection*{Acknowledgements}
 
