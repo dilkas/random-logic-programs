@@ -84,60 +84,94 @@
 \bibliographystyle{plainnat}
 \maketitle
 
-\begin{abstract} % TODO: rewrite
-  We present a novel approach to generate random logic programs using constraint
-  programming. The constraint programming approach to the problem has a major
+\begin{abstract}
+  We present a novel approach to generating random logic programs and
+  random probabilistic logic programs using constraint programming. The
+  generated programs are useful in empirical testing of inference algorithms,
+  random data generation, and program learning. This approach has a major
   advantage in that one can easily add additional conditions for the generated
-  programs. Some of these conditions can be expressed using constraints native to
-  the constraint solver Choco \citep{choco}, while novel propagation and entailment
-  checking algorithms have been developed for ensuring independence and/or
-  conditional independence amongst predicates. A constraint programming approach
-  also benefits from many years of research into efficient constraint propagation
-  algorithms which makes it likely that our model can generate larger programs
-  relatively quickly.
+  programs. As an example of this, we introduce a new constraint for predicate
+  independence with efficient propagation and entailment algorithms, allowing
+  one to generate programs that have a certain independence structure. In order
+  to generate valid probabilistic logic programs, we also present a new
+  constraint for negative cycle detection. Finally, we provide a combinatorial
+  argument for correctness and describe how the parameters of the model affect
+  the empirical difficulty of the program generation task.
 \end{abstract}
 
 \section{INTRODUCTION}
 
-% TODO: import related work from my proposal
+How confidently can we claim that an algorithm works well if it is only tested
+on a couple types of problems? Perhaps the `inferior' algorithm is actually
+better in some specific circumstances. Perhaps there are identifiable
+types of inputs that make every algorithm default to exponential behaviour
+that could be easily overcome with the right strategy. At present, most
+inference algorithms for probabilistic logic programs are only evaluated on 1--4
+different problems: sometimes just a single network
+\citep{DBLP:journals/tplp/KimmigDRCR11,DBLP:journals/corr/abs-1112-3785,DBLP:conf/iclp/KimmigCRDR08},
+sometimes two
+\citep{DBLP:journals/corr/abs-1009-3798,DBLP:conf/ecai/BruynoogheMKGVJR10} or
+four networks \citep{DBLP:conf/ijcai/VlasselaerBKMR15} coming from a range
+of areas such as social networks and citation/genetic/biological data sets. In
+order to better understand the strengths and weaknesses of these algorithms,
+along with real data they should also be evaluated on a range of synthetic
+problems that accurately represent the potential complexities that have to be
+handled by a well-designed inference algorithm. Furthermore, random logic
+program generators can be useful in combination with methods that generate
+random data with probabilistic logic programs \citep{DBLP:conf/soict/Dries15}
+and can be used as a component of learning.
 
-Motivation:
-\begin{itemize}
-\item Empirical testing of inference algorithms.
-\item Generating random programs that generate random data.
-  %For example, enforcing that the decision is independent of gender.
-\item Learning: how this can be used for (targeted) learning, when (atomic)
-  probabilities can be assigned based on counting and we can have extra
-  constraints. A more primitive angle: generate structures, learn weights.
-\end{itemize}
+Most current approaches to generating random logic programs are quite
+restrictive, e.g., limited to clauses with only two literals
+\citep{DBLP:conf/lpnmr/NamasivayamT09}, or to clauses of the form $a \gets \neg
+b$ \citep{DBLP:journals/tocl/WenWSL16}, but others are more expressive, e.g.,
+defining a program only by the (maximum) number of atoms in the body and the
+total number of rules \citep{DBLP:conf/iclp/ZhaoL03,zhao2004answer}. We
+introduce a way to generate random logic programs using a constraint solver such
+as Choco \citep{choco}. The same model can generate both probabilistic programs
+directly in the syntax of ProbLog \citep{DBLP:conf/ijcai/RaedtKT07} as well as
+non-probabilistic Prolog programs. For generated probabilistic programs to be
+valid, we use a custom constraint to detect negative cycles (as described in
+\cref{sec:cycles}). A major advantage of our constraint-based approach is that
+one can easily add additional constraints to the model. To demonstrate that, in
+\cref{sec:independence} we present a custom constraint with propagation and
+entailment algorithms that can ensure predicate independence.
+\cref{sec:counting} also presents a combinatorial argument for correctness,
+where we produce combinatorial expressions that count the number of programs
+that the model should produce for various parameter values. Finally,
+\cref{sec:experiments} shows how the model scales when tasked with producing
+more complicated programs and identifies the relationships between parameter
+values and the empirical hardness of the program generation task.
 
-%TODO: define all the relevant terminology from logic and constraint
-% programming: predicates ,arities, (logic) variables, constants, clauses, atoms,
-% heads, bodies, formulas.
-% CP: decision variables, constraints. So the word 'variable' has two meanings.
-% TODO: need to introduce the idea of predicate independence
+\subsection{PRELIMINARIES}
 
-We say that a constraint variable is \emph{(fully) determined} if its domain (at
-the given moment in the execution) has exactly one value.
-
-A \emph{(logic) program} is a multiset of clauses. Given a program
-$\mathscr{P}$, a \emph{subprogram} $\mathscr{R}$ of $\mathscr{P}$ is a subset of
-the clauses of $\mathscr{P}$ and is denoted by $\mathscr{R} \subseteq
+The basic primitives of logic programs are \emph{constants}, \emph{(logic)
+  variables}, and \emph{predicates}. Each predicate has an \emph{arity} that
+defines the number of terms that it can applied to. A \emph{term} is either a
+variable or a constant, and an \emph{atom} is a predicate of arity $n$ applied
+to $n$ terms. A \emph{formula} is a grammatically-valid expression that connects
+atoms using conjunction ($\land$), disjunction ($\lor$), and negation ($\neg$).
+A \emph{clause} is a pair of a \emph{head} (which is an atom) and a \emph{body}
+(which is a formula). A \emph{(logic) program} is a multiset of clauses. Given a
+program $\mathscr{P}$, a \emph{subprogram} $\mathscr{R}$ of $\mathscr{P}$ is a
+subset of the clauses of $\mathscr{P}$ and is denoted by $\mathscr{R} \subseteq
 \mathscr{P}$.
 
-We will often use $\Box$ as a special domain value indicating a `disabled'
-(i.e., fixed and ignored) part of the model. We write $\arrayd{a}{b}{c}$ to mean
-that $\variable{a}$ is an array of variables of length $b$ such that each
-element of $\variable{a}$ has domain $c$. Similarly, we write $\arrayt{a}{b}{c}$
-to denote an array $\variable{a}$ of length $b$ such that each element of
-$\variable{a}$ has type $\variable{c}$. All constraint variables in the model
-are integer variables, but, e.g., if the integer $i$ refers to a logical
-variable $X$, we will use $i$ and $X$ interchangeably. All indices start at
+In the world of constraint satisfaction, we also have \emph{(constraint)
+  variables}, each with its own \emph{domain}, whose values are restricted using
+\emph{constraints}. All constraint variables in the model are integer or set
+variables, however, if an integer refers to a logical construct
+(e.g., a logical variable or a constant), we will make no distinction between
+the two and often use names of logical constructs to refer to the underlying
+integers. We say that a constraint variable is \emph{(fully) determined} if its
+domain (at the given moment in the execution) has exactly one value. We will
+often use $\Box$ as a special domain value to indicate a `disabled' (i.e., fixed
+and ignored) part of the model. We write $\arrayd{a}{b}{c}$ to mean that
+$\variable{a}$ is an array of variables of length $b$ such that each element of
+$\variable{a}$ has domain $c$. Similarly, we write $\arrayt{a}{b}{c}$ to denote
+an array $\variable{a}$ of length $b$ such that each element of $\variable{a}$
+has type $\variable{c}$. Finally, we assume that all arrays start with index
 zero.
-
-We also use Choco~4.10.2 \citep{choco}. This works with both Prolog
-\citep{DBLP:books/daglib/0041598} and ProbLog \citep{DBLP:conf/ijcai/RaedtKT07}.
-%Tested with SWI-Prolog \citep{DBLP:journals/tplp/WielemakerSTL12}.
 
 \subsection{PARAMETERS}
 
@@ -180,7 +214,7 @@ constraint:
 Here and henceforth, the exact ordering is immaterial: we only impose an order
 to eliminate permutation symmetries.
 
-\section{HEADS OF CLAUSES}
+\section{HEADS OF CLAUSES} \label{sec:heads}
 
 \begin{definition}
   The \emph{head} of a clause is composed of a $\variable{predicate} \in
@@ -517,7 +551,7 @@ as arguments:
   $\variable{potentials} \cap S = \emptyset$.
 \end{constraint}
 
-\section{COUNTING PROGRAMS}
+\section{COUNTING PROGRAMS} \label{sec:counting}
 
 In order to demonstrate the correctness of the model and explain it in more
 detail, in this section we are going to derive combinatorial expressions for
@@ -624,12 +658,9 @@ detection in the next section.
 \begin{definition}
   Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The set of
   \emph{dependencies} of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such
-  that:
-  \begin{itemize}
-  \item $\mathsf{P} \in D_{\mathsf{P}}$,
-  \item for every $\mathsf{Q} \in D_{\mathsf{P}}$, all direct predecessors of
-    $\mathsf{Q}$ in $G_{\mathscr{P}}$ are in $D_{\mathsf{P}}$.
-  \end{itemize}
+  that $\mathsf{P} \in D_{\mathsf{P}}$, and, for every $\mathsf{Q} \in
+  D_{\mathsf{P}}$, all direct predecessors of $\mathsf{Q}$ in $G_{\mathscr{P}}$
+  are in $D_{\mathsf{P}}$.
 \end{definition}
 
 \begin{definition}
@@ -753,7 +784,7 @@ predicates are clearly independent. If they have a dependency in common that is
 already fully determined ($\Determined$) for both predicates, then they cannot be
 independent. Otherwise, we return \textsc{undefined}.
 
-\begin{algorithm}
+\begin{algorithm}[h]
   \LinesNumbered
   \SetKwFunction{getDependencies}{deps}
   \SetKwFunction{fail}{fail}
@@ -890,8 +921,8 @@ as intended.
     D = \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent}, \mathsf{sibling}
     \}.
   \]
-  The predicate dependency graph (without positivity/negativity)---as defined by
-  \cref{def:adjacency_matrix}---is represented in
+  The predicate dependency graph without positivity/negativity (as defined in
+  \cref{def:adjacency_matrix}) is represented in
   \cref{fig:dependencies_matrix,fig:dependencies2}.
 
   Suppose we have a constraint that $\mathsf{mother}$ and $\mathsf{parent}$ must
@@ -955,7 +986,26 @@ no negative cycle and the entire program is determined-enough to contribute to
 the graph, then there cannot be any negative cycles. In all other cases, it
 is too early to tell.
 
-\section{EMPIRICAL PERFORMANCE}
+\section{EMPIRICAL PERFORMANCE} \label{sec:experiments}
+
+\begin{figure}
+  \centering
+  \input{impact.tex}
+  \caption{The mean number of nodes in the binary search tree for each value of
+    each experimental parameter. Note that the horizontal axis is on a $\log_2$
+    scale.}
+  \label{fig:impact}
+\end{figure}
+
+\begin{figure*}
+  \centering
+  \input{phase_transition.tex}
+  \caption{The distribution of the number of nodes in the binary search tree as
+    a function of the number of independent pairs of predicates for
+    $|\predicates| = 8$. Significant outliers are hidden, the dots denote mean
+    values, and the vertical axis is on a $\log_{10}$ scale.}
+  \label{fig:phase_transition}
+\end{figure*}
 
 Along with constraints, variables, and their domains, two more design decisions
 are needed to complete the model: heuristics and restarts. By trial and error,
@@ -1010,15 +1060,6 @@ values---most of the time a solution can be identified instantaneously while
 occasionally a series of wrong decisions can lead the solver into a part of the
 search space with no solutions.
 
-\begin{figure}
-  \centering
-  \input{impact.tex}
-  \caption{The mean number of nodes in the binary search tree for each value of
-    each experimental parameter. Note that the horizontal axis is on a $\log_2$
-    scale.}
-  \label{fig:impact}
-\end{figure}
-
 In \cref{fig:impact}, we plot how the mean number of nodes in the binary search
 tree grows as a function of each parameter (the plot for the median is very
 similar). The growth of each curve suggest how well/poorly the model scales with
@@ -1026,17 +1067,8 @@ higher values of the parameter. From this plot, it is clear that
 $\maxNumNodes{}$ is the limiting factor. This is because some tree structures
 can be impossible to fill with predicates without creating either a negative
 cycle or a forbidden dependence, and such trees become more common as the number
-of nodes increases.
-
-\begin{figure*}
-  \centering
-  \input{phase_transition.tex}
-  \caption{The distribution of the number of nodes in the binary search tree as
-    a function of the number of independent pairs of predicates for
-    $|\predicates| = 8$. Significant outliers are hidden, the dots denote mean
-    values, and the vertical axis is on a $\log_{10}$ scale.}
-  \label{fig:phase_transition}
-\end{figure*}
+of nodes increases. Likewise, a higher number of predicates complicates the
+situation as well.
 
 \cref{fig:phase_transition} takes the data for $|\predicates{}| = 8$ (almost
 \num{300000} observations) and shows how the number of nodes in the search tree
@@ -1056,11 +1088,11 @@ and we can either quickly find a solution or identify that there is none.
 % but they will be similar (acceptable if the search space is small and we want
 % to find all solutions).
 % On the other hand, with restarts, duplicates become possible.
-% TODO: the number of predicates is also important for performance.
 
 \section{CONCLUSIONS}
 
 % TODO: the positive side (what did we achieve?)
+%We were able to design an efficient model 
 
 One major question that was not addressed in this paper is that of logical
 equivalence. We eliminated permutation symmetries and constrained variable usage
@@ -1094,6 +1126,8 @@ e.g., one or two.
 This work was supported by the EPSRC Centre for Doctoral Training in Robotics
 and Autonomous Systems, funded by the UK Engineering and Physical Sciences
 Research Council (grant EP/S023208/1).
+
+\newpage
 
 \renewcommand{\bibsection}{\subsubsection*{References}}
 \bibliography{paper}
