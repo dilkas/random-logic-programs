@@ -27,7 +27,7 @@ ggplot(big, aes(factor(numIndependentPairs), nodes, group = numIndependentPairs)
   stat_summary(fun.y = mean, geom = "point") +
   xlab("Independent pairs") +
   ylab("Nodes") +
-  theme_set(theme_gray(base_size = 7))
+  theme_set(theme_minimal(base_size = 7))
 dev.off()
 
 # Extra stuff to investigate the phase transition
@@ -117,7 +117,7 @@ ggplot(effects, aes(Value, mean, color = factor(Variable))) +
   scale_shape_manual(values = c(15, 16, 17, 18, 19, 20)) +
   geom_label_repel(aes(label = label, size = 1), nudge_x = 1, segment.color = "transparent", box.padding = 0.1) +
   geom_label_repel(aes(label = aritylabel, size = 1), segment.color = "transparent", nudge_y = 300) +
-  theme_set(theme_gray(base_size = 7)) +
+  theme_set(theme_minimal(base_size = 7)) +
   theme(legend.position = "none") +
   xlab("Value of each parameter") +
   scale_color_brewer(palette = "Dark2") +

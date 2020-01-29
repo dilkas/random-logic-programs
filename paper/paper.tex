@@ -59,25 +59,12 @@
 
 \title{Generating Random Logic Programs Using Constraint Programming}
 
-\author{} % LEAVE BLANK FOR ORIGINAL SUBMISSION.
-          % UAI  reviewing is double-blind.
+\author{}
 
-% The author names and affiliations should appear only in the accepted paper.
-%
-%\author{ {\bf Harry Q.~Bovik\thanks{Footnote for author to give an
-%alternate address.}} \\
-%Computer Science Dept. \\
-%Cranberry University\\
-%Pittsburgh, PA 15213 \\
-%\And
-%{\bf Coauthor}  \\
-%Affiliation          \\
-%Address \\
-%\And
-%{\bf Coauthor}   \\
-%Affiliation \\
-%Address    \\
-%(if needed)\\
+%\author{ {\bf Paulius Dilkas} \\
+%School of Informatics \\
+%University of Edinburgh \\
+%Edinburgh, United Kingdom \\
 %}
 
 \begin{document}
@@ -143,7 +130,7 @@ that the model should produce for various parameter values. Finally,
 more complicated programs and identifies the relationships between parameter
 values and the empirical hardness of the program generation task.
 
-\subsection{PRELIMINARIES}
+\section{PRELIMINARIES}
 
 The basic primitives of logic programs are \emph{constants}, \emph{(logic)
   variables}, and \emph{predicates}. Each predicate has an \emph{arity} that
@@ -173,7 +160,7 @@ an array $\variable{a}$ of length $b$ such that each element of $\variable{a}$
 has type $\variable{c}$. Finally, we assume that all arrays start with index
 zero.
 
-\subsection{PARAMETERS}
+\subsection{PARAMETERS OF THE MODEL}
 
 We begin defining the parameters of our model by initialising sets and lists
 of the primitives used in constructing logic programs: a list of predicates
@@ -196,7 +183,7 @@ negative cycles (see \cref{sec:cycles}) and enforcing predicate independence
 (see \cref{sec:independence}), so a list of independent pairs of predicates is
 another parameter. Since this model can generate probabilistic as well as
 non-probabilistic programs, each clause is paired with a probability which is
-randomly selected from a given list (which is our last parameter). For
+randomly selected from a given list (i.e., our last parameter). For
 generating non-probabilistic programs, one can set this list equal to $\{ 1 \}$.
 Finally, we define $\tokens{} = \{ \neg, \land, \lor, \top \}$ as the set of
 tokens that (together with atoms) form a clause. All decision variables of the
@@ -334,7 +321,7 @@ that the zeroth node is indeed a root:
 \end{example}
 
 Here, $\top$ is the value we use for the remaining one-node trees. The
-elements of the $\variable{values}$ array are \emph{nodes}.
+elements of the $\variable{values}$ array are nodes:
 
 \begin{definition} \label{def:node}
   A \emph{node} has a $\variable{name} \in \tokens{} \cup \predicates{}$ and
@@ -343,7 +330,7 @@ elements of the $\variable{values}$ array are \emph{nodes}.
   defined analogously to \cref{def:arity}.
 \end{definition}
 
-Furthermore, we can use \cref{constr:arity} again to disable the extra
+Furthermore, we can use \cref{constr:arity} to again disable the extra
 arguments.
 
 \begin{example}
@@ -427,23 +414,24 @@ $\Box$:
 
 \section{VARIABLE SYMMETRIES} \label{sec:variable_symmetry}
 
-Given any clause, we can permute the variables in it without changing the
-meaning of the clause or the entire program. Thus, we want to fix the order of
-variables to eliminate unnecessary symmetries. Informally, we can say that
-variable $X$ goes before variable $Y$ if its first occurrence in either the head
-or the body of the clause is before the first occurrence of $Y$. Note that the
-constrains described in this section only make sense if $|\variables| > 1$. Also
-note that all definitions and constraints here are on a per-clause basis.
+Given any clause, we can permute the variables in that clause without changing
+the meaning of the clause or the entire program. Thus, we want to fix the order
+of variables to eliminate unnecessary symmetries. Informally, we can say that
+variable $X$ goes before variable $Y$ if the first occurrence of $X$ in either
+the head or the body of the clause is before the first occurrence of $Y$. Note
+that the constrains described in this section only make sense if $|\variables| >
+1$. Also note that all definitions and constraints here are on a per-clause
+basis.
 
 \begin{definition}
   Let $N = \maxArity{} \times (\maxNumNodes{} + 1)$, and let
   $\variable{terms}[N] \in \constants{} \cup \variables{} \cup \{ \Box
   \}$ be a flattened array of all arguments in a particular clause.
 
-  Then we can use the $\variable{setsIntsChanneling}$ constraint
-  to define $\variable{occ}[|\constants{}| + |\variables{}| + 1]$ as an
-  array of subsets of $\{ 0, \dots, N-1 \}$ such that for all $i = 0, \dots, N
-  - 1$, and $t \in \constants{} \cup \variables{} \cup \{ \Box \}$,
+  Then we can use a channeling constraint to define
+  $\variable{occ}[|\constants{}| + |\variables{}| + 1]$ as an array of subsets
+  of $\{ 0, \dots, N-1 \}$ such that for all $i = 0, \dots, N - 1$, and $t \in
+  \constants{} \cup \variables{} \cup \{ \Box \}$,
   \[
     i \in \variable{occ}[t] \quad \iff \quad
     \variable{terms}[i] = t
@@ -465,9 +453,9 @@ first occurrence:
   \]
 \end{definition}
 
-Here, a value of zero means that the variable does not occur in the clause. We
-want to use specifically zero for this so that we could use
-\cref{constraint:diffbutzero} later. Because of this choice, the definition of
+Here, a value of zero means that the variable does not occur in the clause. The
+reason why we want to use specifically zero for this will become clear with
+\cref{constraint:diffbutzero}. Because of this choice, the definition of
 $\variable{intros}$ shifts all indices by one. Lastly, we add the constraint
 that eliminates variable symmetries:
 
@@ -508,9 +496,9 @@ different:
   \]
 \end{constraint}
 
-The reason why we used zero to represent a variable not being introduced is so
-that we could efficiently rephrase \cref{constraint:all_diff} for the
-$\variable{intros}$ array:
+The reason why we used zero to represent an unused variable is so that we could
+efficiently rephrase \cref{constraint:all_diff} for the $\variable{intros}$
+array:
 
 \begin{constraint} \label{constraint:diffbutzero}
   $\variable{allDifferentExcept0}(\variable{intros})$.
@@ -537,9 +525,8 @@ that $\variable{intros}$ can take:
   \in \variables{}$, $\variable{intros}[v] \in \variable{potentials}$.
 \end{definition}
 
-Using this new variable, we can easily add a constraint saying that
-non-predicate nodes in the tree representation of a clause cannot have variables
-as arguments:
+Using this new variable, we can add a constraint saying that non-predicate nodes
+in the tree representation of a clause cannot have variables as arguments:
 
 \begin{constraint} \label{constraint:potentialIntroductions}
   For $i = 0, \dots, \maxNumNodes{} - 1$, let
@@ -702,7 +689,7 @@ detection in the next section.
   Consider the following (fragment of a) program:
   \begin{align}
     \mathsf{sibling}(X, Y) &\gets \mathsf{parent}(X, Z) \land \mathsf{parent}(Y, Z), \nonumber \\
-    \mathsf{father}(X, Y) &\gets \mathsf{parent}(X, Y) \land \neg\mathsf{mother}(X, Y). \label[clause]{eq:example_clause}
+    \mathsf{father}(X, Y) &\gets \mathsf{parent}(X, Y) \land \neg\mathsf{mother}(X, Y) \label[clause]{eq:example_clause}
   \end{align}
   Its predicate dependency graph is in \cref{fig:predicate_dependencies}.
   Because of the negation in \cref{eq:example_clause} (as seen in
@@ -721,7 +708,7 @@ detection in the next section.
 \end{example}
 
 We can now add a constraint to define an adjacency matrix for the predicate
-dependency graph but without positivity/negativity.
+dependency graph but without positivity/negativity:
 
 \begin{definition} \label{def:adjacency_matrix}
   An $|\predicates{}| \times |\predicates{}|$ adjacency matrix $\mathbf{A}$ with
@@ -778,7 +765,7 @@ constraint is violated, and \textsc{undefined} if whether the constraint will be
 satisfied or not depends on the future decisions made by the solver.
 \cref{alg:independence_entailment} outlines a simple entailment algorithm for
 the independence of two predicates $p_1$ and $p_2$. First, we separately
-calculate all dependencies of $p_1$ and $p_2$, and look at the set $D$ of
+calculate all dependencies of $p_1$ and $p_2$ and look at the set $D$ of
 dependencies that $p_1$ and $p_2$ have in common. If there are none, then the
 predicates are clearly independent. If they have a dependency in common that is
 already fully determined ($\Determined$) for both predicates, then they cannot be
@@ -816,8 +803,8 @@ the former on \cref{line:fail}. Furthermore, for any dependency shared between
 predicates $p_1$ and $p_2$, if it is determined ($\Determined$) for one
 predicate and almost determined ($\AlmostDetermined$) for another, then the edge
 that prevents the $\AlmostDetermined$ from becoming a $\Determined$ cannot
-exist--\cref{line:propagation_condition,line:propagation_result} take care of
-that.
+exist--\cref{line:propagation_condition,line:propagation_result} handle this
+possibility.
 
 \begin{algorithm}
   \SetKwData{edgeExists}{edge}
@@ -860,7 +847,7 @@ The function $\getDependencies$ in \cref{alg:dependencies} calculates $D_p$ for
 any predicate $p$. It has two versions: $\getDependencies(p, 1)$ returns all
 dependencies, while $\getDependencies(p, 0)$ returns only determined and
 almost-determined dependencies. It starts by establishing the predicate $p$
-itself as a dependence and continues to add dependencies of dependencies until
+itself as a dependency and continues to add dependencies of dependencies until
 the set $D$ stabilises. For each dependency $d \in D$, we look at the in-links
 of $d$ in the predicate dependency graph. If the edge from some predicate $q$ to
 $d.\mathsf{predicate}$ is fully determined and $d$ is determined, then $q$ is
@@ -918,8 +905,8 @@ as intended.
   \end{align*}
   where $\Box$ indicates an unknown predicate with domain
   \[
-    D = \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent}, \mathsf{sibling}
-    \}.
+    D_\Box = \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent},
+    \mathsf{sibling} \}.
   \]
   The predicate dependency graph without positivity/negativity (as defined in
   \cref{def:adjacency_matrix}) is represented in
@@ -934,7 +921,7 @@ as intended.
   An entailment check at this stage would produce \textsc{undefined}, but
   propagation replaces the boxed value in \cref{fig:dependencies_matrix} with
   zero, eliminating the potential edge from $\mathsf{parent}$ to
-  $\mathsf{mother}$. This also eliminates $\mathsf{mother}$ from $D$, and,
+  $\mathsf{mother}$. This also eliminates $\mathsf{mother}$ from $D_\Box$, and,
   although some undetermined variables remain, this is enough to make
   \cref{alg:independence_entailment} return \textsc{true}.
 \end{example}
@@ -945,10 +932,10 @@ Having no negative cycles in the predicate dependency graph is a requirement for
 probabilistic logic programming language ProbLog \citep{kimmig2009trading},
 although it has been shown how the requirement can be alleviated by introducing
 negative probabilities \citep{DBLP:journals/ijar/BuchmanP17}. Ideally, we would
-like to design a constraint for that similar to the constraint for independence
-in the previous section. However, the difficulty with creating a propagation
-algorithm for negative cycles is that there seems to be no good way to extend
-\cref{def:adjacency_matrix} so that the adjacency matrix captures
+like to design a constraint for negative cycles similar to the constraint for
+independence in the previous section. However, the difficulty with creating a
+propagation algorithm for negative cycles is that there seems to be no good way
+to extend \cref{def:adjacency_matrix} so that the adjacency matrix captures
 positivity/negativity. Thus, we settle for an entailment algorithm with no
 propagation.
 
@@ -981,10 +968,9 @@ the literature, and use an algorithm such as Bellman-Ford
 \citep{shimbel1954structure}.
 
 If the algorithm finds a negative cycle in this fully-determined part of the
-program, then it is unavoidable and we must return \textsc{false}. If there was
-no negative cycle and the entire program is determined-enough to contribute to
-the graph, then there cannot be any negative cycles. In all other cases, it
-is too early to tell.
+program, then we must return \textsc{false}. If there was no negative cycle and
+the entire program is (sufficiently) determined, then there cannot be any
+negative cycles. In all other cases, it is too early to tell.
 
 \section{EMPIRICAL PERFORMANCE} \label{sec:experiments}
 
@@ -1002,8 +988,8 @@ is too early to tell.
   \input{phase_transition.tex}
   \caption{The distribution of the number of nodes in the binary search tree as
     a function of the number of independent pairs of predicates for
-    $|\predicates| = 8$. Significant outliers are hidden, the dots denote mean
-    values, and the vertical axis is on a $\log_{10}$ scale.}
+    $|\predicates| = 8$. Outliers are hidden, the dots denote mean values, and
+    the vertical axis is on a $\log_{10}$ scale.}
   \label{fig:phase_transition}
 \end{figure*}
 
@@ -1039,18 +1025,17 @@ We also employ a geometric restart policy, restarting after $10, 20, 40,
 We ran close to \num{400000} experiments, investigating whether the model is
 efficient enough to generate reasonably-sized programs and gaining insight into
 what parameter values make the constraint satisfaction problem harder. For these
-experiments, we use Choco~4.10.2 \citep{choco} with Java~8 on a personal
-computer with an Intel Core i5-8250U processor and Arch Linux 5.4.12-arch1-1
-operating system. For $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$,
-$\maxNumNodes{}$, and $\maxNumClauses{} - |\predicates{}|$ (i.e., the number of
-clauses in addition to the mandatory $|\predicates{}|$ clauses), we assign all
-combinations of 1, 2, 4, 8. $\maxArity{}$ is assigned to values 1--4. For each
-$|\predicates{}|$, we also iterate over all possible numbers of independent
-pairs of predicates, ranging from 0 up to $\binom{|\predicates{}|}{2}$. For each
-combination of the above-mentioned parameters, we pick ten random pairs of:
-$\arities{}$ (such that $\maxArity{}$ occurs at least once) and the required
-number of independent pairs (without repetition). We then run the solver with a
-\SI{60}{\second} timeout.
+experiments, we use Choco~4.10.2 \citep{choco} with Java~8 on a computer with an
+Intel Core i5-8250U processor. For $|\predicates{}|$, $|\variables{}|$,
+$|\constants{}|$, $\maxNumNodes{}$, and $\maxNumClauses{} - |\predicates{}|$
+(i.e., the number of clauses in addition to the mandatory $|\predicates{}|$
+clauses), we assign all combinations of 1, 2, 4, 8. $\maxArity{}$ is assigned to
+values 1--4. For each $|\predicates{}|$, we also iterate over all possible
+numbers of independent pairs of predicates, ranging from 0 up to
+$\binom{|\predicates{}|}{2}$. For each combination of the above-mentioned
+parameters, we pick ten random ways to assign arities to predicates (such that
+$\maxArity{}$ occurs at least once) and ten random combinations of independent
+pairs. We then run the solver with a \SI{60}{\second} timeout.
 
 The vast majority (\SI{97.7}{\percent}) of runs finished in under
 \SI{1}{\second}, while four instances timed out: all with $|\predicates| =
@@ -1066,7 +1051,7 @@ similar). The growth of each curve suggest how well/poorly the model scales with
 higher values of the parameter. From this plot, it is clear that
 $\maxNumNodes{}$ is the limiting factor. This is because some tree structures
 can be impossible to fill with predicates without creating either a negative
-cycle or a forbidden dependence, and such trees become more common as the number
+cycle or a forbidden dependency, and such trees become more common as the number
 of nodes increases. Likewise, a higher number of predicates complicates the
 situation as well.
 
@@ -1091,43 +1076,38 @@ and we can either quickly find a solution or identify that there is none.
 
 \section{CONCLUSIONS}
 
-% TODO: the positive side (what did we achieve?)
-%We were able to design an efficient model 
-
-One major question that was not addressed in this paper is that of logical
-equivalence. We eliminated permutation symmetries and constrained variable usage
-so that the same `functionality' is always assigned to the same variable, but
-syntactically different logical formulas are always treated as being different.
-For example, all three of these formulas are logically equivalent but
-syntactically different: $\neg(\mathsf{P}(X) \lor \mathsf{Q}(X))$,
-$\neg\mathsf{P}(X) \land \neg\mathsf{Q}(X)$, and $\neg\mathsf{Q}(X) \land
-\neg\mathsf{P}(X)$. While there are many situations where one would prefer to
-treat logically equivalent formulas as symmetries that should be eliminated,
-there are also situations where we do care about enumerating different ways to
-express the same probability distribution or knowledge base. For instance,
-one could look for the `best' logically equivalent formula, or investigate
-whether some formulas result in faster inference than others.
+We were able to design an efficient model for generating both logic programs and
+probabilistic logic programs. The model avoids unnecessary symmetries, generates
+valid programs, and can ensure predicate independence. Note that there is one
+kind of symmetries not handled by our model, i.e., logical equivalence. For
+example, all three of these formulas are logically equivalent but syntactically
+different: $\neg(\mathsf{P}(X) \lor \mathsf{Q}(X))$, $\neg\mathsf{P}(X) \land
+\neg\mathsf{Q}(X)$, and $\neg\mathsf{Q}(X) \land \neg\mathsf{P}(X)$. While there
+are many situations where one would prefer to treat logically equivalent
+formulas as symmetries that should be eliminated, there are also situations
+where we do care about enumerating different ways to express the same
+probability distribution or knowledge base. For instance, one could look for the
+`best' logically equivalent formula, or investigate whether some formulas result
+in faster inference than others.
 
 Another issue worth discussing is that of randomness. Most random models sample
 from a well-defined probability distribution whereas a constraint model, while
 potentially sufficiently random, provides no such guarantees. In future work, it
 would be interesting to examine the probability distribution of logic programs
 as generated by our model, although it is not obvious how such a
-probability distribution could be characterised. One example of a clear bias
-exhibited by our model is that of complexity over simplicity, i.e., if a tree
-that represents the body of a clause can have up to $\maxNumNodes{}$
-nodes---because the number of possible trees with $n$ nodes grows with $n$---it
-is much more likely to have $\maxNumNodes{}$ or $\maxNumNodes{} - 1$ nodes than,
-e.g., one or two.
+probability distribution could be characterised.% One example of a clear bias
+%exhibited by our model is that of complexity over simplicity, i.e., if a tree
+%that represents the body of a clause can have up to $\maxNumNodes{}$
+%nodes---because the number of possible trees with $n$ nodes grows with $n$---it
+%is much more likely to have $\maxNumNodes{}$ or $\maxNumNodes{} - 1$ nodes than,
+%e.g., one or two.
 
-\subsubsection*{Acknowledgements}
+%\subsubsection*{Acknowledgements}
 
 % The author would like to thank Vaishak Belle for his comments.
-This work was supported by the EPSRC Centre for Doctoral Training in Robotics
-and Autonomous Systems, funded by the UK Engineering and Physical Sciences
-Research Council (grant EP/S023208/1).
-
-\newpage
+%This work was supported by the EPSRC Centre for Doctoral Training in Robotics
+%and Autonomous Systems, funded by the UK Engineering and Physical Sciences
+%Research Council (grant EP/S023208/1).
 
 \renewcommand{\bibsection}{\subsubsection*{References}}
 \bibliography{paper}
