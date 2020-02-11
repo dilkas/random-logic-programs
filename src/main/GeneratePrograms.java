@@ -234,12 +234,12 @@ class GeneratePrograms {
     public static void main(String[] args) throws IOException {
         //checkNumPrograms();
         //generateSmallPrograms();
-        generateBigPrograms(Arrays.asList(1, 2, 4, 8));
+        //generateBigPrograms(Arrays.asList(1, 2, 4, 8));
 
-        /*String[] predicates = new String[]{"p"};
-        Program p = new Program(16, 2,
-                ForbidCycles.NEGATIVE, DEFAULT_PROBABILITIES, predicates, new int[]{1}, new String[]{"X"},
-                new String[]{"a"}, new PredicatePair[0]);
-        p.saveProgramsToFiles(1000, "../programs/");*/
+        String[] predicates = new String[]{"p", "q", "r"};
+        Program p = new Program(3, 3,
+                ForbidCycles.NONE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1}, new String[0],
+                new String[]{"a"}, new PredicatePair[]{new PredicatePair(predicates, "p", "q")});
+        p.saveProgramsToFiles(1000, "../programs/");
     }
 }
