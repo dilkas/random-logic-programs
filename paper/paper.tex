@@ -3,6 +3,7 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{times}
 
+\usepackage[dvipsnames]{xcolor}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{amssymb}
 \usepackage{mathtools}
@@ -22,6 +23,8 @@
 \newtheorem{example}{Example}
 
 \renewcommand\fbox{\fcolorbox{red}{white}}
+\newcommand{\hilight}[1]{\setlength{\fboxsep}{1pt}\colorbox{SpringGreen}{#1}}
+\newcommand{\hlitem}{\stepcounter{enumi}\item[\hilight{\theenumi}]}
 
 \makeatletter
 \newcommand{\nosemic}{\renewcommand{\@endalgocfline}{\relax}}% Drop semi-colon ;
@@ -1142,11 +1145,11 @@ precedence, although many of them are redundant.
 
 By setting $\predicates{} = [\texttt{p}]$, $\arities{} = [1]$, $\variables{} =
 \{ \texttt{X} \}$, $\constants{} = \emptyset$, $\maxNumNodes{} = 4$, and
-$\maxNumClauses{} = 1$, we get fifteen one-line programs, five of which are
-without negative cycles (denoted by `+'). Only the last program has no cycles at
-all.
+$\maxNumClauses{} = 1$, we get fifteen one-line programs, six of which are
+without negative cycles (as highlighted below). Only the last program has no
+cycles at all.
 
-\begin{itemize}
+\begin{enumerate}[label=\arabic*.]
 \item
 \begin{verbatim}
 0.5 :: p(X) :- (\+(p(X))), (p(X)).
@@ -1155,11 +1158,11 @@ all.
 \begin{verbatim}
 0.8 :: p(X) :- (\+(p(X))); (p(X)).
 \end{verbatim}
-\item[+]
+\hlitem
 \begin{verbatim}
 0.8 :: p(X) :- (p(X)); (p(X)).
 \end{verbatim}
-\item[+]
+\hlitem
 \begin{verbatim}
 0.7 :: p(X) :- (p(X)), (p(X)).
 \end{verbatim}
@@ -1171,11 +1174,11 @@ all.
 \begin{verbatim}
 p(X) :- (p(X)); (\+(p(X))).
 \end{verbatim}
-\item[+]
+\hlitem
 \begin{verbatim}
 0.1 :: p(X) :- (p(X)); (p(X)); (p(X)).
 \end{verbatim}
-\item[+]
+\hlitem
 \begin{verbatim}
 0.8 :: p(X) :- (p(X)), (p(X)), (p(X)).
 \end{verbatim}
@@ -1199,14 +1202,24 @@ p(X) :- \+((p(X)); (p(X))).
 \begin{verbatim}
 0.4 :: p(X) :- \+(\+(\+(p(X)))).
 \end{verbatim}
-\item[+]
+\hlitem
 \begin{verbatim}
 0.7 :: p(X) :- p(X).
 \end{verbatim}
-\item[+]
+\hlitem
 \begin{verbatim}
 p(X).
 \end{verbatim}
+\end{enumerate}
+
+Note that:
+\begin{itemize}
+\item A program such as Program~14, because of its cyclic definition, defines a
+  predicate that has probability zero across all constants. This can more easily
+  be seen as solving equation $0.7x = x$.
+\item Programs 10 and 14 are not equivalent (i.e., double negation does not
+  cancel out) because Program 10 has a negative cycle and is thus considered to
+  be ill-defined.
 \end{itemize}
 
 To demonstrate variable symmetry reduction in action, we set $\predicates{} =
