@@ -98,18 +98,18 @@ types of inputs that make every algorithm default to exponential behaviour
 that could be easily overcome with the right strategy. At present, most
 inference algorithms for probabilistic logic programs are only evaluated on at
 most four different problems: sometimes just a single network
-\citep{DBLP:journals/tplp/KimmigDRCR11,DBLP:journals/corr/abs-1112-3785,DBLP:conf/iclp/KimmigCRDR08},
+\citep{DBLP:journals/tplp/KimmigDRCR11,DBLP:journals/corr/abs-1112-3785},
 sometimes two
 \citep{DBLP:journals/corr/abs-1009-3798,DBLP:conf/ecai/BruynoogheMKGVJR10} or
-four networks \citep{DBLP:conf/ijcai/VlasselaerBKMR15} coming from a range of
-areas such as social networks and citation/genetic/biological data sets. In
-order to better understand the strengths and weaknesses of these algorithms,
-along with real data they should also be evaluated on a range of synthetic
-problems that accurately represent the potential complexities that have to be
-handled by a well-designed inference algorithm. Furthermore, random logic
-program generators can be useful in combination with methods that generate
-random data with probabilistic logic programs \citep{DBLP:conf/soict/Dries15}
-and can be used as a component of learning.
+four networks \citep{DBLP:conf/ijcai/VlasselaerBKMR15}, all coming from a range
+of areas such as social networks and citation/genetic/biological data sets. To
+better understand the strengths and weaknesses of these algorithms, along with
+real data they should also be evaluated on a range of synthetic problems that
+accurately represent the potential complexities that have to be handled by a
+well-designed inference algorithm. Furthermore, random logic program generators
+can be useful in combination with methods that generate random data with
+probabilistic logic programs \citep{DBLP:conf/soict/Dries15} and can be used as
+a component of learning.
 
 Most current approaches to generating random logic programs are restrictive,
 e.g., limited to clauses with only two literals
@@ -117,31 +117,30 @@ e.g., limited to clauses with only two literals
 b$ \citep{DBLP:journals/tocl/WenWSL16}, but others are more expressive, e.g.,
 defining a program only by the (maximum) number of atoms in the body and the
 total number of rules \citep{DBLP:conf/iclp/ZhaoL03}. We introduce a way to
-generate random logic programs using a constraint solver such as Choco
-\citep{choco}. The same model can generate both probabilistic programs directly
-in the syntax of ProbLog \citep{DBLP:conf/ijcai/RaedtKT07} as well as
-non-probabilistic Prolog programs. For generated probabilistic programs to be
-valid, we use a custom constraint to detect negative cycles (as described in
-\cref{sec:cycles}). A major advantage of our constraint-based approach is that
-one can easily add additional constraints to the model. To demonstrate that, in
-\cref{sec:independence} we present a custom constraint with propagation and
-entailment algorithms that can ensure predicate independence.
-\cref{sec:counting} also presents a combinatorial argument for correctness,
-where we produce combinatorial expressions that count the number of programs
-that the model should produce for various parameter values. Finally,
-\cref{sec:experiments} shows how the model scales when tasked with producing
-more complicated programs and identifies the relationships between parameter
-values and the empirical hardness of the program generation task.
+generate random logic programs using a constraint model. The same model can
+generate both probabilistic programs directly in the syntax of ProbLog
+\citep{DBLP:conf/ijcai/RaedtKT07} as well as non-probabilistic Prolog programs.
+For generated probabilistic programs to be valid, we use a custom constraint to
+detect negative cycles (as described in \cref{sec:cycles}). A major advantage of
+our constraint-based approach is that one can easily add additional constraints
+to the model. To demonstrate that, in \cref{sec:independence} we present a
+custom constraint with propagation and entailment algorithms that can ensure
+predicate independence. \cref{sec:counting} also presents a combinatorial
+argument for correctness, where we produce combinatorial expressions that count
+the number of programs that the model should produce for various parameter
+values. Finally, \cref{sec:experiments} shows how the model scales when tasked
+with producing more complicated programs and identifies the relationships
+between parameter values and the empirical hardness of the program generation
+task.
 
-% TODO (Vaishak):
-Overall, [main] contributions are concerned purely with logic programming-based
+Overall, our main contributions are concerned purely with logic programming-based
 languages and frameworks, which capture a major fragment of statistical
 relational learning \citep{DBLP:series/synthesis/2016Raedt}.
-However, since probabilistic logic programming [languages] are closely related
-to other [endeavours] in machine learning, including (imperative) probabilistic
-programming (e.g., see discussions in \citep{DBLP:journals/ml/RaedtK15}), our
-results [may] provide the [footing] to explore broader questiosn on generating
-and testing programs/algorithms in machine learning.
+However, since probabilistic logic programming languages are closely related
+to other areas of machine learning, including (imperative) probabilistic
+programming \citep{DBLP:journals/ml/RaedtK15}, our results can lay the
+foundations for exploring broader questions on generating and testing
+programs/algorithms in machine learning.
 
 \section{PRELIMINARIES}
 
@@ -356,7 +355,7 @@ arguments.
   \end{align*}
 \end{example}
 
-It remains to constrain the forest represented by the $\variable{structure}$
+We need to constrain the forest represented by the $\variable{structure}$
 array together with its $\variable{values}$ to eliminate unnecessary symmetries
 and adhere to our desired format. First, we can recognise that the order of the
 elements in the $\variable{structure}$ array does not matter, i.e., the
@@ -987,14 +986,6 @@ program, then we must return \textsc{false}. If there was no negative cycle and
 the entire program is (sufficiently) determined, then there cannot be any
 negative cycles. In all other cases, it is too early to tell.
 
-% TODO (Vaishak):
-% Now we add a theorem that states that the programs generated by the algorithm,
-% regardless of whether they involve negative cycles or not, are well-defined?
-% That is, in the non-probabilistic case, they are satisfiable, and, in the
-% probabilistic case, for both negative cycles & without, they induce programs
-% that are satisfiable + well-defined measure on the set of satisfying
-% assignments [proofs in the appendix?]
-
 \section{EMPIRICAL PERFORMANCE} \label{sec:experiments}
 
 \begin{figure}
@@ -1020,13 +1011,13 @@ Along with constraints, variables, and their domains, two more design decisions
 are needed to complete the model: heuristics and restarts. By trial and error,
 the variable ordering heuristic was devised to eliminate sources of thrashing,
 i.e., situations where a contradiction is being `fixed' by making changes that
-have no hope to fix the contradiction. Thus, we partition all decision variables
-into an ordered list of groups, and require the values of all variables from one
-group to be determined before moving to the next group. Within each group, we
-use the `fail first' variable ordering heuristic. The first group consists of
-all head predicates. Afterwards, we handle all remaining decision variables from
-the first clause before proceeding to the next. The decision variables within
-each clause are divided into:
+have no hope of fixing the contradiction. Thus, we partition all decision
+variables into an ordered list of groups, and require the values of all
+variables from one group to be determined before moving to the next group.
+Within each group, we use the `fail first' variable ordering heuristic. The
+first group consists of all head predicates. Afterwards, we handle all remaining
+decision variables from the first clause before proceeding to the next. The
+decision variables within each clause are divided into:
 \begin{enumerate*}
 \item the $\variable{structure}$ array,
 \item body predicates,
@@ -1048,17 +1039,17 @@ We also employ a geometric restart policy, restarting after $10, 20, 40,
 We ran close to \num{400000} experiments, investigating whether the model is
 efficient enough to generate reasonably-sized programs and gaining insight into
 what parameter values make the constraint satisfaction problem harder. For these
-experiments, we use Choco~4.10.2 \citep{choco} with Java~8 on a computer with an
-Intel Core i5-8250U processor. For $|\predicates{}|$, $|\variables{}|$,
-$|\constants{}|$, $\maxNumNodes{}$, and $\maxNumClauses{} - |\predicates{}|$
-(i.e., the number of clauses in addition to the mandatory $|\predicates{}|$
-clauses), we assign all combinations of 1, 2, 4, 8. $\maxArity{}$ is assigned to
-values 1--4. For each $|\predicates{}|$, we also iterate over all possible
-numbers of independent pairs of predicates, ranging from 0 up to
-$\binom{|\predicates{}|}{2}$. For each combination of the above-mentioned
-parameters, we pick ten random ways to assign arities to predicates (such that
-$\maxArity{}$ occurs at least once) and ten random combinations of independent
-pairs. We then run the solver with a \SI{60}{\second} timeout.
+experiments, we use Choco~4.10.2 \citep{choco} with Java~8. For
+$|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$, and
+$\maxNumClauses{} - |\predicates{}|$ (i.e., the number of clauses in addition to
+the mandatory $|\predicates{}|$ clauses), we assign all combinations of 1, 2, 4,
+8. $\maxArity{}$ is assigned to values 1--4. For each $|\predicates{}|$, we also
+iterate over all possible numbers of independent pairs of predicates, ranging
+from 0 up to $\binom{|\predicates{}|}{2}$. For each combination of the
+above-mentioned parameters, we pick ten random ways to assign arities to
+predicates (such that $\maxArity{}$ occurs at least once) and ten random
+combinations of independent pairs. We then run the solver with a
+\SI{60}{\second} timeout.
 
 The vast majority (\SI{97.7}{\percent}) of runs finished in under
 \SI{1}{\second}, while four instances timed out: all with $|\predicates| =
@@ -1107,30 +1098,24 @@ and we can either quickly find a solution or identify that there is none.
 % nodes grows with $n$---it is much more likely to have $\maxNumNodes{}$ or
 % $\maxNumNodes{} - 1$ nodes than, e.g., one or two.
 
-\section{CONCLUSIONS}
-% TODO (Fazl): equations and 'provides no such guarantees' sound more like
-% future work / limitation section. Make it sound more positive.
+\section{CONCLUSIONS \& FUTURE WORK}
 
 We were able to design an efficient model for generating both logic programs and
 probabilistic logic programs. The model avoids unnecessary symmetries, generates
-valid programs, and can ensure predicate independence. Note that there is one
-kind of symmetries not handled by our model, i.e., logical equivalence. For
-example, all three of these formulas are logically equivalent but syntactically
-different: $\neg(\mathsf{P}(X) \lor \mathsf{Q}(X))$, $\neg\mathsf{P}(X) \land
-\neg\mathsf{Q}(X)$, and $\neg\mathsf{Q}(X) \land \neg\mathsf{P}(X)$. While there
-are many situations where one would prefer to treat logically equivalent
-formulas as symmetries that should be eliminated, there are also situations
-where we do care about enumerating different ways to express the same
-probability distribution or knowledge base. For instance, one could look for the
-`best' logically equivalent formula, or investigate whether some formulas result
-in faster inference than others.
+valid programs, and can ensure predicate independence. Note that our model
+treats logically equivalent but syntactically different formulas as different.
+While there are many situations where one would prefer to eliminate them like
+symmetries, there are also situations where we do care about enumerating
+different ways to express the same probability distribution or knowledge base.
+For instance, one could look for the `best' logically equivalent formula, or
+investigate whether some formulas result in faster inference than others.
 
-Another issue worth discussing is that of randomness. Most random models sample
-from a well-defined probability distribution whereas a constraint model, while
-potentially sufficiently random, provides no such guarantees. In future work, it
-would be interesting to examine the probability distribution of logic programs
-as generated by our model, although it is not obvious how such a
-probability distribution could be characterised.
+Another topic worth mentioning is randomness. Most random models sample from a
+well-defined probability distribution whereas a constraint model, while
+sufficiently random, provides no such guarantees. In future work, it would be
+interesting to examine the probability distribution of logic programs as
+generated by our model, although it is not obvious how such a probability
+distribution could be characterised.
 
 %\subsubsection*{Acknowledgements}
 
