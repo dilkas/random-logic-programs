@@ -3,7 +3,6 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{times}
 
-\usepackage[dvipsnames]{xcolor}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{amssymb}
 \usepackage{mathtools}
@@ -23,7 +22,7 @@
 \newtheorem{example}{Example}
 
 \renewcommand\fbox{\fcolorbox{red}{white}}
-\newcommand{\hilight}[1]{\setlength{\fboxsep}{1pt}\colorbox{SpringGreen}{#1}}
+\newcommand{\hilight}[1]{\setlength{\fboxsep}{1pt}\colorbox{lightgray}{#1}}
 \newcommand{\hlitem}{\stepcounter{enumi}\item[\hilight{\theenumi}]}
 
 \makeatletter
@@ -74,7 +73,7 @@
 %}
 
 \begin{document}
-\bibliographystyle{plainnat}
+\bibliographystyle{abbrvnat}
 \maketitle
 
 \begin{abstract}
@@ -85,71 +84,94 @@
   advantage in that one can easily add additional conditions for the generated
   programs. As an example of this, we introduce a new constraint for predicate
   independence with efficient propagation and entailment algorithms, allowing
-  one to generate programs that have a certain independence structure. In order
-  to generate valid probabilistic logic programs, we also present a new
-  constraint for negative cycle detection. Finally, we provide a combinatorial
-  argument for correctness and describe how the parameters of the model affect
-  the empirical difficulty of the program generation task.
+  one to generate programs that have a certain independence structure. To
+  generate valid probabilistic logic programs, we also present a new constraint
+  for negative cycle detection. Finally, we provide a combinatorial argument for
+  correctness and describe how the parameters of the model affect the empirical
+  difficulty of the program generation task.
 \end{abstract}
 
 \section{INTRODUCTION}
 
-How confidently can we claim that an algorithm works well if it is only tested
-on a few types of problems? Perhaps the `inferior' algorithm is actually
-better in some specific circumstances. Maybe there are identifiable
-types of inputs that make every algorithm default to exponential behaviour
-that could be easily overcome with the right strategy. At present, most
-inference algorithms for probabilistic logic programs are only evaluated on at
-most four different problems: sometimes just a single network
-\citep{DBLP:journals/tplp/KimmigDRCR11,DBLP:journals/corr/abs-1112-3785},
-sometimes two
-\citep{DBLP:journals/corr/abs-1009-3798,DBLP:conf/ecai/BruynoogheMKGVJR10} or
-four networks \citep{DBLP:conf/ijcai/VlasselaerBKMR15}, all coming from a range
-of areas such as social networks and citation/genetic/biological data sets. To
-better understand the strengths and weaknesses of these algorithms, along with
-real data they should also be evaluated on a range of synthetic problems that
-accurately represent the potential complexities that have to be handled by a
-well-designed inference algorithm. Furthermore, random logic program generators
-can be useful in combination with methods that generate random data with
-probabilistic logic programs \citep{DBLP:conf/soict/Dries15} and can be used as
-a component of learning.
+% Notes on papers that test ProbLog inference algorithms:
+% - On the Implementation: published, one biological network
+% -(removed) Nesting Probabilistic Inference: NOT published, one Alzheimer
+% network
+% -(removed) DNF Sampling: NOT published, two networks: a family tree and the
+% Alzheimer network
+% -ProbLog Technology: published, two networks: a custom theory with randomly
+% generated data, and citation data
+% -Anytime Inference: published, four networks: the Smokers social network,
+% Alzheimer data, biological network of genetic data, data about the world wide
+% web
 
-Most current approaches to generating random logic programs are restrictive,
-e.g., limited to clauses with only two literals
-\citep{DBLP:conf/lpnmr/NamasivayamT09}, or to clauses of the form $a \gets \neg
-b$ \citep{DBLP:journals/tocl/WenWSL16}, but others are more expressive, e.g.,
-defining a program only by the (maximum) number of atoms in the body and the
-total number of rules \citep{DBLP:conf/iclp/ZhaoL03}. We introduce a way to
-generate random logic programs using a constraint model. The same model can
-generate both probabilistic programs directly in the syntax of ProbLog
-\citep{DBLP:conf/ijcai/RaedtKT07} as well as non-probabilistic Prolog programs.
-For generated probabilistic programs to be valid, we use a custom constraint to
-detect negative cycles (as described in \cref{sec:cycles}). A major advantage of
-our constraint-based approach is that one can easily add additional constraints
-to the model. To demonstrate that, in \cref{sec:independence} we present a
-custom constraint with propagation and entailment algorithms that can ensure
-predicate independence. \cref{sec:counting} also presents a combinatorial
-argument for correctness, where we produce combinatorial expressions that count
-the number of programs that the model should produce for various parameter
-values. Finally, \cref{sec:experiments} shows how the model scales when tasked
-with producing more complicated programs and identifies the relationships
-between parameter values and the empirical hardness of the program generation
-task.
+%Interestingly, in the [???] of
+%probabilistic logic programming, random logic program generators can be useful
+%in combination with methods that generate random data with probabilistic logic
+%programs \citep{DBLP:conf/soict/Dries15} and can be used as a component of
+%learning.
 
-Overall, our main contributions are concerned purely with logic programming-based
-languages and frameworks, which capture a major fragment of statistical
-relational learning \citep{DBLP:series/synthesis/2016Raedt}.
-However, since probabilistic logic programming languages are closely related
-to other areas of machine learning, including (imperative) probabilistic
-programming \citep{DBLP:journals/ml/RaedtK15}, our results can lay the
-foundations for exploring broader questions on generating and testing
-programs/algorithms in machine learning.
+Unifying logic and probability is a long-standing challenge in artificial
+intelligence \citep{DBLP:journals/cacm/Russell15}, and, in that regard,
+statistical relational learning (SRL) has developed into an exciting area that
+mixes machine learning and symbolic (logical and relational) structures. In
+particular, logic programs and probabilistic logic programs---including
+languages such as PRISM \citep{DBLP:conf/ijcai/SatoK97}, ICL
+\citep{DBLP:journals/ai/Poole97}, and ProbLog
+\citep{DBLP:conf/ijcai/RaedtKT07}---are promising frameworks for codifying
+complex SRL models. With the enhanced structure, however, inference becomes more
+challenging as algorithms have to correctly handle hard and soft logical
+constraints. At the moment, we have no precise way of evaluating and comparing
+different inference algorithms. Incidentally, if one were to survey the
+literature, one often finds that an inference algorithm is only tested on 1--4
+data sets
+\citep{DBLP:journals/tplp/KimmigDRCR11,DBLP:conf/ecai/BruynoogheMKGVJR10,DBLP:conf/ijcai/VlasselaerBKMR15},
+originating from areas such as social networks, citation patterns, and
+biological data. But how confidently can we claim that an algorithm works well
+if it is only tested on a few types of problems?
+
+About thirty years ago, SAT solving technology was dealing with a similar lack
+of clarity \citep{DBLP:journals/ai/SelmanML96}. This changed with the study of
+generation of random SAT instances against different input parameters (e.g.,
+clause length and total number of variables) to better understand the behaviour
+of algorithms and their ability to solve random synthetic problems.
+Unfortunately, in the context of probabilistic logic programming, most current
+approaches to random instance generation are very restrictive, e.g., limited to
+clauses with only two literals \citep{DBLP:conf/lpnmr/NamasivayamT09}, or to
+clauses of the form $a \gets \neg b$ \citep{DBLP:journals/tocl/WenWSL16},
+although some are more expressive, e.g., defining a program only by the
+(maximum) number of atoms in the body and the total number of rules
+\citep{DBLP:conf/iclp/ZhaoL03}.
+
+In this work, we introduce a constraint model for generating random logic
+programs according to a number of user-specified parameters on the structure of
+the program. In fact, the same model can generate both probabilistic programs
+directly in the syntax of ProbLog \citep{DBLP:conf/ijcai/RaedtKT07} and
+non-probabilistic Prolog programs. For generated probabilistic programs to be
+valid, we use a custom constraint to detect negative cycles. A major advantage
+of our constraint-based approach is that one can easily add additional
+constraints to the model. To demonstrate that, we present a custom constraint
+with propagation and entailment algorithms that can ensure predicate
+independence. We also present a combinatorial argument for correctness, counting
+the number of programs that the model produces for various parameter values.
+Finally, we show how the model scales when tasked with producing more
+complicated programs and identify the relationships between parameter values and
+the empirical hardness of the program generation task.
+
+Overall, our main contributions are concerned with logic programming-based
+languages and frameworks, which capture a major fragment of SRL
+\citep{DBLP:series/synthesis/2016Raedt}. However, since probabilistic logic
+programming languages are closely related to other areas of machine learning,
+including (imperative) probabilistic programming
+\citep{DBLP:journals/ml/RaedtK15}, our results can lay the foundations for
+exploring broader questions on generating models and testing algorithms in
+machine learning.
 
 \section{PRELIMINARIES}
 
 The basic primitives of logic programs are \emph{constants}, \emph{(logic)
   variables}, and \emph{predicates}. Each predicate has an \emph{arity} that
-defines the number of terms that it can applied to. A \emph{term} is either a
+defines the number of terms that it can be applied to. A \emph{term} is either a
 variable or a constant, and an \emph{atom} is a predicate of arity $n$ applied
 to $n$ terms. A \emph{formula} is a grammatically-valid expression that connects
 atoms using conjunction ($\land$), disjunction ($\lor$), and negation ($\neg$).
@@ -255,17 +277,10 @@ Let
   \[
     P = \{ h.\variable{predicate} \mid h \in \variable{heads} \}.
   \]
-  Then
-  \[
-    \variable{nValues}(P) =
-    \begin{cases}
-      |\predicates{}| + 1 & \text{if } \variable{count}(\Box, P) > 0 \\
-      |\predicates{}| & \text{otherwise.}
-    \end{cases}
-  \]
+  Then $\variable{nValues}(P) = |\predicates{}|$ if $\variable{count}(\Box, P) =
+  0$ and $|\predicates{}| + 1$ otherwise, where $\variable{nValues}(P)$ counts
+  the number of unique values in $P$.
 \end{constraint}
-
-Here, $\variable{nValues}(P)$ counts the number of unique values in $P$.
 
 \section{BODIES OF CLAUSES} \label{sec:bodies}
 
@@ -434,8 +449,8 @@ the meaning of the clause or the entire program. Thus, we want to fix the order
 of variables to eliminate unnecessary symmetries. Informally, we can say that
 variable $X$ goes before variable $Y$ if the first occurrence of $X$ in either
 the head or the body of the clause is before the first occurrence of $Y$. Note
-that the constrains described in this section only make sense if $|\variables| >
-1$. Also note that all definitions and constraints here are on a per-clause
+that the constraints described in this section only make sense if $|\variables| >
+1$. Also, note that all definitions and constraints here are on a per-clause
 basis.
 
 \begin{definition}
@@ -501,8 +516,7 @@ representation of a clause.
 \subsection{REDUNDANT CONSTRAINTS}
 
 We add a number of redundant constraints to make search more efficient. First,
-we can formally state that the positions occupied by different terms must be
-different:
+we can state that the positions occupied by different terms must be different:
 
 \begin{constraint} \label{constraint:all_diff}
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
@@ -555,11 +569,11 @@ in the tree representation of a clause cannot have variables as arguments:
 
 \section{COUNTING PROGRAMS} \label{sec:counting}
 
-In order to demonstrate the correctness of the model and explain it in more
+To demonstrate the correctness of the model and explain it in more
 detail, in this section we are going to derive combinatorial expressions for
 counting the number of programs with up to $\maxNumClauses{}$ clauses and up to
 $\maxNumNodes{}$ nodes per clause, and arbitrary $\predicates{}$,
-$\arities{}$, $\variables{}$, and $\constants{}$\footnote{We checked that the
+$\arities{}$, $\variables{}$, and $\constants{}$\footnote{We checked that
   our model agrees with the derived combinatorial formula in close to a thousand
   different scenarios. The details of this empirical investigation are omitted
   as they are not crucial to the thrust of this paper.}. To simplify the task,
@@ -649,7 +663,7 @@ also describe efficient algorithms for propagation and entailment checking.
   the edge is \emph{negative} if there exists a clause with $\mathsf{Q}$ as the
   head and at least one instance of $\mathsf{P}$ at the body such that the path
   from the root to the $\mathsf{P}$ node in the tree representation of the
-  clause passes through at least one negation node. Otherwise it is
+  clause passes through at least one negation node. Otherwise, it is
   \emph{positive}. We say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a
   \emph{negative cycle} if $G_{\mathscr{P}}$ has a cycle with at least one
   negative edge.
@@ -721,7 +735,7 @@ detection in the next section.
     &&= \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent} \}.
   \end{alignat*}
   Hence, we have two pairs of independent predicates, i.e., $\mathsf{mother}$ is
-  independent from $\mathsf{parent}$ and $\mathsf{sibling}$.
+  independent of $\mathsf{parent}$ and $\mathsf{sibling}$.
 \end{example}
 
 We can now add a constraint to define an adjacency matrix for the predicate
@@ -734,11 +748,8 @@ dependency graph but without positivity/negativity:
   \[
     \variable{heads}[k].\variable{predicate} \ne j
   \]
-  or
-  \[
-    i \not\in \{a.\variable{name} \mid a \in
-    \variable{bodies}[k].\variable{values} \}.
-  \]
+  or $ i \not\in \{a.\variable{name} \mid a \in
+  \variable{bodies}[k].\variable{values} \}$.
 \end{definition}
 
 Given an undetermined model, we can classify all dependencies of a predicate
@@ -944,17 +955,17 @@ as intended.
 \end{example}
 
 \section{NEGATIVE CYCLES} \label{sec:cycles}
+% although some work has been done in overcoming this limitation
+% \citep{DBLP:journals/ijar/BuchmanP17}
 
-Having no negative cycles in the predicate dependency graph is a requirement for
-probabilistic logic programming language ProbLog \citep{kimmig2009trading},
-although it has been shown how the requirement can be alleviated by introducing
-negative probabilities \citep{DBLP:journals/ijar/BuchmanP17}. Ideally, we would
-like to design a constraint for negative cycles similar to the constraint for
-independence in the previous section. However, the difficulty with creating a
-propagation algorithm for negative cycles is that there seems to be no good way
-to extend \cref{def:adjacency_matrix} so that the adjacency matrix captures
-positivity/negativity. Thus, we settle for an entailment algorithm with no
-propagation.
+Having no negative cycles in the predicate dependency graph is a requirement of
+ProbLog that makes the program well-defined \citep{kimmig2009trading}. Ideally,
+we would like to design a constraint for negative cycles similar to the
+constraint for independence in the previous section. However, the difficulty
+with creating a propagation algorithm for negative cycles is that there seems to
+be no good way to extend \cref{def:adjacency_matrix} so that the adjacency
+matrix captures positivity/negativity. Thus, we settle for an entailment
+algorithm with no propagation.
 
 \begin{algorithm}
   \KwData{a program $\mathscr{P}$}
@@ -1054,13 +1065,13 @@ predicates (such that $\maxArity{}$ occurs at least once) and ten random
 combinations of independent pairs. We then run the solver with a
 \SI{60}{\second} timeout.
 
-The vast majority (\SI{97.7}{\percent}) of runs finished in under
-\SI{1}{\second}, while four instances timed out: all with $|\predicates| =
-\maxNumClauses{} - |\predicates{}| = \maxNumNodes{} = 8$ and the remaining
-parameters all different. This suggests that---regardless of parameter
-values---most of the time a solution can be identified instantaneously while
-occasionally a series of wrong decisions can lead the solver into a part of the
-search space with no solutions.
+The majority (\SI{97.7}{\percent}) of runs finished in under \SI{1}{\second},
+while four instances timed out: all with $|\predicates| = \maxNumClauses{} -
+|\predicates{}| = \maxNumNodes{} = 8$ and the remaining parameters all
+different. This suggests that---regardless of parameter values---most of the
+time a solution can be identified instantaneously while occasionally a series of
+wrong decisions can lead the solver into a part of the search space with no
+solutions.
 
 In \cref{fig:impact}, we plot how the mean number of nodes in the binary search
 tree grows as a function of each parameter (the plot for the median is very
@@ -1100,25 +1111,26 @@ and we can either quickly find a solution or identify that there is none.
 % up to $\maxNumNodes{}$ nodes---because the number of possible trees with $n$
 % nodes grows with $n$---it is much more likely to have $\maxNumNodes{}$ or
 % $\maxNumNodes{} - 1$ nodes than, e.g., one or two.
+% 5. It can easily be shown that all generated logic programs are satisfiable
+% 6. Logic programs typically only have a single conjunction with literals, but
+% we can easily adapt the model to handle that.
 
-\section{CONCLUSIONS \& FUTURE WORK}
+\section{CONCLUSIONS}
 
 We were able to design an efficient model for generating both logic programs and
 probabilistic logic programs. The model avoids unnecessary symmetries, generates
-valid programs, and can ensure predicate independence. Note that our model
-treats logically equivalent but syntactically different formulas as different.
-While there are many situations where one would prefer to eliminate them like
-symmetries, there are also situations where we do care about enumerating
-different ways to express the same probability distribution or knowledge base.
-For instance, one could look for the `best' logically equivalent formula, or
-investigate whether some formulas result in faster inference than others.
+valid programs, and can ensure predicate independence. Our constraint-driven
+approach is advantageous in that one can easily add additional conditions on the
+structure and properties of the program, although the main disadvantage is
+that there are no guarantees about the underlying probability distribution from
+which programs are sampled.
 
-Another topic worth mentioning is randomness. Most random models sample from a
-well-defined probability distribution whereas a constraint model, while
-sufficiently random, provides no such guarantees. In future work, it would be
-interesting to examine the probability distribution of logic programs as
-generated by our model, although it is not obvious how such a probability
-distribution could be characterised.
+In addition, note that our model treats logically equivalent but syntactically
+different formulas as different. This is so in part because designing a
+constraint for logical equivalence fell outside the scope of this work and in
+part because in some situations one might want to enumerate all ways to express
+the same probability distribution or knowledge base, e.g., to investigate
+whether inference algorithms are robust to changes in representation.
 
 %\subsubsection*{Acknowledgements}
 
