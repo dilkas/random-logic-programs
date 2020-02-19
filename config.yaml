@@ -1,0 +1,8 @@
+independentPairs:
+  - predicate1: p
+    predicate2: q
+    condition:
+      operator: AND
+      predicates:
+        - r
+        - s

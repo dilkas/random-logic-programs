@@ -1,4 +1,4 @@
-package main;
+package model;
 
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;

@@ -1,7 +1,7 @@
 package propagators;
 
-import main.Body;
-import main.Token;
+import model.Body;
+import model.Token;
 import org.chocosolver.solver.variables.IntVar;
 
 /** Used to represent the condition part of a conditional independence expression */

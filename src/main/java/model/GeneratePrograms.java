@@ -1,4 +1,4 @@
-package main;
+package model;
 
 import java.io.*;
 import java.util.*;
@@ -12,6 +12,8 @@ class GeneratePrograms {
 
     private static final double[] DEFAULT_PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
             1, 1, 1, 1, 1, 1};
+    private static final int NUM_SOLUTIONS = 1000;
+    private static final String OUTPUT_DIRECTORY = "../programs/";
 
     private static void checkNumPrograms() throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader("../program_counts.csv"));
@@ -232,6 +234,10 @@ class GeneratePrograms {
         }
     }
 
+    //private runAccordingToConfig() {
+        //ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    //}
+
     public static void main(String[] args) throws IOException {
         //checkNumPrograms();
         //generateSmallPrograms();
@@ -242,6 +248,6 @@ class GeneratePrograms {
                 ForbidCycles.NONE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1, 1}, new String[]{"X"},
                 new String[]{}, new PredicatePair[]{new PredicatePair(predicates, "p", "q",
                 new Condition(Token.AND, new String[]{"r", "s"}, predicates))});
-        p.saveProgramsToFiles(1000, "../programs/");
+        p.saveProgramsToFiles(NUM_SOLUTIONS, OUTPUT_DIRECTORY);
     }
 }

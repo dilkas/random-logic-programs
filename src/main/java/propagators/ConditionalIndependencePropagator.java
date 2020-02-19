@@ -1,6 +1,6 @@
 package propagators;
 
-import main.Program;
+import model.Program;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;

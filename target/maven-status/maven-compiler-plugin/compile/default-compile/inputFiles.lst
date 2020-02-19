@@ -1,0 +1,8 @@
+/home/paulius/phd_work/random-logic-programs/src/main/java/propagators/Condition.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/propagators/Sign.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/propagators/dependencies/Status.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/propagators/NegativeCyclePropagator.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/propagators/IndependencePropagator.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/propagators/dependencies/Dependency.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/propagators/SignedPredicate.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/propagators/ConditionalIndependencePropagator.java
