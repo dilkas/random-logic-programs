@@ -1,0 +1,237 @@
+\documentclass{article}
+\usepackage[UKenglish]{babel}
+\usepackage[UKenglish]{isodate}
+\usepackage[utf8]{inputenc}
+\usepackage{fullpage}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{xfrac}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\newcommand{\maxNumNodes}{\mathcal{M}_{\mathcal{N}}}
+\newcommand{\maxNumClauses}{\mathcal{M}_{\mathcal{C}}}
+\newcommand{\maybe}{\sfrac{1}{2}}
+
+\author{Paulius Dilkas}
+\title{A Constraint for Conditional Independence}
+
+\begin{document}
+\maketitle
+% TODO: predicates should always be the first dimension, indices the second
+
+Goal: conditional independence of two predicates conditioned on a
+conjunction/disjunction of any number of predicates or a negation of a
+predicate.
+
+Central question: does this clause contain this predicate (filtering out
+the possibility that the predicate is mentioned in the conditioning part)? We
+can answer this question by iterating over each position and answering two other
+questions:
+\begin{itemize}
+\item Does this position contain this predicate? Yes/No/Maybe.
+\item Is this position part of the structure we are conditioning on? Yes/No/Maybe.
+\end{itemize}
+
+For each clause, we have two position x predicate matrices. One of them says (in
+a yes/no/maybe fashion) whether this predicate can be in this position (that's
+A). The other says whether this predicate is masked in this position
+(yes/no/maybe).
+
+The propagation algorithm for independence is extended with masks that are
+either potential or definite. Masking happens in two stages: first, we mask
+expressions within formulas, and then predicates. Masking algorithm uses an
+algorithm for perfect bipartite matching.
+
+For any integer $n$, let $[n] = \{ 0, 1, \dots, n-1 \}$.
+
+\begin{definition}[Conditional independence]
+  When assigning edges to the graph, mask off all possible instances of the
+  expression we're conditioning on. For example, if we're conditioning on $a
+  \land b$, then $c \gets a \land a \land b$ should produce no edges.
+\end{definition}
+
+\begin{definition}
+  A predicate is \emph{definitely masked} if all instances are definitely
+  masked. A predicate is \emph{potentially masked} if all instances are
+  definitely/potentially masked.
+\end{definition}
+
+\begin{definition}[Primitives]
+  For each clause, let $\mathbf{P}$ be a $\maxNumNodes{} \times |\mathcal{P}
+  \cup \{ \land, \lor, \neg \}|$ matrix defined as
+  \[
+    P_{p,i} = \begin{cases}
+      1 & \text{if } \mathtt{values}[i] = \{ p \} \\
+      0 & \text{otherwise.}
+    \end{cases}
+  \]
+  This matrix shows what symbol can (or must) be in what position.
+
+  Likewise, let $\mathbf{C}$ be a $\maxNumNodes{} \times \maxNumNodes{}$ matrix
+  defined as
+  \[
+    C_{i,j} = \begin{cases}
+      1 & \text{if } \mathtt{structure}[i] = \{ j \} \\
+      0 & \text{otherwise.}
+    \end{cases}
+  \]
+  The $(i,j)$-th element shows whether node $i$ can be a child of node $j$.
+\end{definition}
+
+\begin{table}
+  \centering
+  \caption{Combining $\mathbf{M}$ and $\mathbf{P}$. The $\#$ stands for `impossible'.}
+  \begin{tabular}{lll}
+    \toprule
+    & $P = 1$ & $P = 0$ \\
+    \midrule
+    $M = 1$ & $0$ & $\#$ \\
+    $M = 0$ & $1$ & $0$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+% P and C could be functions instead
+
+\begin{algorithm}
+  \caption{Constructing the adjacency matrix $\mathbf{A}$}
+  \SetKwFunction{constructMask}{constructMask}
+  \SetKwFunction{upgradeTo}{upgradeTo}
+  $\mathbf{A} \gets \mathbf{0}_{|\mathcal{P}|, |\mathcal{P}|}$\;
+  \ForEach{clause $c$}{
+    Construct $\mathbf{P}$ and $\mathbf{C}$\;
+    $\mathbf{M} \gets \constructMask{$\odot$, $\mathcal{C}$} $\;
+    Let $\mathbf{A'} \in \{ 0, \maybe{}, 1 \}^{|\mathcal{P}| \times
+      \maxNumNodes{}}$ be such that $A'_{i,j} = \begin{cases}
+      0 & \text{if } P_{i,j} = M_{i,j} \ne \maybe{} \\
+      1 & \text{if } P_{i,j} = 1 \text{ and } M_{i,j} = 0 \\
+      \maybe{} & \text{otherwise}
+    \end{cases}$\;
+    \For{$h \in \mathtt{head}[c]$}{
+      \For{$p \in \mathcal{P}$}{
+        \For{$i \in [\maxNumNodes{}]$}{
+          \uIf{$|\mathtt{head}[c]| = 1$ {\bf and } $A'_{p,i} = 1$}{
+            $A_{h \gets p}.\upgradeTo{$1$}$\;
+          }
+          \ElseIf{$|\mathtt{head}[c]| = 1$ {\bf and} $A'_{p,i} = \maybe{}$}{
+            $A_{h \gets p}.\upgradeTo{$\maybe{}$}$\;
+          }
+        }
+      }
+    }
+  }
+\end{algorithm}
+
+The adjacency matrix $\mathbf{A} \in \{ 0, \maybe{}, 1 \}^{|\mathcal{P}| \times
+  |\mathcal{P}|}$ is defined as:
+\[
+  A[h \gets p] = \begin{cases}
+    1 & \text{if } \exists c \in [\maxNumClauses{}]: \mathtt{head}[c] = \{ h
+    \} \text{ and } \exists i \in [\maxNumNodes{}]: A_{c;p,i} = 1 \\
+    0 & \text{otherwise}
+  \end{cases}\;
+\]
+
+How does this propagate back to the variables? Each `maybe' edge should hold a
+set of (variable, value) pairs that can be eliminated if the propagation
+algorithm decides that it cannot exist. Problem: propagating through
+$\mathbf{A'}$ would mean propagating through $\mathbf{M}$ and $\mathbf{P}$. If
+they're both uncertain, then we can't do anything. If $\mathbf{P}$ is uncertain,
+we can remove the predicate, but if $\mathbf{M}$ is uncertain, there might be
+multiple ways to complete the mask.
+
+Essentially, we have three layers, i.e., we build two layers of abstraction on
+top of the CP model. We make a decision on the top layer, and propagate the
+changes to the bottom layers. A weakness is that some high-level problems can
+have multiple solutions in the bottom layers, in which case we can't commit to
+any particular solution and so can't do anything.
+
+\begin{algorithm}
+  \caption{Construct the mask matrix $\mathbf{M}$}
+  \SetKwProg{Fn}{Function}{:}{}
+  \SetKwFunction{markIndices}{markIndices}
+  \SetKwFunction{constructMask}{constructMask}
+  \KwData{the expression we are conditioning on: $\bigodot_{\mathsf{p} \in
+      \mathcal{C}} \mathsf{p}$}
+  \Fn{\constructMask{$\odot$, $\mathcal{C}$}}{
+    $\mathbf{M} = \mathbf{0}_{|\mathcal{P}|, \maxNumNodes{}}$\;
+    \For(\tcp*[h]{for each possible root}){$r \in [\maxNumNodes{}]$ such that
+      $P_{r,\odot} \ne 0$}{
+      $E \gets \{ \{p, i\} \mid p \in \mathcal{P}, i \in [\maxNumNodes{}],
+      C_{i,r} \ne 0, P_{i,p} \ne 0 \}$\;
+      $\mathbf{M'} \gets \markIndices{$(\mathcal{P}, [\maxNumNodes{}], E)$,
+        $\maybe{}$}$\tcp*[l]{potential positions}
+      $\mathbf{M} \gets \max\{ \mathbf{M}, \mathbf{M'}\}$\;
+      \If{$P_{r,\odot} = 1$ {\bf and} $\mathbf{M'} \ne \mathbf{0}$}{
+        $E \gets \{ \{p, i\} \mid p \in \mathcal{P}, i \in [\maxNumNodes{}],
+        C_{i,r} = 1, P_{i,p} = 1, M'_{p,i} \ne 0 \}$\;
+        % Because this M is a subset of the previous M
+        $\mathbf{M} \gets \max \{ \mathbf{M}, \markIndices{$(\mathcal{P},
+          [\maxNumNodes{}], E)$, $1$} \}$\tcp*[l]{determined positions}
+      }
+    }
+    \Return{$\mathbf{M}$}\;
+  }
+\end{algorithm}
+
+\begin{algorithm}
+  \caption{Predicate-perfect bipartite matching}
+  \SetKwProg{Fn}{Function}{:}{}
+  \SetKwFunction{markIndices}{markIndices}
+  \KwData{a bipartite graph $G = (\mathcal{P}, \mathcal{I}, E)$
+    (predicates and indices) and the value $v$ to use for the matrix ($1$ or
+    $\maybe{}$)}
+  \KwResult{a $|\mathcal{P}| \times |\mathcal{I}|$ mask matrix $\mathbf{M}$}
+  \Fn{\markIndices{$G$, $v$}}{
+    $\mathbf{M} \gets \mathbf{0}_{|\mathcal{P}|,\maxNumNodes{}}$\;
+    \lIf{$|\mathcal{I}| < |\mathcal{P}|$}{\Return{$\mathbf{M}$}}
+    \While{true}{
+      Let $(p, i) \in E$ be such that $M_{p,i} = 0$\;
+      \lIf{there is none}{break}
+      Let $G'$ be $G$ without vertices $p$, $i$ and all the incident edges\;
+      Use alternating paths to find a $\mathcal{P}$-perfect matching $P$ in $G'$\;
+      \uIf{found}{
+        \lForEach{edge $(p', i') \in P$}{$M_{p',i'} = v$}
+      }
+      \Else{
+        remove $e$ from $G$\;
+        \lIf{this leaves an isolated vertex}{break}
+      }
+    }
+    \Return{$\mathbf{M}$}\;
+  }
+\end{algorithm}
+
+% TODO: need a way to prove the correctness of the algorithm. I'm not sure how I
+% would approach empirical testing, so maybe do a proof instead.
+
+% \begin{algorithm}
+%   \SetKwProg{Fn}{Function}{:}{}
+%   \SetKwFunction{potentialRoots}{potentialRoots}
+%   \SetKwFunction{getTreeValues}{getTreeValues}
+%   \SetKwFunction{getTreeStructureDomainValues}{getTreeStructureDomainValues}
+%   \SetKwData{clause}{clause}
+%   \KwData{connective $c$, a set of predicates $P$}
+%   \Fn{\potentialRoots{\clause, $i$}} {
+%     $R \gets \emptyset$\;
+%     $V \gets \clause.\getTreeValues{$i$}$\;
+%     \For{$v \in V$}{
+%       \uIf{$v = c$}{
+%         $R \gets R \cup \{ (i, |V| = 1) \}$\;
+%       }
+%       \ElseIf{$v \in P$}{
+%         $R' \gets \clause.\getTreeStructureDomainValues{$i$}$\;
+%         $R \gets R \cup \{ (r, |R'| = 1) \mid r \in R' \}$\;
+%       }
+%     }
+%     \Return{$R$}\;
+%   }
+%   \caption{Potential root nodes of the required expression, assuming that the
+%     node at index $i$ is part of the expression}
+% \end{algorithm}
+
+\end{document}

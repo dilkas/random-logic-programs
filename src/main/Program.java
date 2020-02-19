@@ -3,6 +3,7 @@ package main;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
+import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.extension.Tuples;
 import org.chocosolver.solver.search.limits.FailCounter;
 import org.chocosolver.solver.search.strategy.Search;
@@ -13,6 +14,7 @@ import org.chocosolver.solver.search.strategy.strategy.StrategiesSequencer;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.SetVar;
 import org.chocosolver.util.tools.ArrayUtils;
+import propagators.ConditionalIndependencePropagator;
 import propagators.IndependencePropagator;
 import propagators.NegativeCyclePropagator;
 
@@ -32,16 +34,17 @@ public class Program {
 
     int maxNumNodes;
     int maxArity;
-    String[] predicates;
+    public String[] predicates;
     String[] variables;
     String[] constants;
 
     Tuples aritiesTable; // used in defining constraints
 
+    public IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
+    public Body[] bodies; // the body of each clause
+
     private Model model;
-    private IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
     private Head[] clauseHeads; // full heads (predicates, variables, constants)
-    private Body[] bodies; // the body of each clause
     private IntVar[][] introductions; // for eliminating variable symmetries
     private java.util.Random rng;
 
@@ -59,6 +62,7 @@ public class Program {
         maxArity = Arrays.stream(arities).max().getAsInt();
 
         // Set up constraints
+        assert(maxNumClauses >= predicates.length);
         setUpMainConstraints();
         setUpVariableSymmetryElimination();
         setUpIndependenceConstraints();
@@ -221,10 +225,17 @@ public class Program {
                 model.ifOnlyIf(noEdge, model.and(clausesAssignedToJHaveNoI));
             }
         }
-        for (int i = 0; i < independentPairs.length; i++)
-            new Constraint("independence " + i,
-                    new IndependencePropagator(adjacencyMatrix, independentPairs[i].getFirst(),
-                            independentPairs[i].getSecond())).post();
+        for (int i = 0; i < independentPairs.length; i++) {
+            Propagator<IntVar> propagator;
+            if (independentPairs[i].isConditional()) {
+                propagator = new ConditionalIndependencePropagator(independentPairs[i].getFirst(),
+                        independentPairs[i].getSecond(), independentPairs[i].getCondition(), this);
+            } else {
+                propagator = new IndependencePropagator(adjacencyMatrix, independentPairs[i].getFirst(),
+                        independentPairs[i].getSecond());
+            }
+            new Constraint("independence " + i, propagator).post();
+        }
     }
 
     // ================================================== SOLVING ==================================================
@@ -271,12 +282,8 @@ public class Program {
             solver.showContradiction();
         }
         for (int i = 0; i < numSolutions && solver.solve(); i++) {
-            StringBuilder program = new StringBuilder();
-            for (int j = 0; j < maxNumClauses; j++)
-                program.append(clauseToString(j, rng));
-
             BufferedWriter writer = new BufferedWriter(new FileWriter(directory + i + ".pl"));
-            writer.write(program.toString());
+            writer.write(toString());
             writer.close();
         }
     }
@@ -296,6 +303,15 @@ public class Program {
 
     // ================================================== OUTPUT ==================================================
 
+    /** For fully-determined programs */
+    @Override
+    public String toString() {
+        StringBuilder program = new StringBuilder();
+        for (int i = 0; i < maxNumClauses; i++)
+            program.append(clauseToString(i, rng));
+        return program.toString();
+    }
+
     /** The entire clause, i.e., both body and head */
     private String clauseToString(int i, java.util.Random rng) {
         // Is this clause disabled?
@@ -311,8 +327,35 @@ public class Program {
 
         String body = bodies[i].toString();
         String head = clauseHeads[i].toString();
-        if (body.equals("."))
+        if (body.equals("T."))
             return probabilityString + head+ ".\n";
         return probabilityString + head + " :- " + body + "\n";
     }
+
+    /** For partially-determined programs */
+    public void basicToString() {
+        System.out.println("====================");
+        for (int i = 0; i < clauseAssignments.length; i++) {
+            // Print the head
+            String head;
+            if (clauseAssignments[i].getDomainSize() == 1) {
+                int value = clauseAssignments[i].getValue();
+                if (value < predicates.length) {
+                    head = predicates[value];
+                } else {
+                    head = "<none>";
+                }
+            } else {
+                head = "?";
+            }
+            System.out.println("Head: " + head);
+            if (head.equals("<none>"))
+                continue;
+
+            // Print the body
+            bodies[i].basicToString();
+        }
+        System.out.println("====================");
+    }
+
 }

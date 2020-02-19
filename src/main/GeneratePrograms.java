@@ -4,6 +4,7 @@ import java.io.*;
 import java.util.*;
 
 import org.chocosolver.util.tools.ArrayUtils;
+import propagators.Condition;
 
 import static java.util.stream.Collectors.toList;
 
@@ -236,10 +237,11 @@ class GeneratePrograms {
         //generateSmallPrograms();
         //generateBigPrograms(Arrays.asList(1, 2, 4, 8));
 
-        String[] predicates = new String[]{"p", "q", "r"};
-        Program p = new Program(3, 3,
-                ForbidCycles.NONE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1}, new String[0],
-                new String[]{"a"}, new PredicatePair[]{new PredicatePair(predicates, "p", "q")});
+        String[] predicates = new String[]{"p", "q", "r", "s"};
+        Program p = new Program(3, 4,
+                ForbidCycles.NONE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1, 1}, new String[]{"X"},
+                new String[]{}, new PredicatePair[]{new PredicatePair(predicates, "p", "q",
+                new Condition(Token.AND, new String[]{"r", "s"}, predicates))});
         p.saveProgramsToFiles(1000, "../programs/");
     }
 }

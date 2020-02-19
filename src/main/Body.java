@@ -97,7 +97,7 @@ public class Body {
         return arguments;
     }
 
-    IntVar[] getPredicates() {
+    public IntVar[] getPredicates() {
         IntVar[] predicates = new IntVar[treeValues.length];
         for (int i = 0; i < treeValues.length; i++)
             predicates[i] = treeValues[i].getPredicate();
@@ -115,11 +115,21 @@ public class Body {
         return variables;
     }
 
-    IntVar[] getTreeStructure() {
+    public IntVar[] getTreeStructure() {
         return treeStructure;
     }
 
     // ======================================== OTHER GETTERS ========================================
+
+    public boolean allDetermined() {
+        for (IntVar v : treeStructure)
+            if (v.getDomainSize() != 1)
+                return false;
+        for (Node node : treeValues)
+            if (node.getPredicate().getDomainSize() != 1)
+                return false;
+        return true;
+    }
 
     /** A list of predicates featured in this clause. The sign of each predicate denotes whether the predicate is
      * negated or not (after unfolding all the logical connectives). */
@@ -174,6 +184,12 @@ public class Body {
 
     // ================================================== OUTPUT ==================================================
 
+    /** For fully-determined bodies */
+    @Override
+    public String toString() {
+        return treeToString(0) + ".";
+    }
+
     private String treeToString(int i) {
         int value = treeValues[i].getPredicate().getValue();
         if (value >= Token.TRUE.ordinal())
@@ -197,8 +213,49 @@ public class Body {
         return output.toString();
     }
 
-    @Override
-    public String toString() {
-        return treeToString(0) + ".";
+    /** For partially-determined bodies */
+    void basicToString() {
+        System.out.println("Structure: " + structureToString());
+        System.out.println("Values:    " + valuesToString());
+    }
+
+    private String structureToString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{");
+        for (int i = 0; i < treeStructure.length; i++) {
+            if (i > 0)
+                builder.append(" ");
+            if (treeStructure[i].getDomainSize() == 1) {
+                builder.append(treeStructure[i].getValue());
+            } else {
+                builder.append("?");
+            }
+        }
+        builder.append("}");
+        return builder.toString();
+    }
+
+    private String valuesToString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{");
+        for (int i = 0; i < treeValues.length; i++) {
+            if (i > 0)
+                builder.append(" ");
+            IntVar predicate = treeValues[i].getPredicate();
+            if (predicate.getDomainSize() == 1) {
+                int value = predicate.getValue();
+                if (value < Token.TRUE.ordinal()) {
+                    builder.append(Token.values()[value]);
+                } else if (value == Token.TRUE.ordinal()) {
+                    builder.append("T");
+                } else {
+                    builder.append(program.predicates[value - Token.values().length]);
+                }
+            } else {
+                builder.append("?");
+            }
+        }
+        builder.append("}");
+        return builder.toString();
     }
 }
