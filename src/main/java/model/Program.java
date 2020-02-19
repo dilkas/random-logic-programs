@@ -228,11 +228,9 @@ public class Program {
         for (int i = 0; i < independentPairs.length; i++) {
             Propagator<IntVar> propagator;
             if (independentPairs[i].isConditional()) {
-                propagator = new ConditionalIndependencePropagator(independentPairs[i].getFirst(),
-                        independentPairs[i].getSecond(), independentPairs[i].getCondition(), this);
+                propagator = new ConditionalIndependencePropagator(independentPairs[i], this);
             } else {
-                propagator = new IndependencePropagator(adjacencyMatrix, independentPairs[i].getFirst(),
-                        independentPairs[i].getSecond());
+                propagator = new IndependencePropagator(adjacencyMatrix, independentPairs[i], predicates);
             }
             new Constraint("independence " + i, propagator).post();
         }

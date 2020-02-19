@@ -1,5 +1,6 @@
 package propagators;
 
+import model.PredicatePair;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
 import org.chocosolver.solver.variables.IntVar;
@@ -18,11 +19,11 @@ public class IndependencePropagator extends Propagator<IntVar> {
     private int predicate1;
     private int predicate2;
 
-    public IndependencePropagator(IntVar[][] adjacencyMatrix, int predicate1, int predicate2) {
+    public IndependencePropagator(IntVar[][] adjacencyMatrix, PredicatePair independentPair, String[] predicates) {
         super(ArrayUtils.flatten(adjacencyMatrix));
         this.adjacencyMatrix = adjacencyMatrix;
-        this.predicate1 = predicate1;
-        this.predicate2 = predicate2;
+        predicate1 = PredicatePair.toInt(predicates, independentPair.getFirst());
+        predicate2 = PredicatePair.toInt(predicates, independentPair.getSecond());
     }
 
     @Override

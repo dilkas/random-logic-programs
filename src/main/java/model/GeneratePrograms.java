@@ -3,6 +3,8 @@ package model;
 import java.io.*;
 import java.util.*;
 
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.chocosolver.util.tools.ArrayUtils;
 import propagators.Condition;
 
@@ -115,7 +117,7 @@ class GeneratePrograms {
         List<PredicatePair> pairs = new LinkedList<>();
         for (int i = 0; i < predicates.length; i++)
             for (int j = i + 1; j < predicates.length; j++)
-                pairs.add(new PredicatePair(predicates, predicates[i], predicates[j]));
+                pairs.add(new PredicatePair(predicates[i], predicates[j]));
             return pairs;
     }
 
@@ -234,9 +236,9 @@ class GeneratePrograms {
         }
     }
 
-    //private runAccordingToConfig() {
-        //ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
-    //}
+    private void runAccordingToConfig() {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+    }
 
     public static void main(String[] args) throws IOException {
         //checkNumPrograms();
@@ -246,7 +248,7 @@ class GeneratePrograms {
         String[] predicates = new String[]{"p", "q", "r", "s"};
         Program p = new Program(3, 4,
                 ForbidCycles.NONE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1, 1}, new String[]{"X"},
-                new String[]{}, new PredicatePair[]{new PredicatePair(predicates, "p", "q",
+                new String[]{}, new PredicatePair[]{new PredicatePair("p", "q",
                 new Condition(Token.AND, new String[]{"r", "s"}, predicates))});
         p.saveProgramsToFiles(NUM_SOLUTIONS, OUTPUT_DIRECTORY);
     }

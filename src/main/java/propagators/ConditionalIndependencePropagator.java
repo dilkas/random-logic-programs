@@ -1,5 +1,6 @@
 package propagators;
 
+import model.PredicatePair;
 import model.Program;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -12,17 +13,17 @@ import java.util.Set;
 public class ConditionalIndependencePropagator extends Propagator<IntVar> {
 
     private boolean[][] adjacencyMatrix;
+    private Program program;
+    private PredicatePair independentPair;
     private int predicate1;
     private int predicate2;
-    private Program program;
-    private Condition condition;
 
-    public ConditionalIndependencePropagator(int predicate1, int predicate2, Condition condition, Program program) {
+    public ConditionalIndependencePropagator(PredicatePair independentPair, Program program) {
         super(NegativeCyclePropagator.constructDecisionVariables(program.clauseAssignments, program.bodies));
-        this.predicate1 = predicate1;
-        this.predicate2 = predicate2;
+        this.independentPair = independentPair;
         this.program = program;
-        this.condition = condition;
+        predicate1 = PredicatePair.toInt(program.predicates, independentPair.getFirst());
+        predicate2 = PredicatePair.toInt(program.predicates, independentPair.getSecond());
     }
 
     @Override
@@ -36,7 +37,8 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
     @Override
     public ESat isEntailed() {
         //program.basicToString();
-        adjacencyMatrix = condition.constructAdjacencyMatrix(program.clauseAssignments, program.bodies);
+        adjacencyMatrix = independentPair.getCondition().constructAdjacencyMatrix(program.clauseAssignments,
+                program.bodies);
         //printAdjacencyMatrix();
         Set<Integer> dependencies1 = getDependencies(predicate1);
         Set<Integer> dependencies2 = getDependencies(predicate2);
