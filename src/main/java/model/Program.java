@@ -30,7 +30,7 @@ public class Program {
     private int maxNumClauses;
     private double[] probabilities;
     private int[] arities;
-    private PredicatePair[] independentPairs;
+    private IndependentPair[] independentPairs;
 
     int maxNumNodes;
     int maxArity;
@@ -50,7 +50,7 @@ public class Program {
 
     Program(int maxNumNodes, int maxNumClauses, ForbidCycles forbidCycles,
             double[] probabilities, String[] predicates, int[] aritiesTable, String[] variables, String[] constants,
-            PredicatePair[] independentPairs) {
+            IndependentPair[] independentPairs) {
         this.maxNumNodes = maxNumNodes;
         this.maxNumClauses = maxNumClauses;
         this.probabilities = probabilities;

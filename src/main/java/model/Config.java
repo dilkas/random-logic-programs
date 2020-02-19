@@ -3,13 +3,13 @@ package model;
 import java.util.List;
 
 class Config {
-    private List<PredicatePair> independentPairs;
+    private List<IndependentPair> independentPairs;
 
-    List<PredicatePair> getIndependentPairs() {
+    List<IndependentPair> getIndependentPairs() {
         return independentPairs;
     }
 
-    Config(List<PredicatePair> independentPairs) {
+    Config(List<IndependentPair> independentPairs) {
         this.independentPairs = independentPairs;
     }
 }

@@ -1,6 +1,6 @@
 package propagators;
 
-import model.PredicatePair;
+import model.IndependentPair;
 import model.Program;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.exception.ContradictionException;
@@ -14,16 +14,16 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
 
     private boolean[][] adjacencyMatrix;
     private Program program;
-    private PredicatePair independentPair;
+    private IndependentPair independentPair;
     private int predicate1;
     private int predicate2;
 
-    public ConditionalIndependencePropagator(PredicatePair independentPair, Program program) {
+    public ConditionalIndependencePropagator(IndependentPair independentPair, Program program) {
         super(NegativeCyclePropagator.constructDecisionVariables(program.clauseAssignments, program.bodies));
         this.independentPair = independentPair;
         this.program = program;
-        predicate1 = PredicatePair.toInt(program.predicates, independentPair.getFirst());
-        predicate2 = PredicatePair.toInt(program.predicates, independentPair.getSecond());
+        predicate1 = IndependentPair.toInt(program.predicates, independentPair.getFirst());
+        predicate2 = IndependentPair.toInt(program.predicates, independentPair.getSecond());
     }
 
     @Override

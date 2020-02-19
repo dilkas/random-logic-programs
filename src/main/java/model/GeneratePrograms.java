@@ -47,7 +47,7 @@ class GeneratePrograms {
             int predictedProgramCount = Integer.parseInt(data[6]);
 
             Program p = new Program(Integer.parseInt(data[4]), Integer.parseInt(data[5]), ForbidCycles.NONE,
-                    new double[]{1}, predicates, arities, variables, constants, new PredicatePair[0]);
+                    new double[]{1}, predicates, arities, variables, constants, new IndependentPair[0]);
 
             // Count the number of solutions
             int i = 0;
@@ -113,17 +113,17 @@ class GeneratePrograms {
         return possibilities;
     }
 
-    private static List<PredicatePair> generateAllPairsOfPredicates(String[] predicates) {
-        List<PredicatePair> pairs = new LinkedList<>();
+    private static List<IndependentPair> generateAllPairsOfPredicates(String[] predicates) {
+        List<IndependentPair> pairs = new LinkedList<>();
         for (int i = 0; i < predicates.length; i++)
             for (int j = i + 1; j < predicates.length; j++)
-                pairs.add(new PredicatePair(predicates[i], predicates[j]));
+                pairs.add(new IndependentPair(predicates[i], predicates[j]));
             return pairs;
     }
 
-    private static PredicatePair[] selectRandomSubset(List<PredicatePair> pairs, int M, Random rng) {
+    private static IndependentPair[] selectRandomSubset(List<IndependentPair> pairs, int M, Random rng) {
         int m = M;
-        PredicatePair[] selection = new PredicatePair[m];
+        IndependentPair[] selection = new IndependentPair[m];
         for (int i = 0; i < pairs.size(); i++) {
             if (rng.nextInt(pairs.size() - i) < m) {
                 selection[M - m] = pairs.get(i);
@@ -138,7 +138,7 @@ class GeneratePrograms {
         for (int numPredicates = 1; numPredicates < 5; numPredicates++) {
             String[] predicates = new String[numPredicates];
             fillWithNames(predicates, "");
-            List<PredicatePair> potentialIndependentPairs = generateAllPairsOfPredicates(predicates);
+            List<IndependentPair> potentialIndependentPairs = generateAllPairsOfPredicates(predicates);
 
             for (int maxArity = 1; maxArity < 5; maxArity++) {
                 List<int[]> potentialArities = generateArities(new int[0], predicates.length, maxArity);
@@ -169,7 +169,7 @@ class GeneratePrograms {
                                         int[] arities = potentialArities.get(rng.nextInt(potentialArities.size()));
 
                                         for (int j = 0; j < 10; j++) {
-                                            PredicatePair[] independentPairs =
+                                            IndependentPair[] independentPairs =
                                                     selectRandomSubset(potentialIndependentPairs, numIndependentPairs,
                                                             rng);
 
@@ -193,7 +193,7 @@ class GeneratePrograms {
         for (int numPredicates : possibilities) {
             String[] predicates = new String[numPredicates];
             fillWithNames(predicates, "");
-            List<PredicatePair> potentialIndependentPairs = generateAllPairsOfPredicates(predicates);
+            List<IndependentPair> potentialIndependentPairs = generateAllPairsOfPredicates(predicates);
 
             for (int maxArity = 1; maxArity < 5; maxArity++) {
                 List<int[]> potentialArities = generateArities(new int[0], predicates.length, maxArity);
@@ -220,7 +220,7 @@ class GeneratePrograms {
 
                                     for (int i = 0; i < 10; i++) {
                                         int[] arities = potentialArities.get(rng.nextInt(potentialArities.size()));
-                                        PredicatePair[] independentPairs = selectRandomSubset(potentialIndependentPairs,
+                                        IndependentPair[] independentPairs = selectRandomSubset(potentialIndependentPairs,
                                                 numIndependentPairs, rng);
                                         Program p = new Program(maxNumNodes, maxNumClauses, ForbidCycles.NEGATIVE,
                                                 DEFAULT_PROBABILITIES, predicates, arities, variables, constants,
@@ -248,7 +248,7 @@ class GeneratePrograms {
         String[] predicates = new String[]{"p", "q", "r", "s"};
         Program p = new Program(3, 4,
                 ForbidCycles.NONE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1, 1}, new String[]{"X"},
-                new String[]{}, new PredicatePair[]{new PredicatePair("p", "q",
+                new String[]{}, new IndependentPair[]{new IndependentPair("p", "q",
                 new Condition(Token.AND, new String[]{"r", "s"}, predicates))});
         p.saveProgramsToFiles(NUM_SOLUTIONS, OUTPUT_DIRECTORY);
     }
