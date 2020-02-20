@@ -22,50 +22,37 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 
 public class Program {
 
     private static final boolean PRINT_DEBUG_INFO = false;
 
-    private int maxNumClauses;
-    private double[] probabilities;
-    private int[] arities;
-    private IndependentPair[] independentPairs;
-
-    int maxNumNodes;
-    int maxArity;
-    public String[] predicates;
-    String[] variables;
-    String[] constants;
-
-    Tuples aritiesTable; // used in defining constraints
-
+    public Config config;
     public IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
     public Body[] bodies; // the body of each clause
 
-    private Model model;
+    int maxArity;
+    Tuples aritiesTable; // used in defining constraints
+
+    private Model model; // a Choco-specific variable
     private Head[] clauseHeads; // full heads (predicates, variables, constants)
     private IntVar[][] introductions; // for eliminating variable symmetries
     private java.util.Random rng;
+    private double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1, 1, 1, 1, 1};
 
-    Program(int maxNumNodes, int maxNumClauses, ForbidCycles forbidCycles,
-            double[] probabilities, String[] predicates, int[] aritiesTable, String[] variables, String[] constants,
-            IndependentPair[] independentPairs) {
-        this.maxNumNodes = maxNumNodes;
-        this.maxNumClauses = maxNumClauses;
-        this.probabilities = probabilities;
-        this.predicates = predicates;
-        arities = aritiesTable;
-        this.variables = variables;
-        this.constants = constants;
-        this.independentPairs = independentPairs;
-        maxArity = Arrays.stream(arities).max().getAsInt();
+    Program(Config config) {
+        this.config = config;
+        model = new Model();
+        rng = new java.util.Random();
+        maxArity = Collections.max(config.arities);
 
         // Set up constraints
-        assert(maxNumClauses >= predicates.length);
+        assert(config.maxNumClauses >= config.predicates.size());
         setUpMainConstraints();
         setUpVariableSymmetryElimination();
         setUpIndependenceConstraints();
+        ForbidCycles forbidCycles = config.getForbidCycles();
         if (forbidCycles != ForbidCycles.NONE)
             new Constraint("NoNegativeCycles",
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
@@ -74,70 +61,74 @@ public class Program {
         //model.getSolver().setRestartOnSolutions();
     }
 
+    Program(Config config, double[] probabilities) {
+        this(config);
+        PROBABILITIES = probabilities;
+    }
+
     // ================================================== CONSTRAINTS ==================================================
 
     /** Set up all the variables and constraints. */
     private void setUpMainConstraints() {
-        assert(predicates.length == arities.length);
+        int numPredicates = config.predicates.size();
+        assert(config.arities.size() == numPredicates);
+
         aritiesTable = new Tuples();
         for (Token t : Token.values())
             aritiesTable.add(t.ordinal(), 0); // Tokens don't have arities
-        for (int i = 0; i < arities.length; i++)
-            aritiesTable.add(Token.values().length + i, arities[i]); // Predicate arities are predefined
-        aritiesTable.add(predicates.length + Token.values().length, 0); // This stands for a disabled clause
-
-        model = new Model();
-        rng = new java.util.Random();
+        for (int i = 0; i < numPredicates; i++)
+            aritiesTable.add(Token.values().length + i, config.arities.get(i)); // Predicate arities are predefined
+        aritiesTable.add(numPredicates + Token.values().length, 0); // This stands for a disabled clause
 
         // numbers < PREDICATES.length assign a clause to a predicate, PREDICATES.length is used to discard the clause
-        clauseAssignments = model.intVarArray("clauseAssignments", maxNumClauses, 0, predicates.length);
+        clauseAssignments = model.intVarArray("clauseAssignments", config.maxNumClauses, 0, numPredicates);
 
         clauseHeads = new Head[clauseAssignments.length];
         for (int i = 0; i < clauseHeads.length; i++)
             clauseHeads[i] = new Head(this, model, clauseAssignments[i], i);
 
         IntVar numDisabledClauses = model.intVar("numDisabledClauses", 0,
-                maxNumClauses - predicates.length);
-        model.count(predicates.length, clauseAssignments, numDisabledClauses).post();
+                config.maxNumClauses - numPredicates);
+        model.count(numPredicates, clauseAssignments, numDisabledClauses).post();
 
         // Each possible value (< PREDICATES.length) should be mentioned at least once
-        IntVar numDistinctValues = model.intVar("numDistinctValues", predicates.length,
-                predicates.length + 1);
+        IntVar numDistinctValues = model.intVar("numDistinctValues", numPredicates, numPredicates + 1);
         model.nValues(clauseAssignments, numDistinctValues).post();
 
         Constraint containsDisabledClause = model.arithm(numDisabledClauses, ">", 0);
-        Constraint allValues = model.arithm(numDistinctValues, "=", predicates.length + 1);
-        Constraint allButOne = model.arithm(numDistinctValues, "=", predicates.length);
+        Constraint allValues = model.arithm(numDistinctValues, "=", numPredicates + 1);
+        Constraint allButOne = model.arithm(numDistinctValues, "=", numPredicates);
         model.ifThenElse(containsDisabledClause, allValues, allButOne);
 
-        bodies = new Body[maxNumClauses];
-        for (int i = 0; i < maxNumClauses; i++)
+        bodies = new Body[config.maxNumClauses];
+        for (int i = 0; i < config.maxNumClauses; i++)
             bodies[i] = new Body(this, model, clauseAssignments[i], i);
 
         // The order of the clauses doesn't matter (but we still allow duplicates)
-        IntVar[][] decisionVariablesPerClause = new IntVar[maxNumClauses][];
-        for (int i = 0; i < maxNumClauses; i++)
+        IntVar[][] decisionVariablesPerClause = new IntVar[config.maxNumClauses][];
+        for (int i = 0; i < config.maxNumClauses; i++)
             decisionVariablesPerClause[i] = ArrayUtils.concat(clauseHeads[i].getDecisionVariables(),
                     bodies[i].getDecisionVariables());
         model.lexChainLessEq(decisionVariablesPerClause).post();
     }
 
     private void setUpVariableSymmetryElimination() {
-        if (variables.length <= 1)
+        if (config.variables.size() <= 1)
             return;
+        int numVariables = config.variables.size();
 
         // Set up termsPerClause to keep track of all variables and constants across each clause
-        int numIndices = (maxNumNodes + 1) * maxArity;
+        int numIndices = (config.maxNumNodes + 1) * maxArity;
         /* a concatenation of all terms in each clause (both head and body) (dimension 1 - clauses,
         dimension 2 - positions) */
-        IntVar[][] termsPerClause = new IntVar[maxNumClauses][numIndices];
-        for (int i = 0; i < maxNumClauses; i++) {
+        IntVar[][] termsPerClause = new IntVar[config.maxNumClauses][numIndices];
+        for (int i = 0; i < config.maxNumClauses; i++) {
             System.arraycopy(clauseHeads[i].getArguments(), 0, termsPerClause[i], 0, maxArity);
-            System.arraycopy(bodies[i].getArguments(), 0, termsPerClause[i], maxArity, maxNumNodes * maxArity);
+            System.arraycopy(bodies[i].getArguments(), 0, termsPerClause[i], maxArity, config.maxNumNodes * maxArity);
         }
 
         // Set up occurrences
-        int maxValue = constants.length + variables.length;
+        int maxValue = config.constants.size() + numVariables;
         int[] weights = new int[numIndices];
         int[] possibleIndices = new int[numIndices];
         for (int i = 0; i < numIndices; i++) {
@@ -145,9 +136,9 @@ public class Program {
             weights[i] = i + 1;
         }
         // for each clause and variable, a set of positions with that variable
-        SetVar[][] occurrences = model.setVarMatrix("occurrences", maxNumClauses, maxValue + 1, new int[0],
-                possibleIndices);
-        for (int i = 0; i < maxNumClauses; i++) {
+        SetVar[][] occurrences = model.setVarMatrix("occurrences", config.maxNumClauses, maxValue + 1,
+                new int[0], possibleIndices);
+        for (int i = 0; i < config.maxNumClauses; i++) {
             model.setsIntsChanneling(occurrences[i], termsPerClause[i]).post();
             for (int j = 0; j <= maxValue; j++)
                 for (int k = j + 1; k <= maxValue; k++)
@@ -155,10 +146,10 @@ public class Program {
         }
 
         // Eliminate variable symmetry
-        introductions = new IntVar[maxNumClauses][];
-        for (int i = 0; i < maxNumClauses; i++) {
-            introductions[i] = model.intVarArray("introductions[" + i + "]", variables.length, 0, numIndices);
-            for (int v = 0; v < variables.length; v++) {
+        introductions = new IntVar[config.maxNumClauses][];
+        for (int i = 0; i < config.maxNumClauses; i++) {
+            introductions[i] = model.intVarArray("introductions[" + i + "]", numVariables, 0, numIndices);
+            for (int v = 0; v < numVariables; v++) {
                 model.min(occurrences[i][v], weights, 0, introductions[i][v], false).post();
                 SetVar[] occurrencesAtI = new SetVar[1];
                 occurrencesAtI[0] = occurrences[i][v];
@@ -174,13 +165,14 @@ public class Program {
         int[] potentialIntroductionsStatic = new int[numIndices + 1];
         for (int i = 0; i <= numIndices; i++)
             potentialIntroductionsStatic[i] = i;
-        SetVar[] potentialIntroductions = model.setVarArray(maxNumClauses, new int[0],potentialIntroductionsStatic);
+        SetVar[] potentialIntroductions = model.setVarArray(config.maxNumClauses, new int[0],
+                potentialIntroductionsStatic);
         for (int i = 0; i < introductions.length; i++)
             for (int j = 0; j < introductions[i].length; j++)
                 model.member(introductions[i][j], potentialIntroductions[i]).post();
 
         // A redundant constraint: Nodes with tokens can't hold arguments
-        for (int i = 0; i < maxNumClauses; i++) {
+        for (int i = 0; i < config.maxNumClauses; i++) {
             IntVar[] treeValues = bodies[i].getPredicates();
             for (int j = 0; j < treeValues.length; j++) {
                 int[] forbiddenValuesStatic = new int[maxArity];
@@ -193,9 +185,10 @@ public class Program {
             }
         }
 
-        // Another redundant constraint: if the introduction is not NULL, then it must be in the occurrences (and vice versa)
-        for (int i = 0; i < maxNumClauses; i++) {
-            for (int j = 0; j < variables.length; j++) {
+        // Another redundant constraint: if the introduction is not NULL, then it must be in the occurrences
+        // (and vice versa)
+        for (int i = 0; i < config.maxNumClauses; i++) {
+            for (int j = 0; j < numVariables; j++) {
                 Constraint introductionNotNull = model.arithm(introductions[i][j], ">", 0);
                 Constraint itMustBeInOccurrences = model.member(model.intOffsetView(introductions[i][j], -1),
                         occurrences[i][j]);
@@ -205,13 +198,14 @@ public class Program {
     }
 
     private void setUpIndependenceConstraints() {
-        if (predicates.length == 0)
+        int numPredicates = config.predicates.size();
+        if (numPredicates == 0)
             return;
-        IntVar[][] adjacencyMatrix = model.intVarMatrix("adjacencyMatrix", predicates.length, predicates.length,
+        IntVar[][] adjacencyMatrix = model.intVarMatrix("adjacencyMatrix", numPredicates, numPredicates,
                 0, 1);
         IntVar zero = model.intVar(0);
-        for (int i = 0; i < predicates.length; i++) {
-            for (int j = 0; j < predicates.length; j++) {
+        for (int i = 0; i < numPredicates; i++) {
+            for (int j = 0; j < numPredicates; j++) {
                 Constraint noEdge = model.arithm(adjacencyMatrix[i][j], "=", 0);
                 Constraint[] clausesAssignedToJHaveNoI = new Constraint[bodies.length];
                 for (int k = 0; k < bodies.length; k++) {
@@ -225,12 +219,13 @@ public class Program {
                 model.ifOnlyIf(noEdge, model.and(clausesAssignedToJHaveNoI));
             }
         }
-        for (int i = 0; i < independentPairs.length; i++) {
+        for (int i = 0; i < config.independentPairs.size(); i++) {
             Propagator<IntVar> propagator;
-            if (independentPairs[i].isConditional()) {
-                propagator = new ConditionalIndependencePropagator(independentPairs[i], this);
+            IndependentPair pair = config.independentPairs.get(i);
+            if (pair.isConditional()) {
+                propagator = new ConditionalIndependencePropagator(pair, this);
             } else {
-                propagator = new IndependencePropagator(adjacencyMatrix, independentPairs[i], predicates);
+                propagator = new IndependencePropagator(adjacencyMatrix, pair, config.predicates);
             }
             new Constraint("independence " + i, propagator).post();
         }
@@ -240,14 +235,15 @@ public class Program {
 
     /** Semi-random variable ordering */
     private void setUpVariableOrdering() {
-        int numStrategies = maxNumClauses * 4 + 1;
-        if (variables.length > 1)
-            numStrategies = maxNumClauses * 5 + 1;
+        int numStrategies = config.maxNumClauses * 4 + 1;
+        int numVariables = config.variables.size();
+        if (numVariables > 1)
+            numStrategies = config.maxNumClauses * 5 + 1;
         IntStrategy[] strategies = new IntStrategy[numStrategies];
         strategies[0] = Search.intVarSearch(new FirstFail(model), new IntDomainRandom(rng.nextLong()),
                 clauseAssignments);
         int j = 1;
-        for (int i = 0; i < maxNumClauses; i++) {
+        for (int i = 0; i < config.maxNumClauses; i++) {
             IntStrategy structuralStrategy = Search.intVarSearch(new FirstFail(model),
                     new IntDomainRandom(rng.nextLong()), bodies[i].getTreeStructure());
             IntStrategy predicateStrategy = Search.intVarSearch(new FirstFail(model),
@@ -257,7 +253,7 @@ public class Program {
             strategies[j++] = structuralStrategy;
             strategies[j++] = predicateStrategy;
             strategies[j++] = headGapStrategy;
-            if (variables.length > 1) {
+            if (numVariables > 1) {
                 IntStrategy introductionStrategy = Search.intVarSearch(new FirstFail(model),
                         new IntDomainRandom(rng.nextLong()), introductions[i]);
                 strategies[j++] = introductionStrategy;
@@ -305,7 +301,7 @@ public class Program {
     @Override
     public String toString() {
         StringBuilder program = new StringBuilder();
-        for (int i = 0; i < maxNumClauses; i++)
+        for (int i = 0; i < config.maxNumClauses; i++)
             program.append(clauseToString(i, rng));
         return program.toString();
     }
@@ -314,14 +310,14 @@ public class Program {
     private String clauseToString(int i, java.util.Random rng) {
         // Is this clause disabled?
         int predicate = clauseAssignments[i].getValue();
-        if (predicate == predicates.length)
+        if (predicate == config.predicates.size())
             return "";
 
         // Add a probability to the statement
-        int probability = rng.nextInt(probabilities.length);
+        int probability = rng.nextInt(PROBABILITIES.length);
         String probabilityString = "";
-        if (probabilities[probability] < 1)
-            probabilityString = probabilities[probability] + " :: ";
+        if (PROBABILITIES[probability] < 1)
+            probabilityString = PROBABILITIES[probability] + " :: ";
 
         String body = bodies[i].toString();
         String head = clauseHeads[i].toString();
@@ -338,8 +334,8 @@ public class Program {
             String head;
             if (clauseAssignments[i].getDomainSize() == 1) {
                 int value = clauseAssignments[i].getValue();
-                if (value < predicates.length) {
-                    head = predicates[value];
+                if (value < config.predicates.size()) {
+                    head = config.predicates.get(value);
                 } else {
                     head = "<none>";
                 }

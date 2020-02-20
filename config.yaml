@@ -1,3 +1,19 @@
+maxNumNodes: 3
+maxNumClauses: 4
+forbidCycles: ALL
+predicates:
+  - p
+  - q
+  - r
+  - s
+arities:
+  - 1
+  - 1
+  - 1
+  - 1
+variables:
+  - X
+constants: []
 independentPairs:
   - predicate1: p
     predicate2: q

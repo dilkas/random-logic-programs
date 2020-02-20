@@ -10,18 +10,19 @@ public class Condition {
     public String operator;
     public List<String> predicates;
 
-    Token getOperator() {
-        if (operator.equals("AND")) {
-            return Token.AND;
-        } else if (operator.equals("OR")) {
-            return Token.OR;
-        } else {
-            throw new IllegalArgumentException("the operator must be either AND or OR");
-        }
-    }
+    // Needed for Jackson
+    public Condition() {}
 
     public Condition(String operator, List<String> predicates) {
         this.operator = operator;
         this.predicates = predicates;
+    }
+
+    Token getOperator() {
+        if (operator.equals("AND"))
+            return Token.AND;
+         if (operator.equals("OR"))
+            return Token.OR;
+        throw new IllegalArgumentException("the operator must be either AND or OR");
     }
 }

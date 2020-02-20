@@ -12,10 +12,9 @@ import static java.util.stream.Collectors.toList;
 
 class GeneratePrograms {
 
-    private static final double[] DEFAULT_PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9,
-            1, 1, 1, 1, 1, 1};
+
     private static final int NUM_SOLUTIONS = 1000;
-    private static final String OUTPUT_DIRECTORY = "../programs/";
+    private static final String OUTPUT_DIRECTORY = "programs/";
     private static final String CONFIG_FILENAME = "config.yaml";
     private static final String PROGRAM_COUNTS_FILENAME = "../program_counts.csv";
 
@@ -31,25 +30,29 @@ class GeneratePrograms {
                     .split(", ")).map(Integer::parseInt).collect(toList());
 
             int numPredicates = predicatesWithArity.stream().reduce(0, Integer::sum);
-            String[] predicates = new String[numPredicates];
+            List<String> predicates = new ArrayList<>();
             for (int i = 0; i < numPredicates; i++)
-                predicates[i] = "p" + (i + 1);
-            int[] arities = new int[numPredicates];
-            int k = 0;
+                predicates.add("p" + (i + 1));
+
+            List<Integer> arities = new ArrayList<>();
             for (int i = 0; i < aritiesList.size(); i++)
                 for (int j = 0; j < predicatesWithArity.get(i); j++)
-                    arities[k++] = aritiesList.get(i);
+                    arities.add(aritiesList.get(i));
 
-            String[] variables = new String[Integer.parseInt(data[2])];
-            for (int i = 0; i < variables.length; i++)
-                variables[i] = "X" + (i + 1);
-            String[] constants = new String[Integer.parseInt(data[3])];
-            for (int i = 0; i < constants.length; i++)
-                constants[i] = "a" + (i + 1);
+            int numVariables = Integer.parseInt(data[2]);
+            List<String> variables = new ArrayList<>();
+            for (int i = 0; i < numVariables; i++)
+                variables.add("X" + (i + 1));
+
+            int numConstants = Integer.parseInt(data[3]);
+            List<String> constants = new ArrayList<>();
+            for (int i = 0; i < numConstants; i++)
+                constants.add("a" + (i + 1));
             int predictedProgramCount = Integer.parseInt(data[6]);
 
-            Program p = new Program(Integer.parseInt(data[4]), Integer.parseInt(data[5]), ForbidCycles.NONE,
-                    new double[]{1}, predicates, arities, variables, constants, new IndependentPair[0]);
+            Config config = new Config(Integer.parseInt(data[4]), Integer.parseInt(data[5]), "NONE",
+                    predicates, arities, variables, constants, new LinkedList<>());
+            Program p = new Program(config, new double[]{1});
 
             // Count the number of solutions
             int i = 0;
@@ -97,8 +100,8 @@ class GeneratePrograms {
         }
     }
 
-    private static List<int[]> generateArities(int[] arities, int numArities, int maxArity) {
-        List<int[]> possibilities = new ArrayList<>();
+    private static List<Integer[]> generateArities(Integer[] arities, int numArities, int maxArity) {
+        List<Integer[]> possibilities = new ArrayList<>();
         if (arities.length >= numArities) {
             possibilities.add(arities);
             return possibilities;
@@ -143,7 +146,7 @@ class GeneratePrograms {
             List<IndependentPair> potentialIndependentPairs = generateAllPairsOfPredicates(predicates);
 
             for (int maxArity = 1; maxArity < 5; maxArity++) {
-                List<int[]> potentialArities = generateArities(new int[0], predicates.length, maxArity);
+                List<Integer[]> potentialArities = generateArities(new Integer[0], predicates.length, maxArity);
 
                 for (int numVariables = 0; numVariables < 5; numVariables++) {
                     String[] variables = new String[numVariables];
@@ -168,16 +171,18 @@ class GeneratePrograms {
                                             ";" + maxNumNodes;
 
                                     for (int i = 0; i < 10; i++) {
-                                        int[] arities = potentialArities.get(rng.nextInt(potentialArities.size()));
+                                        Integer[] arities = potentialArities.get(rng.nextInt(potentialArities.size()));
 
                                         for (int j = 0; j < 10; j++) {
                                             IndependentPair[] independentPairs =
                                                     selectRandomSubset(potentialIndependentPairs, numIndependentPairs,
                                                             rng);
 
-                                            Program p = new Program(maxNumNodes, maxNumClauses, ForbidCycles.NEGATIVE,
-                                                    DEFAULT_PROBABILITIES, predicates, arities, variables, constants,
-                                                    independentPairs);
+                                            Config config = new Config(maxNumNodes, maxNumClauses,
+                                                    "NEGATIVE", Arrays.asList(predicates),
+                                                    Arrays.asList(arities), Arrays.asList(variables),
+                                                    Arrays.asList(constants), Arrays.asList(independentPairs));
+                                            Program p = new Program(config);
                                             p.compileStatistics(10, prefix, null);
                                         }
                                     }
@@ -198,7 +203,7 @@ class GeneratePrograms {
             List<IndependentPair> potentialIndependentPairs = generateAllPairsOfPredicates(predicates);
 
             for (int maxArity = 1; maxArity < 5; maxArity++) {
-                List<int[]> potentialArities = generateArities(new int[0], predicates.length, maxArity);
+                List<Integer[]> potentialArities = generateArities(new Integer[0], predicates.length, maxArity);
 
                 for (int numVariables : possibilities) {
                     String[] variables = new String[numVariables];
@@ -221,12 +226,14 @@ class GeneratePrograms {
                                             ";" + maxNumNodes;
 
                                     for (int i = 0; i < 10; i++) {
-                                        int[] arities = potentialArities.get(rng.nextInt(potentialArities.size()));
-                                        IndependentPair[] independentPairs = selectRandomSubset(potentialIndependentPairs,
-                                                numIndependentPairs, rng);
-                                        Program p = new Program(maxNumNodes, maxNumClauses, ForbidCycles.NEGATIVE,
-                                                DEFAULT_PROBABILITIES, predicates, arities, variables, constants,
-                                                independentPairs);
+                                        Integer[] arities = potentialArities.get(rng.nextInt(potentialArities.size()));
+                                        IndependentPair[] independentPairs =
+                                                selectRandomSubset(potentialIndependentPairs, numIndependentPairs, rng);
+                                        Config config = new Config(maxNumNodes, maxNumClauses, "NEGATIVE",
+                                                Arrays.asList(predicates), Arrays.asList(arities),
+                                                Arrays.asList(variables), Arrays.asList(constants),
+                                                Arrays.asList(independentPairs));
+                                        Program p = new Program(config);
                                         p.compileStatistics(1, prefix, "60s");
                                     }
                                 }
@@ -241,20 +248,15 @@ class GeneratePrograms {
     private static void runAccordingToConfig() throws IOException {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         Config config = mapper.readValue(new File(CONFIG_FILENAME), Config.class);
+        Program p = new Program(config);
+        p.saveProgramsToFiles(NUM_SOLUTIONS, OUTPUT_DIRECTORY);
     }
 
+    /** Four types of experiments */
     public static void main(String[] args) throws IOException {
         //checkNumPrograms();
         //generateSmallPrograms();
         //generateBigPrograms(Arrays.asList(1, 2, 4, 8));
-
         runAccordingToConfig();
-
-        String[] predicates = new String[]{"p", "q", "r", "s"};
-        Program p = new Program(3, 4,
-                ForbidCycles.NONE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1, 1}, new String[]{"X"},
-                new String[]{}, new IndependentPair[]{new IndependentPair("p", "q",
-                new Condition("AND", Arrays.asList("r", "s")))});
-        p.saveProgramsToFiles(NUM_SOLUTIONS, OUTPUT_DIRECTORY);
     }
 }

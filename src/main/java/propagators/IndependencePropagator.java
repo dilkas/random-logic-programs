@@ -10,6 +10,7 @@ import propagators.dependencies.Dependency;
 import propagators.dependencies.Status;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /** A custom constraint for the independence of two predicates */
@@ -19,7 +20,8 @@ public class IndependencePropagator extends Propagator<IntVar> {
     private int predicate1;
     private int predicate2;
 
-    public IndependencePropagator(IntVar[][] adjacencyMatrix, IndependentPair independentPair, String[] predicates) {
+    public IndependencePropagator(IntVar[][] adjacencyMatrix, IndependentPair independentPair,
+                                  List<String> predicates) {
         super(ArrayUtils.flatten(adjacencyMatrix));
         this.adjacencyMatrix = adjacencyMatrix;
         predicate1 = IndependentPair.toInt(predicates, independentPair.predicate1);

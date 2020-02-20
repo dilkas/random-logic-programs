@@ -22,7 +22,10 @@ class Head {
         model.table(indexToTable, arity, program.aritiesTable).post();
 
         // Arity regulates how many arguments the predicate has
-        int numValues = program.constants.length + program.variables.length;
+        assert(program.config != null);
+        assert(program.config.variables != null);
+        assert(program.config.constants != null);
+        int numValues = program.config.constants.size() + program.config.variables.size();
         arguments = model.intVarArray("headArguments[" + clauseIndex + "]", program.maxArity, 0, numValues);
         for (int i = 0; i < arguments.length; i++) {
             Constraint iGeArity = model.arithm(arity, "<=", i);
@@ -41,8 +44,9 @@ class Head {
 
     @Override
     public String toString() {
+        int numVariables = program.config.variables.size();
         StringBuilder s = new StringBuilder();
-        s.append(program.predicates[predicate.getValue()]);
+        s.append(program.config.predicates.get(predicate.getValue()));
         if (arity.getValue() == 0)
             return s.toString();
 
@@ -51,10 +55,10 @@ class Head {
             if (i > 0)
                 s.append(", ");
             int argument = arguments[i].getValue();
-            if (argument < program.variables.length) {
-                s.append(program.variables[argument]);
+            if (argument < numVariables) {
+                s.append(program.config.variables.get(argument));
             } else {
-                s.append(program.constants[argument - program.variables.length]);
+                s.append(program.config.constants.get(argument - numVariables));
             }
         }
         s.append(")");

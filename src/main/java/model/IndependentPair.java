@@ -2,12 +2,17 @@ package model;
 
 import propagators.Condition;
 
+import java.util.List;
+
 /** A pair of predicates. Used to define pairs of independent predicates. */
 public class IndependentPair {
 
     public String predicate1;
     public String predicate2;
     public Condition condition;
+
+    // Needed for Jackson
+    public IndependentPair() {}
 
     public IndependentPair(String predicate1, String predicate2) {
         this.predicate1 = predicate1;
@@ -24,9 +29,9 @@ public class IndependentPair {
         return condition != null;
     }
 
-    public static int toInt(String[] predicates, String predicate) {
-        for (int i = 0; i < predicates.length; i++)
-            if (predicates[i].equals(predicate))
+    public static int toInt(List<String> predicates, String predicate) {
+        for (int i = 0; i < predicates.size(); i++)
+            if (predicates.get(i).equals(predicate))
                 return i;
         throw new IllegalArgumentException();
     }

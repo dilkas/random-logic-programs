@@ -14,9 +14,9 @@ class Node {
 
     Node(Program program, Model model, int clauseIndex, int position) {
         this.program = program;
-        int numPossibleArguments = program.variables.length + program.constants.length + 1;
+        int numPossibleArguments = program.config.variables.size() + program.config.constants.size() + 1;
         predicate = model.intVar("nodePredicate[" + clauseIndex + "][" + position + "]", 0,
-                program.predicates.length + Token.values().length - 1);
+                program.config.predicates.size() + Token.values().length - 1);
         arguments = model.intVarArray("nodeArguments[" + clauseIndex + "][" + position + "]", program.maxArity,
                 0, numPossibleArguments - 1);
 
@@ -46,10 +46,11 @@ class Node {
 
     @Override
     public String toString() {
+        int numVariables = program.config.variables.size();
         int value = predicate.getValue();
         if (value < Token.values().length)
             return Token.values()[value].toString();
-        StringBuilder atom = new StringBuilder(program.predicates[value - Token.values().length]);
+        StringBuilder atom = new StringBuilder(program.config.predicates.get(value - Token.values().length));
         if (arity.getValue() == 0)
             return atom.toString();
 
@@ -58,10 +59,10 @@ class Node {
             if (i > 0)
                 atom.append(", ");
             int index = arguments[i].getValue();
-            if (index < program.variables.length) {
-                atom.append(program.variables[index]);
+            if (index < numVariables) {
+                atom.append(program.config.variables.get(index));
             } else {
-                atom.append(program.constants[index - program.variables.length]);
+                atom.append(program.config.constants.get(index - numVariables));
             }
         }
         atom.append(")");

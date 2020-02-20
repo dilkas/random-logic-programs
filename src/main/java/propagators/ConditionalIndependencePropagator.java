@@ -25,8 +25,8 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
         super(NegativeCyclePropagator.constructDecisionVariables(program.clauseAssignments, program.bodies));
         this.independentPair = independentPair;
         this.program = program;
-        predicate1 = IndependentPair.toInt(program.predicates, independentPair.predicate1);
-        predicate2 = IndependentPair.toInt(program.predicates, independentPair.predicate2);
+        predicate1 = IndependentPair.toInt(program.config.predicates, independentPair.predicate1);
+        predicate2 = IndependentPair.toInt(program.config.predicates, independentPair.predicate2);
     }
 
     @Override
@@ -63,7 +63,7 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
         for (int i : set) {
             if (!first)
                 builder.append(", ");
-            builder.append(program.predicates[i]);
+            builder.append(program.config.predicates.get(i));
             first = false;
         }
         builder.append("}");
@@ -72,7 +72,7 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
 
     private void printAdjacencyMatrix() {
         for (int i = 0; i < adjacencyMatrix.length; i++) {
-            System.out.print(program.predicates[i] + ":");
+            System.out.print(program.config.predicates.get(i) + ":");
             for (int j = 0; j < adjacencyMatrix[i].length; j++) {
                 int value = 0;
                 if (adjacencyMatrix[i][j])
@@ -112,11 +112,12 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
     }
 
     private boolean[][] constructAdjacencyMatrix() {
+        int numPredicates = program.config.predicates.size();
         List<String> predicates = independentPair.condition.predicates;
         int[] conditionedPredicates = new int[predicates.size()]; // shifted by Token.values().length
         for (int i = 0; i < predicates.size(); i++) {
-            for (int j = 0; j < program.predicates.length; j++) {
-                if (predicates.get(i).equals(program.predicates[j])) {
+            for (int j = 0; j < numPredicates; j++) {
+                if (predicates.get(i).equals(program.config.predicates.get(j))) {
                     conditionedPredicates[i] = Token.values().length + j;
                     break;
                 }
@@ -124,7 +125,7 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
         }
 
         // A[i][j] = there is an edge from i to j = predicate i is in the body while predicate j is the head
-        boolean[][] A = new boolean[program.predicates.length][program.predicates.length];
+        boolean[][] A = new boolean[numPredicates][numPredicates];
         for (int clause = 0; clause < program.bodies.length; clause++) {
             // All predicates and the structure of the clause must be determined
             if (!allDetermined(program.clauseAssignments[clause], program.bodies[clause])) {

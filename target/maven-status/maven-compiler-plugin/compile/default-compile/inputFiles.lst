@@ -1,8 +1,17 @@
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/Program.java
 /home/paulius/phd_work/random-logic-programs/src/main/java/propagators/Condition.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/Body.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/Config.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/IndependentPair.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/Token.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/Head.java
 /home/paulius/phd_work/random-logic-programs/src/main/java/propagators/Sign.java
 /home/paulius/phd_work/random-logic-programs/src/main/java/propagators/dependencies/Status.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/GeneratePrograms.java
 /home/paulius/phd_work/random-logic-programs/src/main/java/propagators/NegativeCyclePropagator.java
 /home/paulius/phd_work/random-logic-programs/src/main/java/propagators/IndependencePropagator.java
 /home/paulius/phd_work/random-logic-programs/src/main/java/propagators/dependencies/Dependency.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/ForbidCycles.java
 /home/paulius/phd_work/random-logic-programs/src/main/java/propagators/SignedPredicate.java
 /home/paulius/phd_work/random-logic-programs/src/main/java/propagators/ConditionalIndependencePropagator.java
+/home/paulius/phd_work/random-logic-programs/src/main/java/model/Node.java

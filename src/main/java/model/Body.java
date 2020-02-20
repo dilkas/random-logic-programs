@@ -23,24 +23,24 @@ public class Body {
         this.program = program;
 
         // Auxiliary variables
-        IntVar numNodes = model.intVar("numNodes[" + clauseIndex + "]", 1, program.maxNumNodes);
-        IntVar numTrees = model.intVar("numTrees[" + clauseIndex + "]", 1, program.maxNumNodes);
-        model.arithm(numTrees, "+", numNodes, "=", program.maxNumNodes + 1).post();
+        IntVar numNodes = model.intVar("numNodes[" + clauseIndex + "]", 1, program.config.maxNumNodes);
+        IntVar numTrees = model.intVar("numTrees[" + clauseIndex + "]", 1, program.config.maxNumNodes);
+        model.arithm(numTrees, "+", numNodes, "=", program.config.maxNumNodes + 1).post();
 
         // Tree structure
-        treeStructure = model.intVarArray("treeStructure[" + clauseIndex + "]", program.maxNumNodes, 0,
-                program.maxNumNodes - 1);
+        treeStructure = model.intVarArray("treeStructure[" + clauseIndex + "]", program.config.maxNumNodes, 0,
+                program.config.maxNumNodes - 1);
         model.tree(treeStructure, numTrees).post();
         model.arithm(treeStructure[0], "=", 0).post(); // the 0th element is always a root
         model.sort(treeStructure, treeStructure).post();
 
         // Tree values
-        treeValues = new Node[program.maxNumNodes];
-        for (int i = 0; i < program.maxNumNodes; i++)
+        treeValues = new Node[program.config.maxNumNodes];
+        for (int i = 0; i < program.config.maxNumNodes; i++)
             treeValues[i] = new Node(program, model, clauseIndex, i);
 
         // Per-node constraints
-        for (int i = 0; i < program.maxNumNodes; i++) {
+        for (int i = 0; i < program.config.maxNumNodes; i++) {
             // The first numNodes elements define our tree. Fix the rest to some predefined values.
             if (i > 0) {
                 Constraint outsideScope = model.arithm(numNodes, "<=", i);
@@ -52,7 +52,7 @@ public class Body {
 
             IntVar exactlyZero = model.intVar(0);
             IntVar exactlyOne = model.intVar(1);
-            IntVar moreThanOne = model.intVar(2, Math.max(program.maxNumNodes, 2));
+            IntVar moreThanOne = model.intVar(2, Math.max(program.config.maxNumNodes, 2));
 
             IntVar[] potentialChildren = Arrays.copyOfRange(treeStructure, i + 1, treeStructure.length);
 
@@ -76,7 +76,7 @@ public class Body {
         }
 
         // Disable the clause (restrict it to a unique value) if required
-        Constraint shouldBeDisabled = model.arithm(assignment, "=", program.predicates.length);
+        Constraint shouldBeDisabled = model.arithm(assignment, "=", program.config.predicates.size());
         Constraint oneNode = model.arithm(numNodes, "=", 1);
         Constraint alwaysTrue = model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal());
         model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
@@ -156,7 +156,7 @@ public class Body {
             int firstChild = findFirstChild(index);
 
             // This only happens if the tree constraint is unsatisfied but negative cycle constraint is propagated first
-            if (firstChild >= program.maxNumNodes)
+            if (firstChild >= program.config.maxNumNodes)
                 return predicates;
 
             List<SignedPredicate> descendants = getSignedPredicates(firstChild);
@@ -166,7 +166,7 @@ public class Body {
         }
 
         // If the node is AND/OR
-        for (int i = 0; i < program.maxNumNodes; i++) {
+        for (int i = 0; i < program.config.maxNumNodes; i++) {
             if (i != index && treeStructure[i].getValue() == index)
                 predicates.addAll(getSignedPredicates(i));
         }
@@ -176,7 +176,7 @@ public class Body {
     /** Return the first index which is a child of the given parent */
     private int findFirstChild(int parent) {
         int i = 0;
-        for (; i < program.maxNumNodes; i++)
+        for (; i < program.config.maxNumNodes; i++)
             if (i != parent && treeStructure[i].getValue() == parent)
                 break;
         return i;
@@ -200,7 +200,7 @@ public class Body {
 
         boolean first = true;
         StringBuilder output = new StringBuilder();
-        for (int j = 0; j < program.maxNumNodes; j++) {
+        for (int j = 0; j < program.config.maxNumNodes; j++) {
             if (j != i && treeStructure[j].getValue() == i) {
                 if (first) {
                     first = false;
@@ -249,7 +249,7 @@ public class Body {
                 } else if (value == Token.TRUE.ordinal()) {
                     builder.append("T");
                 } else {
-                    builder.append(program.predicates[value - Token.values().length]);
+                    builder.append(program.config.predicates.get(value - Token.values().length));
                 }
             } else {
                 builder.append("?");
