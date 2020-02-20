@@ -5,35 +5,23 @@ import propagators.Condition;
 /** A pair of predicates. Used to define pairs of independent predicates. */
 public class IndependentPair {
 
-    private String predicate1;
-    private String predicate2;
-    private Condition condition;
+    public String predicate1;
+    public String predicate2;
+    public Condition condition;
 
-    IndependentPair(String predicate1, String predicate2) {
+    public IndependentPair(String predicate1, String predicate2) {
         this.predicate1 = predicate1;
         this.predicate2 = predicate2;
     }
 
-    IndependentPair(String predicate1, String predicate2, Condition condition) {
+    public IndependentPair(String predicate1, String predicate2, Condition condition) {
         this.predicate1 = predicate1;
         this.predicate2 = predicate2;
         this.condition = condition;
     }
 
-    boolean isConditional() {
+    public boolean isConditional() {
         return condition != null;
-    }
-
-    public String getFirst() {
-        return predicate1;
-    }
-
-    public String getSecond() {
-        return predicate2;
-    }
-
-    public Condition getCondition() {
-        return condition;
     }
 
     public static int toInt(String[] predicates, String predicate) {

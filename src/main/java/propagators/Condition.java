@@ -7,26 +7,21 @@ import java.util.List;
 /** Used to represent the condition part of a conditional independence expression */
 public class Condition {
 
-    private Token operator;
-    private List<String> predicates;
+    public String operator;
+    public List<String> predicates;
 
     Token getOperator() {
-        return operator;
-    }
-
-    List<String> getPredicates() {
-        return predicates;
-    }
-
-    public Condition(String operator, List<String> predicates) {
         if (operator.equals("AND")) {
-            this.operator = Token.AND;
+            return Token.AND;
         } else if (operator.equals("OR")) {
-            this.operator = Token.OR;
+            return Token.OR;
         } else {
             throw new IllegalArgumentException("the operator must be either AND or OR");
         }
-        this.operator = Token.valueOf(operator);
+    }
+
+    public Condition(String operator, List<String> predicates) {
+        this.operator = operator;
         this.predicates = predicates;
     }
 }

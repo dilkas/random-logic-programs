@@ -22,8 +22,8 @@ public class IndependencePropagator extends Propagator<IntVar> {
     public IndependencePropagator(IntVar[][] adjacencyMatrix, IndependentPair independentPair, String[] predicates) {
         super(ArrayUtils.flatten(adjacencyMatrix));
         this.adjacencyMatrix = adjacencyMatrix;
-        predicate1 = IndependentPair.toInt(predicates, independentPair.getFirst());
-        predicate2 = IndependentPair.toInt(predicates, independentPair.getSecond());
+        predicate1 = IndependentPair.toInt(predicates, independentPair.predicate1);
+        predicate2 = IndependentPair.toInt(predicates, independentPair.predicate2);
     }
 
     @Override

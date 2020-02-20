@@ -25,8 +25,8 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
         super(NegativeCyclePropagator.constructDecisionVariables(program.clauseAssignments, program.bodies));
         this.independentPair = independentPair;
         this.program = program;
-        predicate1 = IndependentPair.toInt(program.predicates, independentPair.getFirst());
-        predicate2 = IndependentPair.toInt(program.predicates, independentPair.getSecond());
+        predicate1 = IndependentPair.toInt(program.predicates, independentPair.predicate1);
+        predicate2 = IndependentPair.toInt(program.predicates, independentPair.predicate2);
     }
 
     @Override
@@ -112,8 +112,7 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
     }
 
     private boolean[][] constructAdjacencyMatrix() {
-        Condition condition = independentPair.getCondition();
-        List<String> predicates = condition.getPredicates();
+        List<String> predicates = independentPair.condition.predicates;
         int[] conditionedPredicates = new int[predicates.size()]; // shifted by Token.values().length
         for (int i = 0; i < predicates.size(); i++) {
             for (int j = 0; j < program.predicates.length; j++) {
@@ -138,7 +137,7 @@ public class ConditionalIndependencePropagator extends Propagator<IntVar> {
             boolean[] allMaskedIndices = new boolean[structure.length];
             // For each possible root node of the condition
             for (int root = 0; root < structure.length; root++) {
-                if (structure[root].getValue() != condition.getOperator().ordinal())
+                if (structure[root].getValue() != independentPair.condition.getOperator().ordinal())
                     continue;
                 boolean[] foundPredicates = new boolean[conditionedPredicates.length];
                 boolean[] maskedIndices = new boolean[structure.length];

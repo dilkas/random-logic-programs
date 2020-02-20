@@ -16,9 +16,11 @@ class GeneratePrograms {
             1, 1, 1, 1, 1, 1};
     private static final int NUM_SOLUTIONS = 1000;
     private static final String OUTPUT_DIRECTORY = "../programs/";
+    private static final String CONFIG_FILENAME = "config.yaml";
+    private static final String PROGRAM_COUNTS_FILENAME = "../program_counts.csv";
 
     private static void checkNumPrograms() throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("../program_counts.csv"));
+        BufferedReader reader = new BufferedReader(new FileReader(PROGRAM_COUNTS_FILENAME));
         String row;
         while ((row = reader.readLine()) != null) {
             // Read each line of the CSV file into fields
@@ -236,14 +238,17 @@ class GeneratePrograms {
         }
     }
 
-    private void runAccordingToConfig() {
+    private static void runAccordingToConfig() throws IOException {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        Config config = mapper.readValue(new File(CONFIG_FILENAME), Config.class);
     }
 
     public static void main(String[] args) throws IOException {
         //checkNumPrograms();
         //generateSmallPrograms();
         //generateBigPrograms(Arrays.asList(1, 2, 4, 8));
+
+        runAccordingToConfig();
 
         String[] predicates = new String[]{"p", "q", "r", "s"};
         Program p = new Program(3, 4,
