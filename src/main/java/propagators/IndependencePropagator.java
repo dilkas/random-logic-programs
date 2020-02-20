@@ -71,10 +71,11 @@ public class IndependencePropagator extends Propagator<IntVar> {
             for (Dependency dependency : dependencies) {
                 for (int i = 0; i < adjacencyMatrix.length; i++) {
                     boolean edgeIsDetermined = adjacencyMatrix[i][dependency.getPredicate()].getDomainSize() == 1;
-                    boolean edgeExists = adjacencyMatrix[i][dependency.getPredicate()].getValue() == 1;
-                    if (edgeIsDetermined && edgeExists && dependency.getStatus() == Status.DETERMINED) {
+                    boolean edgeExists = edgeIsDetermined &&
+                            adjacencyMatrix[i][dependency.getPredicate()].getValue() == 1;
+                    if (edgeExists && dependency.getStatus() == Status.DETERMINED) {
                         newDependencies.add(new Dependency(i, true));
-                    } else if (edgeIsDetermined && edgeExists && dependency.getStatus() == Status.ALMOST_DETERMINED) {
+                    } else if (edgeExists && dependency.getStatus() == Status.ALMOST_DETERMINED) {
                         newDependencies.add(new Dependency(i, dependency.getSource(), dependency.getTarget()));
                     } else if (!edgeIsDetermined && dependency.getStatus() == Status.DETERMINED) {
                         newDependencies.add(new Dependency(i, i, dependency.getPredicate()));
