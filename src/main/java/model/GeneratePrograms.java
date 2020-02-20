@@ -249,7 +249,7 @@ class GeneratePrograms {
         Program p = new Program(3, 4,
                 ForbidCycles.NONE, DEFAULT_PROBABILITIES, predicates, new int[]{1, 1, 1, 1}, new String[]{"X"},
                 new String[]{}, new IndependentPair[]{new IndependentPair("p", "q",
-                new Condition(Token.AND, new String[]{"r", "s"}, predicates))});
+                new Condition("AND", Arrays.asList("r", "s")))});
         p.saveProgramsToFiles(NUM_SOLUTIONS, OUTPUT_DIRECTORY);
     }
 }

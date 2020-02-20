@@ -1,8 +1,8 @@
 propagators/IndependencePropagator.class
 model/Token$4.class
 model/GeneratePrograms.class
+model/IndependentPair.class
 model/ForbidCycles.class
-model/PredicatePair.class
 propagators/NegativeCyclePropagator.class
 model/Token$3.class
 propagators/ConditionalIndependencePropagator.class
