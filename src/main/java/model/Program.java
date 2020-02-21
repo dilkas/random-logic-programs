@@ -321,8 +321,8 @@ public class Program {
 
         String body = bodies[i].toString();
         String head = clauseHeads[i].toString();
-        if (body.equals("T."))
-            return probabilityString + head+ ".\n";
+        if (body.equals("."))
+            return probabilityString + head + ".\n";
         return probabilityString + head + " :- " + body + "\n";
     }
 

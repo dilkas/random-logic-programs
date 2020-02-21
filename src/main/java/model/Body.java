@@ -246,9 +246,7 @@ public class Body {
                 int value = predicate.getValue();
                 if (value < Token.TRUE.ordinal()) {
                     builder.append(Token.values()[value]);
-                } else if (value == Token.TRUE.ordinal()) {
-                    builder.append("T");
-                } else {
+                } else if (value != Token.TRUE.ordinal()) {
                     builder.append(program.config.predicates.get(value - Token.values().length));
                 }
             } else {
