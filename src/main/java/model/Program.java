@@ -11,6 +11,7 @@ import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
 import org.chocosolver.solver.search.strategy.selectors.variables.FirstFail;
 import org.chocosolver.solver.search.strategy.strategy.IntStrategy;
 import org.chocosolver.solver.search.strategy.strategy.StrategiesSequencer;
+import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.solver.variables.SetVar;
 import org.chocosolver.util.tools.ArrayUtils;
@@ -21,7 +22,6 @@ import propagators.NegativeCyclePropagator;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 
 public class Program {
@@ -41,11 +41,16 @@ public class Program {
     private java.util.Random rng;
     private double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1, 1, 1, 1, 1};
 
+    // TODO: make these configurable
+    Token requiredOperator = Token.AND;
+    int[] requiredPredicates = {Token.values().length, Token.values().length + 1};
+
     Program(Config config) {
         this.config = config;
         model = new Model();
         rng = new java.util.Random();
         maxArity = Collections.max(config.arities);
+        //model.getSolver().setRestartOnSolutions();
 
         // Set up constraints
         assert(config.maxNumClauses >= config.predicates.size());
@@ -56,9 +61,14 @@ public class Program {
         if (forbidCycles != ForbidCycles.NONE)
             new Constraint("NoNegativeCycles",
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
-
         setUpVariableOrdering();
-        //model.getSolver().setRestartOnSolutions();
+
+        // TODO: make this optional
+        BoolVar[] hasRequiredFormula = new BoolVar[bodies.length];
+        for (int i = 0; i < bodies.length; i++)
+            hasRequiredFormula[i] = bodies[i].hasRequiredFormula();
+        BoolVar one = model.boolVar(true);
+        model.max(one, hasRequiredFormula).post();
     }
 
     Program(Config config, double[] probabilities) {

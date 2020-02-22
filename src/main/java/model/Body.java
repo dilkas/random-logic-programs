@@ -2,6 +2,7 @@ package model;
 
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.constraints.Constraint;
+import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
 import org.chocosolver.util.tools.ArrayUtils;
 import propagators.Sign;
@@ -18,6 +19,7 @@ public class Body {
     private Node[] treeValues;
     // The decision variables relevant to negative cycle detection (i.e., everything except arguments)
     private IntVar[] structuralDecisionVariables;
+    private BoolVar hasRequiredFormula; // TODO: make this optional
 
     Body(Program program, Model model, IntVar assignment, int clauseIndex) {
         this.program = program;
@@ -84,6 +86,42 @@ public class Body {
         structuralDecisionVariables = treeStructure;
         for (Node treeValue : treeValues)
             structuralDecisionVariables = ArrayUtils.concat(structuralDecisionVariables, treeValue.getPredicate());
+
+        // Does this clause have the required formula?
+
+        BoolVar[][] canBeParentChild = model.boolVarMatrix(program.config.maxNumNodes, program.config.maxNumNodes);
+        for (int i = 0; i < program.config.maxNumNodes; i++) {
+            for (int j = 0; j < program.config.maxNumNodes; j++) {
+                Constraint iCanBeParent = model.arithm(treeValues[i].getPredicate(), "=",
+                        program.requiredOperator.ordinal());
+                Constraint iAndJRelated = model.arithm(treeStructure[j], "=", i);
+                model.reification(canBeParentChild[i][j], model.and(iCanBeParent, iAndJRelated));
+            }
+        }
+
+        BoolVar[][] canBePredicate = model.boolVarMatrix(program.config.maxNumNodes, program.requiredPredicates.length);
+        for (int i = 0; i < program.config.maxNumNodes; i++)
+            for (int j = 0; j < program.requiredPredicates.length; j++)
+                model.reification(canBePredicate[i][j],
+                        model.arithm(treeValues[i].getPredicate(), "=", program.requiredPredicates[j]));
+
+        BoolVar[][] canBeParentOfPredicate = model.boolVarMatrix(program.config.maxNumNodes,
+                program.requiredPredicates.length);
+        for (int i = 0; i < program.config.maxNumNodes; i++) {
+            for (int j = 0; j < program.requiredPredicates.length; j++) {
+                BoolVar[] product = model.boolVarArray(program.config.maxNumNodes);
+                for (int k = 0; k < program.config.maxNumNodes; k++)
+                    model.arithm(canBeParentChild[i][k], "*", canBePredicate[k][j], "=", product[k]).post();
+                model.max(canBeParentOfPredicate[i][j], product).post();
+            }
+        }
+
+        BoolVar[] suitableParents = model.boolVarArray(program.config.maxNumNodes);
+        for (int i = 0; i < program.config.maxNumNodes; i++)
+            model.min(suitableParents[i], canBeParentOfPredicate[i]).post();
+
+        hasRequiredFormula = model.boolVar();
+        model.max(hasRequiredFormula, suitableParents).post();
     }
 
     // ========================================= GETTERS OF DECISION VARIABLES =======================================
@@ -117,6 +155,10 @@ public class Body {
 
     public IntVar[] getTreeStructure() {
         return treeStructure;
+    }
+
+    BoolVar hasRequiredFormula() {
+        return hasRequiredFormula;
     }
 
     // ======================================== OTHER GETTERS ========================================
