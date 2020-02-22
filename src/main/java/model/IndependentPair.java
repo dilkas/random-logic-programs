@@ -1,7 +1,5 @@
 package model;
 
-import propagators.Condition;
-
 import java.util.List;
 
 /** A pair of predicates. Used to define pairs of independent predicates. */
@@ -9,7 +7,7 @@ public class IndependentPair {
 
     public String predicate1;
     public String predicate2;
-    public Condition condition;
+    public Formula condition;
 
     // Needed for Jackson
     public IndependentPair() {}
@@ -19,7 +17,7 @@ public class IndependentPair {
         this.predicate2 = predicate2;
     }
 
-    public IndependentPair(String predicate1, String predicate2, Condition condition) {
+    public IndependentPair(String predicate1, String predicate2, Formula condition) {
         this.predicate1 = predicate1;
         this.predicate2 = predicate2;
         this.condition = condition;

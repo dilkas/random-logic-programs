@@ -41,10 +41,6 @@ public class Program {
     private java.util.Random rng;
     private double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1, 1, 1, 1, 1};
 
-    // TODO: make these configurable
-    Token requiredOperator = Token.AND;
-    int[] requiredPredicates = {Token.values().length, Token.values().length + 1};
-
     Program(Config config) {
         this.config = config;
         model = new Model();
@@ -63,12 +59,13 @@ public class Program {
                     new NegativeCyclePropagator(clauseAssignments, bodies, forbidCycles)).post();
         setUpVariableOrdering();
 
-        // TODO: make this optional
-        BoolVar[] hasRequiredFormula = new BoolVar[bodies.length];
-        for (int i = 0; i < bodies.length; i++)
-            hasRequiredFormula[i] = bodies[i].hasRequiredFormula();
-        BoolVar one = model.boolVar(true);
-        model.max(one, hasRequiredFormula).post();
+        if (config.requiredFormula != null) {
+            BoolVar[] hasRequiredFormula = new BoolVar[bodies.length];
+            for (int i = 0; i < bodies.length; i++)
+                hasRequiredFormula[i] = bodies[i].hasRequiredFormula();
+            BoolVar one = model.boolVar(true);
+            model.max(one, hasRequiredFormula).post();
+        }
     }
 
     Program(Config config, double[] probabilities) {
@@ -134,7 +131,8 @@ public class Program {
         IntVar[][] termsPerClause = new IntVar[config.maxNumClauses][numIndices];
         for (int i = 0; i < config.maxNumClauses; i++) {
             System.arraycopy(clauseHeads[i].getArguments(), 0, termsPerClause[i], 0, maxArity);
-            System.arraycopy(bodies[i].getArguments(), 0, termsPerClause[i], maxArity, config.maxNumNodes * maxArity);
+            System.arraycopy(bodies[i].getArguments(), 0, termsPerClause[i], maxArity,
+                    config.maxNumNodes * maxArity);
         }
 
         // Set up occurrences

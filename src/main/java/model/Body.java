@@ -19,7 +19,7 @@ public class Body {
     private Node[] treeValues;
     // The decision variables relevant to negative cycle detection (i.e., everything except arguments)
     private IntVar[] structuralDecisionVariables;
-    private BoolVar hasRequiredFormula; // TODO: make this optional
+    private BoolVar hasRequiredFormula;
 
     Body(Program program, Model model, IntVar assignment, int clauseIndex) {
         this.program = program;
@@ -76,6 +76,7 @@ public class Body {
                 model.ifThen(notRoot, cannotBeTrue);
             }
         }
+        setUpRequiredFormulaConstraints(model);
 
         // Disable the clause (restrict it to a unique value) if required
         Constraint shouldBeDisabled = model.arithm(assignment, "=", program.config.predicates.size());
@@ -86,29 +87,34 @@ public class Body {
         structuralDecisionVariables = treeStructure;
         for (Node treeValue : treeValues)
             structuralDecisionVariables = ArrayUtils.concat(structuralDecisionVariables, treeValue.getPredicate());
+    }
 
-        // Does this clause have the required formula?
+    /** Does this clause have the required formula? */
+    private void setUpRequiredFormulaConstraints(Model model) {
+        if (program.config.requiredFormula == null)
+            return;
 
         BoolVar[][] canBeParentChild = model.boolVarMatrix(program.config.maxNumNodes, program.config.maxNumNodes);
         for (int i = 0; i < program.config.maxNumNodes; i++) {
             for (int j = 0; j < program.config.maxNumNodes; j++) {
                 Constraint iCanBeParent = model.arithm(treeValues[i].getPredicate(), "=",
-                        program.requiredOperator.ordinal());
+                        program.config.requiredFormula.getOperator().ordinal());
                 Constraint iAndJRelated = model.arithm(treeStructure[j], "=", i);
                 model.reification(canBeParentChild[i][j], model.and(iCanBeParent, iAndJRelated));
             }
         }
 
-        BoolVar[][] canBePredicate = model.boolVarMatrix(program.config.maxNumNodes, program.requiredPredicates.length);
+        int[] requiredPredicates = program.config.requiredFormula.getPredicates(program.config.predicates);
+        BoolVar[][] canBePredicate = model.boolVarMatrix(program.config.maxNumNodes, requiredPredicates.length);
         for (int i = 0; i < program.config.maxNumNodes; i++)
-            for (int j = 0; j < program.requiredPredicates.length; j++)
+            for (int j = 0; j < requiredPredicates.length; j++)
                 model.reification(canBePredicate[i][j],
-                        model.arithm(treeValues[i].getPredicate(), "=", program.requiredPredicates[j]));
+                        model.arithm(treeValues[i].getPredicate(), "=", requiredPredicates[j]));
 
         BoolVar[][] canBeParentOfPredicate = model.boolVarMatrix(program.config.maxNumNodes,
-                program.requiredPredicates.length);
+                requiredPredicates.length);
         for (int i = 0; i < program.config.maxNumNodes; i++) {
-            for (int j = 0; j < program.requiredPredicates.length; j++) {
+            for (int j = 0; j < requiredPredicates.length; j++) {
                 BoolVar[] product = model.boolVarArray(program.config.maxNumNodes);
                 for (int k = 0; k < program.config.maxNumNodes; k++)
                     model.arithm(canBeParentChild[i][k], "*", canBePredicate[k][j], "=", product[k]).post();

@@ -7,6 +7,7 @@ public class Config {
     public int maxNumNodes;
     public int maxNumClauses;
     public String forbidCycles;
+    public Formula requiredFormula;
 
     public List<String> predicates;
     public List<Integer> arities;
@@ -25,7 +26,7 @@ public class Config {
 
     public Config(int maxNumNodes, int maxNumClauses, String forbidCycles, List<String> predicates,
                   List<Integer> arities, List<String> variables, List<String> constants,
-                  List<IndependentPair> independentPairs) {
+                  List<IndependentPair> independentPairs, Formula requiredFormula) {
         this.maxNumNodes = maxNumNodes;
         this.maxNumClauses = maxNumClauses;
         this.forbidCycles = forbidCycles;
@@ -34,6 +35,7 @@ public class Config {
         this.variables = variables;
         this.constants = constants;
         this.independentPairs = independentPairs;
+        this.requiredFormula = requiredFormula;
     }
 
     public ForbidCycles getForbidCycles() {

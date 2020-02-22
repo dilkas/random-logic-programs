@@ -6,7 +6,6 @@ import java.util.*;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.chocosolver.util.tools.ArrayUtils;
-import propagators.Condition;
 
 import static java.util.stream.Collectors.toList;
 
@@ -51,7 +50,7 @@ class GeneratePrograms {
             int predictedProgramCount = Integer.parseInt(data[6]);
 
             Config config = new Config(Integer.parseInt(data[4]), Integer.parseInt(data[5]), "NONE",
-                    predicates, arities, variables, constants, new LinkedList<>());
+                    predicates, arities, variables, constants, new LinkedList<>(), null);
             Program p = new Program(config, new double[]{1});
 
             // Count the number of solutions
@@ -181,7 +180,8 @@ class GeneratePrograms {
                                             Config config = new Config(maxNumNodes, maxNumClauses,
                                                     "NEGATIVE", Arrays.asList(predicates),
                                                     Arrays.asList(arities), Arrays.asList(variables),
-                                                    Arrays.asList(constants), Arrays.asList(independentPairs));
+                                                    Arrays.asList(constants), Arrays.asList(independentPairs),
+                                                    null);
                                             Program p = new Program(config);
                                             p.compileStatistics(10, prefix, null);
                                         }
@@ -232,7 +232,7 @@ class GeneratePrograms {
                                         Config config = new Config(maxNumNodes, maxNumClauses, "NEGATIVE",
                                                 Arrays.asList(predicates), Arrays.asList(arities),
                                                 Arrays.asList(variables), Arrays.asList(constants),
-                                                Arrays.asList(independentPairs));
+                                                Arrays.asList(independentPairs), null);
                                         Program p = new Program(config);
                                         p.compileStatistics(1, prefix, "60s");
                                     }
