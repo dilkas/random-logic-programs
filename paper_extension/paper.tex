@@ -1,0 +1,81 @@
+\documentclass{article}
+\usepackage[UKenglish]{babel}
+\usepackage[UKenglish]{isodate}
+\usepackage[utf8]{inputenc}
+\usepackage{fullpage}
+\usepackage{mathtools}
+\usepackage[capitalise]{cleveref}
+
+\newcommand{\maxNumNodes}{\mathcal{M}_{\mathcal{N}}}
+\newcommand{\maxNumClauses}{\mathcal{M}_{\mathcal{C}}}
+
+\Crefname{subformula}{Subformula}{Subformulae}
+\creflabelformat{subformula}{#2(#1)#3}
+
+\begin{document}
+
+\section{A Required Subformula}
+% also note that /\ = max, and \/ = min
+
+We describe how to add constraints to the model in order to guarantee that a
+particular subformula appears somewhere in the program. In this section, a
+\emph{subformula} is a formula of the form
+\begin{equation} \label[subformula]{eq:subformula}
+  \bigodot_{i=1}^n \mathsf{p}_i,
+\end{equation}
+where $\odot \in \{ \land, \lor \}$, and $(\mathsf{p}_i)_{i=1}^n$ is a finite
+sequence of predicates, arguments of which are immaterial. Let
+\cref{eq:subformula} be precisely the required subformula.
+
+We say that a clause has \cref{eq:subformula} if we can find indices
+$i_0, i_1, \dots, i_n \in \{0, \dots, \maxNumNodes{} - 1 \}$ such that
+\[
+  \mathtt{values}[i_0] = \odot,
+\]
+and, for each $j = 1, \dots, n$,
+\[
+  \mathtt{structure}[i_j] = i_0,
+\]
+and
+\[
+  \mathtt{values}[i_j] = \mathsf{p}_j.
+\]
+We use this idea to define several data structures for each clause, gradually
+building up to a Boolean indicator for whether the clause has
+\cref{eq:subformula}. First, let $\mathbf{A}$ be an $\maxNumNodes{} \times
+\maxNumNodes{}$ Boolean matrix defined as
+\[
+  A_{i,j} \coloneqq (\mathtt{values}[i] = \odot) \land (\mathtt{structure}[j] = i),
+\]
+i.e., the $(i,j)$-th element is true if node $i$ is the root node of the
+subformula, and node $j$ is its child. Next, let $\mathbf{B}$ be an
+$\maxNumNodes{} \times n$ Boolean matrix defined as
+\[
+  B_{i,j} \coloneqq (\mathtt{values}[i] = \mathsf{p}_j),
+\]
+where the $(i,j)$-th element indicates whether node $i$ contains predicate
+$\mathsf{p}_j$. We can then use $\mathbf{A}$ and $\mathbf{B}$ to define an
+$\maxNumNodes{} \times n$ Boolean matrix $\mathbf{C}$ where the $(i,j)$-th
+element shows whether node $i$ is a parent of a node that contains predicate
+$\mathsf{p}_j$. We then have that $\mathbf{C} \coloneqq \mathbf{A} \mathbf{B}$,
+i.e.,
+\[
+  C_{i,j} \coloneqq \bigvee_k A_{i,k} \land B_{k,j}.
+\]
+The Boolean variable $f_i$ that indicates whether the $i$-th clause has the
+required subformula (for $i = 0, \dots, \maxNumClauses{} - 1$) can then be
+expressed as
+\[
+  f_i \coloneqq \bigvee_j \bigwedge_k C_{j,k},
+\]
+i.e., the clause has \cref{eq:subformula} if there is a suitable parent node
+that has all $n$ predicates as its children. Note that this allows for the
+parent node to have more than $n$ children, and the order of children is
+inconsequential. Finally, we can require the program to have the subformula
+simply by asking for
+\[
+  \bigvee_i f_i
+\]
+to be satisfied.
+
+\end{document}
