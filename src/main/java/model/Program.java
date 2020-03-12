@@ -26,7 +26,7 @@ import java.util.Collections;
 
 public class Program {
 
-    private static final boolean PRINT_DEBUG_INFO = false;
+    private static final boolean PRINT_DEBUG_INFO = true;
 
     public Config config;
     public IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
