@@ -23,9 +23,9 @@
 hs_err_pid*
 
 .idea/
-programs/
-output/
 target/
+generated/
+.ipynb_checkpoints
 
 # History files
 .Rhistory
