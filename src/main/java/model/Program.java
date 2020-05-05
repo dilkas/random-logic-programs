@@ -26,7 +26,7 @@ import java.util.Collections;
 
 public class Program {
 
-    private static final boolean PRINT_DEBUG_INFO = true;
+    private static final boolean PRINT_DEBUG_INFO = false;
 
     public Config config;
     public IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
@@ -111,12 +111,12 @@ public class Program {
         for (int i = 0; i < config.maxNumClauses; i++)
             bodies[i] = new Body(this, model, clauseAssignments[i], i);
 
-        // The order of the clauses doesn't matter (but we still allow duplicates)
+        // The order of the clauses doesn't matter (and we don't allow duplicates)
         IntVar[][] decisionVariablesPerClause = new IntVar[config.maxNumClauses][];
         for (int i = 0; i < config.maxNumClauses; i++)
             decisionVariablesPerClause[i] = ArrayUtils.concat(clauseHeads[i].getDecisionVariables(),
                     bodies[i].getDecisionVariables());
-        model.lexChainLessEq(decisionVariablesPerClause).post();
+        model.lexChainLess(decisionVariablesPerClause).post();
     }
 
     private void setUpVariableSymmetryElimination() {

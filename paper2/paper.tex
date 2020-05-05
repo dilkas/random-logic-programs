@@ -65,6 +65,22 @@
 
 \maketitle
 
+% TODO (for later)
+% 1) First keyword should be the category that I'm submitting for (add a new one)
+% 2) Use American English
+% 3) Avoid the Definition environment (to save space)
+% 4) Make sure that figures and algorithms are placed in good positions
+% 5) Check the grammar
+
+% Empirical tasks:
+% 1) make the CP model faster: apply the redundant constraints to predicates
+% (not just variables). Check if everything works out.
+% 2) motivate either for benchmarking or by comparing parameter learning with
+% ProbFOIL
+% New things I could talk about:
+% 1) entailment for conditional independence
+% 2) the 'required formula' part of the model
+
 %The abstract should briefly summarize the contents of the paper in
 %150--250 words.
 \begin{abstract}
@@ -81,15 +97,9 @@
   correctness and describe how the parameters of the model affect the empirical
   difficulty of the program generation task.
 
-  \keywords{Probabilistic logic programming \and Logic programming \and
-    Predicate independence.}
+  \keywords{Probabilistic logic programming \and Statistical relational
+    artificial intelligence.}
 \end{abstract}
-
-% TODO (for later)
-% 1) First keyword should be the category that I'm submitting for
-% 2) Use American English
-% 3) Avoid the Definition environment (to save space)
-% 4) Make sure that figures and algorithms are placed in good positions
 
 \section{Introduction}
 
@@ -112,6 +122,14 @@ originating from areas such as social networks, citation patterns, and
 biological data. But how confidently can we claim that an algorithm works well
 if it is only tested on a few types of problems?
 
+% TODO: Review: I’m not convinced that paragraph 2 follows from paragraph 1. Has
+% generation of random SAT problems really solved the problem of establishing
+% that one inference algorithm is better than another? I thought it led to the
+% opposite–a discovery that randomly generated instances are a different kind of
+% problem than real-world benchmarks. For example, a recent SAT competition
+% shows now overlap in the top three solvers for the random vs non-random
+% tracks.
+
 About thirty years ago, SAT solving technology was dealing with a similar lack
 of clarity \cite{DBLP:journals/ai/SelmanML96}. This changed with the study of
 generation of random SAT instances against different input parameters (e.g.,
@@ -128,17 +146,26 @@ although some are more expressive, e.g., defining a program only by the
 In this work, we introduce a constraint model for generating random logic
 programs according to a number of user-specified parameters on the structure of
 the program. In fact, the same model can generate both probabilistic programs
-directly in the syntax of ProbLog \cite{DBLP:conf/ijcai/RaedtKT07} and
-non-probabilistic Prolog programs. For generated probabilistic programs to be
-valid, we use a custom constraint to detect negative cycles. A major advantage
-of our constraint-based approach is that one can easily add additional
-constraints to the model. To demonstrate that, we present a custom constraint
-with propagation and entailment algorithms that can ensure predicate
-independence. We also present a combinatorial argument for correctness, counting
-the number of programs that the model produces for various parameter values.
-Finally, we show how the model scales when tasked with producing more
-complicated programs and identify the relationships between parameter values and
-the empirical hardness of the program generation task.
+in the syntax of ProbLog \cite{DBLP:conf/ijcai/RaedtKT07} and
+non-probabilistic Prolog programs. A major advantage of our constraint-based
+approach is that one can easily add additional constraints to the model. To
+demonstrate that, we present a custom constraint with propagation and entailment
+algorithms that can ensure predicate independence. We also present a
+combinatorial argument for correctness, counting the number of programs that the
+model produces for various parameter values. Finally, we show how the model
+scales when tasked with producing more complicated programs.
+
+A common restriction put on both logic programs and probabilistic logic programs
+in order to ensure that there is a unique answer to every query is known as
+\emph{stratification}
+\cite{DBLP:journals/jlp/BalbinPRM91,DBLP:conf/padl/MantadelisR17}. We extend
+this idea to programs that have arbitrary well-formed formulas in clause bodies
+(as ProbLog supports this) and describe a custom constraint that ensures
+stratification by checking for negative cycles in the predicate dependency
+graph.
+
+% TODO: Review: I would have appreciated a definition of 
+% predicate independence instead of just a forward pointer to sections 7 and 8.
 
 Overall, our main contributions are concerned with logic programming-based
 languages and frameworks, which capture a major fragment of SRL
@@ -149,19 +176,31 @@ including (imperative) probabilistic programming
 exploring broader questions on generating models and testing algorithms in
 machine learning.
 
+% TODO: Answer to a review: The main benefit of a constraint-based approach is
+% the ability to add additional constraints as needed, and to do that
+% efficiently (compared to generate-and-test approaches). Specifically, we can
+% regulate what parts of the program must be independent, require certain
+% formulas to be included, etc.
+
+% TODO: Review: The paper fails to provide explanation of critical parts: for
+% example, how is a set of constraints going to be turned into a random logic
+% program? We don’t find out until section 9.
+
 \section{Preliminaries}
 
 The basic primitives of logic programs are \emph{constants}, \emph{(logic)
   variables}, and \emph{predicates}. Each predicate has an \emph{arity} that
 defines the number of terms that it can be applied to. A \emph{term} is either a
 variable or a constant, and an \emph{atom} is a predicate of arity $n$ applied
-to $n$ terms. A \emph{formula} is a grammatically-valid expression that connects
+to $n$ terms. A \emph{formula} is any well-formed expression that connects
 atoms using conjunction ($\land$), disjunction ($\lor$), and negation ($\neg$).
 A \emph{clause} is a pair of a \emph{head} (which is an atom) and a \emph{body}
 (which is a formula). A \emph{(logic) program} is a multiset of clauses. Given a
 program $\mathscr{P}$, a \emph{subprogram} $\mathscr{R}$ of $\mathscr{P}$ is a
 subset of the clauses of $\mathscr{P}$ and is denoted by $\mathscr{R} \subseteq
 \mathscr{P}$.
+% TODO: Review: The use of disjunction and arbitrary negation in the body is
+% also uncommon
 
 In the world of constraint satisfaction, we also have \emph{(constraint)
   variables}, each with its own \emph{domain}, whose values are restricted using
@@ -197,10 +236,12 @@ $\maxNumNodes{} \ge 1$ to be the maximum number of nodes in the tree
 representation of any clause. We also set $\maxNumClauses{}$ to be the maximum
 number of clauses in a program. We must have that $\maxNumClauses{} \ge
 |\predicates{}|$ because we require each predicate to have at least one clause
-that defines it. The model supports eliminating either all cycles or just
-negative cycles (see \cref{sec:cycles}) and enforcing predicate independence
-(see \cref{sec:independence}), so a set of independent pairs of predicates is
-another parameter. Since this model can generate probabilistic as well as
+that defines it.
+
+% TODO: make the first sentence clear
+The model supports enforcing predicate independence (see
+\cref{sec:independence}), so a set of independent pairs of predicates is another
+parameter. Since this model can generate probabilistic as well as
 non-probabilistic programs, each clause is paired with a probability which is
 randomly selected from a given multiset (i.e., our last parameter). For
 generating non-probabilistic programs, one can set this list equal to $\{ 1 \}$.
@@ -214,34 +255,29 @@ does not change the meaning of the program, we can also state our first
 constraint:
 
 \begin{constraint}
-  Clauses are sorted.
+  Clauses are sorted according to a lexicographic increasing order\footnote{The
+    exact order is immaterial: we only impose an order to eliminate duplicates
+    and permutation symmetries.}.
 \end{constraint}
-
-Here and henceforth, the exact ordering is immaterial: we only impose an order
-to eliminate permutation symmetries.
 
 \section{Heads of Clauses} \label{sec:heads}
 
-\begin{definition}
-  The \emph{head} of a clause is composed of a $\variable{predicate} \in
-  \predicates \cup \{ \Box \}$, and
-  $\arrayd{arguments}{\maxArity{}}{\constants{} \cup \variables{}} \cup \{ \Box
-  \}$.
-\end{definition}
+We define the \emph{head} of a clause as a $\variable{predicate} \in \predicates
+\cup \{ \Box \}$ and $\arrayd{arguments}{\maxArity{}}{\constants{} \cup
+  \variables{}} \cup \{ \Box \}$. Here, we use $\Box$ to denote either a
+disabled clause that we choose not to use or disabled arguments if the arity of
+the $\variable{predicate}$ is less than $\maxArity{}$. The reason why we need a
+separate value for the latter (i.e., why it is not enough to fix disabled
+arguments to a single already-existing value) will become clear in
+\cref{sec:variable_symmetry}.
 
-Here, we use $\Box$ to denote either a disabled clause that we choose not to use
-or disabled arguments if the arity of the $\variable{predicate}$ is less than
-$\maxArity{}$. The reason why we need a separate value for the latter (i.e., why
-it is not enough to fix disabled arguments to a single already-existing value)
-will become clear in \cref{sec:variable_symmetry}.
-
-\begin{definition} \label{def:arity}
-  The \variable{predicate}'s $\variable{arity} \in [0, \maxArity{}]$ can then be
-  defined using the \variable{table} constraint as the arity of the
-  $\variable{predicate}$ if $\variable{predicate} \in \predicates{}$, and zero
-  otherwise.
-\end{definition}
-
+This $\variable{predicate}$ variable has a corresponding arity that depends on
+the value of $\variable{predicate}$. We can define $\variable{arity} \in [0,
+\maxArity{}]$ as the arity of the $\variable{predicate}$ if
+$\variable{predicate} \in \predicates{}$ and zero otherwise using the table
+constraint \cite{DBLP:conf/cpaior/MairyDL15}. This constraint uses a set of
+pairs of the form $(p, a)$, where $p$ ranges over all possible values of
+$\variable{predicate}$, and $a$ is either the arity of predicate $p$ or zero.
 Having defined arity, we can now fix the superfluous arguments:
 
 \begin{constraint} \label{constr:arity}
@@ -253,31 +289,30 @@ We can also add a constraint that each predicate $\mathsf{P} \in \predicates{}$
 should have at least one clause with $\mathsf{P}$ at its head:
 
 \begin{constraint}
-  Let $P = \{ h.\variable{predicate} \mid h \in \variable{heads} \}$. Then
+  Let $P = \{ h.\variable{predicate} \mid h \in \variable{heads} \}$ be a
+  multiset. Then
   \[
     \variable{nValues}(P) = \begin{cases}
       |\predicates{}| & \text{if } \variable{count}(\Box, P) = 0 \\
       |\predicates{}| + 1 & \text{otherwise,}
     \end{cases}
   \]
-  where $\variable{nValues}(P)$ counts the number of unique values in $P$.
+  where $\variable{nValues}(P)$ counts the number of unique values in $P$, and
+  $\variable{count}(\Box, P)$ counts how many times $\Box$ appears in $P$.
 \end{constraint}
 
 \section{Bodies of Clauses} \label{sec:bodies}
 
-As was briefly mentioned before, the body of a clause is represented by a tree.
-
-% TODO: fix the formatting issue
-\begin{definition}
-  The \emph{body} of a clause has two parts. First, we have the
-  $\arrayd{structure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ array that
-  encodes the structure of the tree using the following two rules:
-  $\variable{structure}[i] = i$ means that the $i$-th node is a root, and
-  $\variable{structure}[i] = j$ (for $j \ne i$) means that the $i$-th node's
-  parent is node $j$. The second part is the array
-  $\arrayt{values}{\maxNumNodes{}}{Node}$ such that $\variable{values}[i]$ holds
-  the value of the $i$-th node.
-\end{definition}
+As was briefly mentioned before, the \emph{body} of a clause is represented by a
+tree. It has two parts. First, there is the
+$\arrayd{structure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ array that encodes
+the structure of the tree using the following two rules:
+$\variable{structure}[i] = i$ means that the $i$-th node is a root, and
+$\variable{structure}[i] = j$ (for $j \ne i$) means that the $i$-th node's
+parent is node $j$. The second part is the array
+$\arrayt{values}{\maxNumNodes{}}{Node}$ such that $\variable{values}[i]$ holds
+the value of the $i$-th node.
+% TODO: explain what Node is.
 
 We can use the $\variable{tree}$ constraint \cite{DBLP:conf/cp/FagesL11} to
 forbid cycles in the $\variable{structure}$ array and simultaneously define
@@ -290,28 +325,25 @@ that the zeroth node is indeed a root:
   $\variable{structure}[0] = 0$.
 \end{constraint}
 
-\begin{definition}
-  For convenience, we also define $\variable{numNodes} \in \{ 1, \dots,
-  \maxNumNodes{} \}$ to count the number of nodes in the main tree. We define it
-  as
-  \[
-    \variable{numNodes} = \maxNumNodes{} - \variable{numTrees} + 1.
-  \]
-\end{definition}
+For convenience, we also define $\variable{numNodes} \in \{ 1, \dots,
+\maxNumNodes{} \}$ to count the number of nodes in the main tree. We define it
+as
+\[
+  \variable{numNodes} = \maxNumNodes{} - \variable{numTrees} + 1.
+\]
 
 \begin{example} \label{example:formula}
-  Let $\maxNumNodes{} = 8$. Then
-  \[
-    \neg\mathsf{P}(X) \lor (\mathsf{Q}(X) \land \mathsf{P}(X))
-  \]
-  corresponds to the tree in \cref{fig:example_tree} and can be encoded as:
-  \begin{alignat*}{8}
-    \variable{structure} &= [0, &&0, &&0, &&1, &&2, &&2, &&6, &&7],\\
-    \variable{values} &= [{\lor}, &&{\neg}, &&{\land}, \mathsf{P}(&&X),
-    \mathsf{Q}(&&X), \mathsf{P}(&&X), &&\top, &&\top],\\
-    \variable{numNodes} &= 6, && && && && && && &&\\
-    \variable{numTrees} &= 3. && && && && && && &&
-  \end{alignat*}
+  Let $\maxNumNodes{} = 8$. Then $\neg\mathsf{P}(X) \lor (\mathsf{Q}(X) \land
+  \mathsf{P}(X))$ corresponds to the tree in \cref{fig:example_tree} and can be
+  encoded as:
+  \begin{gather*}
+    \begin{alignedat}{8}
+      \variable{structure} &= [0, &&0, &&0, &&1, &&2, &&2, &&6, &&7],\\
+      \variable{values} &= [{\lor}, &&{\neg}, &&{\land}, \mathsf{P}(&&X),
+      \mathsf{Q}(&&X), \mathsf{P}(&&X), &&\top, &&\top],
+    \end{alignedat} \\
+    \variable{numNodes} = 6, \quad \variable{numTrees} = 3.
+  \end{gather*}
 \end{example}
 
 \begin{figure}
@@ -334,26 +366,18 @@ that the zeroth node is indeed a root:
 \end{figure}
 
 Here, $\top$ is the value we use for the remaining one-node trees. The
-elements of the $\variable{values}$ array are nodes:
-
-\begin{definition} \label{def:node}
-  A \emph{node} has a $\variable{name} \in \tokens{} \cup \predicates{}$ and
-  $\arrayd{arguments}{\maxArity{}}{\variables{} \cup \constants{} \cup \{ \Box
-    \}}$. The node's $\variable{arity}$ can then be
-  defined analogously to \cref{def:arity}.
-\end{definition}
-
-Furthermore, we can use \cref{constr:arity} to again disable the extra
-arguments.
+elements of the $\variable{values}$ array are nodes. A \emph{node} has a
+$\variable{name} \in \tokens{} \cup \predicates{}$ and
+$\arrayd{arguments}{\maxArity{}}{\variables{} \cup \constants{} \cup \{ \Box
+  \}}$. The node's $\variable{arity}$ can then be defined in the same way as in
+\cref{sec:heads}. Furthermore, we can use \cref{constr:arity} to again disable
+the extra arguments.
 
 \begin{example}
   Let $\maxArity{} = 2$, $X \in \variables{}$, and let $\mathsf{P}$ be a
   predicate with arity 1. Then the node representing atom $\mathsf{P}(X)$ has:
-  \begin{align*}
-    \variable{name} &= \mathsf{P},\\
-    \variable{arguments} &= [X, \Box],\\
-    \variable{arity} &= 1.
-  \end{align*}
+    $\variable{name} = \mathsf{P}$, $\variable{arguments} = [X, \Box]$,
+    $\variable{arity} = 1$.
 \end{example}
 
 We need to constrain the forest represented by the $\variable{structure}$
@@ -423,6 +447,13 @@ $\Box$:
 
 \section{Variable Symmetries} \label{sec:variable_symmetry}
 
+% TODO: Response to a review: Symmetry removal is important for two reasons.
+% First, if we want to generate all programs that match a certain description,
+% we would rather not generate the same program multiple times. Second, symmetry
+% removal makes the constraint solving task much simpler by significantly
+% reducing the search space that needs to be explored, often turning an
+% intractable problem into an easy one.
+
 Given any clause, we can permute the variables in that clause without changing
 the meaning of the clause or the entire program. Thus, we want to fix the order
 of variables to eliminate unnecessary symmetries. Informally, we can say that
@@ -435,12 +466,11 @@ basis.
 \begin{definition}
   Let $N = \maxArity{} \times (\maxNumNodes{} + 1)$, and let
   $\variable{terms}[N] \in \constants{} \cup \variables{} \cup \{ \Box
-  \}$ be a flattened array of all arguments in a particular clause.
-
-  Then we can use a channeling constraint to define
-  $\variable{occ}[|\constants{}| + |\variables{}| + 1]$ as an array of subsets
-  of $\{ 0, \dots, N-1 \}$ such that for all $i = 0, \dots, N - 1$, and $t \in
-  \constants{} \cup \variables{} \cup \{ \Box \}$,
+  \}$ be a flattened array of all arguments in a particular clause. Then we can
+  use a channeling constraint to define $\variable{occ}[|\constants{}| +
+  |\variables{}| + 1]$ as an array of subsets of $\{ 0, \dots, N-1 \}$ such that
+  for all $i = 0, \dots, N - 1$, and $t \in \constants{} \cup \variables{} \cup
+  \{ \Box \}$,
   \[
     i \in \variable{occ}[t] \quad \iff \quad
     \variable{terms}[i] = t.
@@ -523,15 +553,11 @@ set:
 \end{constraint}
 
 Finally, we define an auxiliary set variable to act as a set of possible values
-that $\variable{intros}$ can take:
-
-\begin{definition}
-  Let $\variable{potentials} \subseteq \{ 0, \dots, N \}$ be such that for $v
-  \in \variables{}$, $\variable{intros}[v] \in \variable{potentials}$.
-\end{definition}
-
-Using this new variable, we can add a constraint saying that non-predicate nodes
-in the tree representation of a clause cannot have variables as arguments:
+that $\variable{intros}$ can take. Let $\variable{potentials} \subseteq \{ 0,
+\dots, N \}$ be such that for $v \in \variables{}$, $\variable{intros}[v] \in
+\variable{potentials}$. Using this new variable, we can add a constraint saying
+that non-predicate nodes in the tree representation of a clause cannot have
+variables as arguments:
 
 \begin{constraint} \label{constraint:potentialIntroductions}
   For $i = 0, \dots, \maxNumNodes{} - 1$, let
@@ -544,8 +570,33 @@ in the tree representation of a clause cannot have variables as arguments:
 \end{constraint}
 
 \section{Counting Programs} \label{sec:counting}
+% TODO: Does this section still work if I don't allow duplicates?
 
 \setcounter{footnote}{0}
+
+% TODO: Review: Finally, regarding correctness of the proposal, I don´t
+% understand "the combinatorial argument for correctness" result, how does the
+% provided analysis show correctness relative to the properties? I was expecting
+% a proof that would show the relationship between the formalized constraint and
+% the desired property, to chow for instance that if such constraint is taken
+% into account in the construction of the program then it is impossible that the
+% program does not satisfy the property. Is there something I do not understand
+% from this? I find the proposal lacking in this terms, not finding the
+% arguments for validity strong enough, unless I misunderstood the analysis.
+% Answer: 
+% Regarding correctness, we decided against including proofs that a constraint for
+% a property ensures the property because the discussed properties are all
+% syntactic, and the constraint model itself is a representation of the same
+% syntax so the proofs would not be particularly revealing. We can nonetheless add
+% them if necessary.
+%
+% Instead, Section 6 shows correctness in a sense that if two methods generate the
+% same numbers (i.e., numbers of programs with certain properties and parameters),
+% then they describe the same thing, and we gain confidence that the constraint
+% description (which matches the combinatorial description) accurately matches our
+% intentions. This method helped us debug many aspects of the model and can be
+% particularly revealing when both the model and the combinatorial argument become
+% more intricate.
 
 To demonstrate the correctness of the model and explain it in more
 detail, in this section we are going to derive combinatorial expressions for
@@ -626,41 +677,43 @@ of the clause.
 
 \section{Predicate Independence} \label{sec:independence}
 
+% TODO: Review: Section 7 defined predicate (in)dependence. It is done using the
+% constraint model, but given a logic program, it could just as well be
+% extracted from the logic program (construct body tree from each clause).
+% Answer: Motivate why we need this.
+
+% TODO: Answer to a review: All constraints have propagation and entailment
+% procedures behind them. When designing a new constraint, unless it can be
+% composed of already-existing constraints, designing these algorithms is, in
+% fact, completely in the spirit of constraint programming.
+
 In this section, we define a notion of predicate independence as a way to
 constrain the probability distributions defined by the generated programs. We
 also describe efficient algorithms for propagation and entailment checking.
-
-\begin{definition}
-  Let $\mathscr{P}$ be a probabilistic logic program. Its \emph{predicate
-    dependency graph} is a directed graph $G_{\mathscr{P}} = (V, E)$ with the
-  set of nodes $V$ consisting of all predicates in $\mathscr{P}$. For any two
-  different predicates $\mathsf{P}$ and $\mathsf{Q}$, we add an edge from
-  $\mathsf{P}$ to $\mathsf{Q}$ if there is a clause in $\mathscr{P}$ with
-  $\mathsf{Q}$ as the head and $\mathsf{P}$ mentioned in the body. We say that
-  the edge is \emph{negative} if there exists a clause with $\mathsf{Q}$ as the
-  head and at least one instance of $\mathsf{P}$ at the body such that the path
-  from the root to the $\mathsf{P}$ node in the tree representation of the
-  clause passes through at least one negation node. Otherwise, it is
-  \emph{positive}. We say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a
-  \emph{negative cycle} if $G_{\mathscr{P}}$ has a cycle with at least one
-  negative edge.
-\end{definition}
-
-Labelling the edges as positive/negative will be immaterial for predicate
-independence, but the same graph will play a crucial role in negative cycle
-detection in the next section.
+Let $\mathscr{P}$ be a probabilistic logic program. Its \emph{predicate
+  dependency graph} is a directed graph $G_{\mathscr{P}} = (V, E)$ with the set
+of nodes $V$ consisting of all predicates in $\mathscr{P}$. For any two
+different predicates $\mathsf{P}$ and $\mathsf{Q}$, we add an edge from
+$\mathsf{P}$ to $\mathsf{Q}$ if there is a clause in $\mathscr{P}$ with
+$\mathsf{Q}$ as the head and $\mathsf{P}$ mentioned in the body. We say that the
+edge is \emph{negative} if there exists a clause with $\mathsf{Q}$ as the head
+and at least one instance of $\mathsf{P}$ at the body such that the path from
+the root to the $\mathsf{P}$ node in the tree representation of the clause
+passes through at least one negation node. Otherwise, it is \emph{positive}. We
+say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a \emph{negative cycle} if
+$G_{\mathscr{P}}$ has a cycle with at least one negative edge. Labelling the
+edges as positive/negative will be immaterial for predicate independence, but
+the same graph will play a crucial role in designing a constraint for
+stratification in the next section. In fact, a program $\mathscr{P}$ is
+\emph{stratified} if $G_{\mathscr{P}}$ has no negative cycles.
 
 \begin{definition}
   Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The set of
   \emph{dependencies} of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such
   that $\mathsf{P} \in D_{\mathsf{P}}$, and, for every $\mathsf{Q} \in
   D_{\mathsf{P}}$, all direct predecessors of $\mathsf{Q}$ in $G_{\mathscr{P}}$
-  are in $D_{\mathsf{P}}$.
-\end{definition}
-
-\begin{definition}
-  Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are \emph{independent} if
-  $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
+  are in $D_{\mathsf{P}}$. Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are
+  \emph{independent} if $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
 \end{definition}
 
 \begin{example} \label{ex:program}
@@ -674,7 +727,7 @@ detection in the next section.
   \cref{fig:example_tree2}), the edge from $\mathsf{mother}$ to
   $\mathsf{father}$ is negative, while the other two edges are positive.
 
-\begin{figure}
+\begin{figure}[t]
   \centering
   \begin{minipage}{.49\textwidth}
     \centering
@@ -881,15 +934,14 @@ as intended.
     \mathsf{sibling} \}.
   \]
   The predicate dependency graph without positivity/negativity (as defined in
-  \cref{def:adjacency_matrix}) is represented in
-  \cref{fig:dependencies_matrix,fig:dependencies2}.
+  \cref{def:adjacency_matrix}) is represented in \cref{fig:example}.
 
-  % TODO: labels on the inside (check if they work)
   \begin{figure}
     \begin{minipage}{.49\textwidth}
       \centering
-      \subfloat[The adjacency matrix defined using \cref{def:adjacency_matrix} for
-      \cref{example:independence}\label{fig:dependencies_matrix}]{
+      \subfloat[The adjacency matrix of the graph. The boxed value is the
+      decision variable that will be propagated by
+      \cref{alg:independence_propagation}.\label{fig:dependencies_matrix}]{
         $\begin{blockarray}{lcccc}
           \begin{block}{l!{\quad}(cccc)}
             \mathsf{father} & 0 & 0 & 0 & 0 \\
@@ -903,9 +955,8 @@ as intended.
     \hfill
     \begin{minipage}{.49\textwidth}
       \centering
-      \subfloat[The predicate dependency graph that corresponds to
-      \cref{fig:dependencies_matrix}. Dashed edges are undetermined---they may or
-      may not exist.\label{fig:dependencies2}]{
+      \subfloat[A drawing of the graph. Dashed edges are undetermined---they may
+      or may not exist.\label{fig:dependencies2}]{
         \centering
         \makebox[\linewidth]{
           \begin{tikzpicture}
@@ -921,7 +972,8 @@ as intended.
         }
       }
     \end{minipage}
-    \caption{TODO}
+    \caption{The predicate dependency graph of \cref{example:independence}}
+    \label{fig:example}
   \end{figure}
 
   Suppose we have a constraint that $\mathsf{mother}$ and $\mathsf{parent}$ must
@@ -939,12 +991,8 @@ as intended.
 \end{example}
 
 \section{Negative Cycles} \label{sec:cycles}
-% although some work has been done in overcoming this limitation
-% \cite{DBLP:journals/ijar/BuchmanP17}
 
-Having no negative cycles in the predicate dependency graph is a requirement of
-ProbLog that makes the program well-defined \cite{kimmig2009trading}. Ideally,
-we would like to design a constraint for negative cycles similar to the
+Ideally, we would like to design a constraint for negative cycles similar to the
 constraint for independence in the previous section. However, the difficulty
 with creating a propagation algorithm for negative cycles is that there seems to
 be no good way to extend \cref{def:adjacency_matrix} so that the adjacency
@@ -1057,6 +1105,17 @@ situation as well.
   \label{fig:impact}
 \end{figure}
 
+% TODO: Review: From section 9 it seems that this language has a very special
+% handcrafted (heuristic) solution procedure that is not guaranteed to find a
+% solution if one exists.
+% Answer: Adding a restart policy helps with efficiency when generating larger
+% programs, but if we want to find all possible programs, restarts can be
+% disabled (and this is likely to only be relevant with low parameter values,
+% where the number of possible programs is in thousands rather than millions).
+% Note that combinations of parameter values that have no solutions (or are
+% unlikely to have solutions) are unlikely to occur in practice (i.e., be of
+% interest).
+
 \section{Conclusions}
 
 We were able to design an efficient model for generating both logic programs and
@@ -1144,6 +1203,6 @@ whether inference algorithms are robust to changes in representation.
 % we can easily adapt the model to handle that.
 
 \bibliographystyle{splncs04}
-\bibliography{bibliography}
+\bibliography{paper}
 
 \end{document}

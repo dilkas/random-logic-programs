@@ -12,7 +12,7 @@ import static java.util.stream.Collectors.toList;
 class GeneratePrograms {
 
 
-    private static final int NUM_SOLUTIONS = 1000;
+    private static final int NUM_SOLUTIONS = 10;
     private static final String OUTPUT_DIRECTORY = "programs/";
     private static final String CONFIG_FILENAME = "config.yaml";
     private static final String PROGRAM_COUNTS_FILENAME = "../program_counts.csv";

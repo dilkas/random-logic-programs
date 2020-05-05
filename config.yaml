@@ -1,37 +1,51 @@
-!!python/object:__main__.Config
 arities:
+- 2
+- 2
+- 2
+- 1
+- 1
+- 1
+- 1
 - 1
 - 1
 - 1
 constants: []
 forbidCycles: NEGATIVE
-independentPairs:
-- predicate1: p
-  predicate2: q
-- condition:
-    operator: OR
-    predicates:
-    - p
-    - q
-  predicate1: p
-  predicate2: r
-- condition:
-    operator: OR
-    predicates:
-    - p
-    - q
-  predicate1: q
-  predicate2: r
-maxNumClauses: 5
-maxNumNodes: 5
+#independentPairs:
+#- predicate1: p
+#  predicate2: q
+#- condition:
+#    operator: OR
+#    predicates:
+#    - p
+#    - q
+#  predicate1: p
+#  predicate2: r
+#- condition:
+#    operator: OR
+#    predicates:
+#    - p
+#    - q
+#  predicate1: q
+#  predicate2: r
+maxNumClauses: 10
+maxNumNodes: 3
 predicates:
-- p
-- q
-- r
-requiredFormula:
-  operator: OR
-  predicates:
-  - p
-  - q
+- pa
+- pb
+- pc
+- pd
+- pe
+- pf
+- pg
+- ph
+- pi
+- pj
+#requiredFormula:
+#  operator: OR
+#  predicates:
+#  - p
+#  - q
 variables:
 - X
+- Y
