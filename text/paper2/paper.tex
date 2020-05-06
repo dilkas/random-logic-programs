@@ -67,8 +67,6 @@
 % TODO (for later)
 % 1) Use American English
 % 2) Avoid the Definition environment (to save space)
-% 3) Check the grammar
-% 4) Update the abstract
 
 % Empirical tasks:
 % 1) make the CP model faster: apply the redundant constraints to predicates
@@ -92,8 +90,8 @@
   one to generate programs that have a certain independence structure. To
   generate valid probabilistic logic programs, we also present a new constraint
   for negative cycle detection. Finally, we provide a combinatorial argument for
-  correctness and describe how the parameters of the model affect the empirical
-  difficulty of the program generation task.
+  the correctness of the model and describe how the parameters of the model
+  affect the empirical difficulty of the program generation task.
 
   \keywords{Constraint programming \and Probabilistic logic programming \and
     Statistical relational learning.}
@@ -121,37 +119,42 @@ if it is only tested on a few types of problems?
 
 About thirty years ago, SAT solving technology was dealing with a similar lack
 of clarity \cite{DBLP:journals/ai/SelmanML96}. This changed with the study of
-generation of random SAT instances against different input parameters (e.g.,
-clause length and total number of variables) to better understand the behaviour
-of algorithms and their ability to solve random synthetic problems.
+generating random SAT instances against different input parameters (e.g.,
+clause length and the total number of variables) to better understand the
+behaviour of algorithms and their ability to solve random synthetic problems.
 Unfortunately, in the context of probabilistic logic programming, most current
 approaches to random instance generation are very restrictive, e.g., limited to
-clauses with only two literals \cite{DBLP:conf/lpnmr/NamasivayamT09}, or to
-clauses of the form $a \gets \neg b$ \cite{DBLP:journals/tocl/WenWSL16},
-although some are more expressive, e.g., defining a program only by the
-(maximum) number of atoms in the body and the total number of rules
-\cite{DBLP:conf/iclp/ZhaoL03}.
+clauses with only two literals \cite{DBLP:conf/lpnmr/NamasivayamT09}, or clauses
+of the form $a \gets \neg b$ \cite{DBLP:journals/tocl/WenWSL16}, although some
+are more expressive, e.g., defining a program only by the (maximum) number of
+atoms in the body and the total number of rules \cite{DBLP:conf/iclp/ZhaoL03}.
 
-In this work, we introduce a constraint model for generating random logic
-programs according to a number of user-specified parameters on the structure of
-the program. In fact, the same model can generate both probabilistic programs
-in the syntax of ProbLog \cite{DBLP:conf/ijcai/RaedtKT07} and
-non-probabilistic Prolog programs. A major advantage of a constraint-based
-approach is the ability to add additional constraints as needed, and to do that
-efficiently (compared to generate-and-test approaches). As an example of this,
-we develop a custom constraint (with propagation and entailment algorithms)
-that, given two predicates $\mathsf{P}$ and $\mathsf{Q}$, ensures that any
-ground atom with predicate $\mathsf{P}$ is independent of any ground atom
-with predicate $\mathsf{Q}$. In this way, we can easily regulate the
-independence structure of the underlying probability distribution. We also
-present a combinatorial argument for correctness, counting the number of
-programs that the model produces for various parameter values. Finally, we show
-how the model scales when tasked with producing more complicated programs.
+In this work, we introduce a constraint-based representation for logic programs
+based on some simple parameters that describe the program's size, what
+predicates and constants it uses, etc. This representation takes the form of a
+constraint satisfaction problem, i.e., a set of discrete variables and
+restrictions on what values they can take. Every solution to this problem (as
+output by a constraint solver) directly translates into a logic program. One can
+either use random value-ordering heuristics and restarts to generate random
+programs or find all (sufficiently small) programs that satisfy the given
+requirements. In fact, the same model can generate both probabilistic programs
+in the syntax of ProbLog \cite{DBLP:conf/ijcai/RaedtKT07} and non-probabilistic
+Prolog programs.
 
-% TODO: these two paragraphs aren't connected
+A major advantage of a constraint-based approach is the ability to add
+additional constraints as needed, and to do that efficiently (compared to
+generate-and-test approaches). As an example of this, we develop a custom
+constraint (with propagation and entailment algorithms) that, given two
+predicates $\mathsf{P}$ and $\mathsf{Q}$, ensures that any ground atom with
+predicate $\mathsf{P}$ is independent of any ground atom with predicate
+$\mathsf{Q}$. In this way, we can easily regulate the independence structure of
+the underlying probability distribution. We also present a combinatorial
+argument for correctness, counting the number of programs that the model
+produces for various parameter values and show how the model scales when tasked
+with producing more complicated programs.
 
 A common restriction put on both logic programs and probabilistic logic programs
-in order to ensure that there is a unique answer to every query is known as
+to ensure that there is a unique answer to every query is known as
 \emph{stratification}
 \cite{DBLP:journals/jlp/BalbinPRM91,DBLP:conf/padl/MantadelisR17}. We extend
 this idea to programs that have arbitrary well-formed formulas in clause bodies
@@ -168,17 +171,6 @@ including (imperative) probabilistic programming
 exploring broader questions on generating models and testing algorithms in
 machine learning.
 
-% TODO: Review: The paper fails to provide explanation of critical parts: for
-% example, how is a set of constraints going to be turned into a random logic
-% program? We don’t find out until section 9.
-
-%We develop a constraint-based representation for valid logic programs based on
-%some simple parameters that describe the program's size, what predicates and
-%constants it uses, etc. This representation takes the form of a constraint
-%satisfaction problem, i.e., a set of discrete variables and restrictions on what
-%values they can take. After a constraint solver provides valid values for these
-%variables, they directly translate into a logic program.
-
 \section{Preliminaries}
 
 The basic primitives of logic programs are \emph{constants}, \emph{(logic)
@@ -187,7 +179,7 @@ defines the number of terms that it can be applied to. A \emph{term} is either a
 variable or a constant, and an \emph{atom} is a predicate of arity $n$ applied
 to $n$ terms. A \emph{formula} is any well-formed expression that connects
 atoms using conjunction $\land$, disjunction $\lor$, and negation
-$\neg$\footnote{One can add a couple extra constraints to restrict the
+$\neg$\footnote{One can add a couple of extra constraints to restrict the
   generated programs to logic programs that only allow a single disjunction with
   positive and negative literals.}.
 A \emph{clause} is a pair of a \emph{head} (which is an atom) and a \emph{body}
@@ -197,7 +189,7 @@ subset of the clauses of $\mathscr{P}$ and is denoted by $\mathscr{R} \subseteq
 \mathscr{P}$.
 
 In the world of constraint satisfaction, we also have \emph{(constraint)
-  variables}, each with its own \emph{domain}, whose values are restricted using
+  variables}, each with a \emph{domain}, whose values are restricted using
 \emph{constraints}. All constraint variables in the model are integer or set
 variables, however, if an integer refers to a logical construct
 (e.g., a logical variable or a constant), we will make no distinction between
@@ -279,7 +271,7 @@ should have at least one clause with $\mathsf{P}$ at its head.
 Finally, clauses are supposed to constitute a set but with one important
 exception: there may be more than one disabled clause, i.e., a clause with head
 $\variable{predicate} = \Box$. Assuming a lexicographic order over entire
-clauses such that $\Box > \mathsf{P}$ for all $\mathsf{P} \in \predicates{}$, and
+clauses such that $\Box > \mathsf{P}$ for all $\mathsf{P} \in \predicates{}$ and
 the head predicate is the `first digit' of this representation, we get the
 following constraint.
 \begin{constraint}
@@ -422,7 +414,7 @@ $\Box$:
 
 \section{Variable Symmetry Breaking} \label{sec:variable_symmetry}
 
-Ideally, we want to avoid generating programs that are equivalent in a sense
+Ideally, we want to avoid generating programs that are equivalent in the sense
 that they produce the same answers to all queries. Even more importantly, we
 want to avoid generating multiple internal representations that ultimately
 result in the same program. This is the purpose of \emph{symmetry-breaking
@@ -486,7 +478,7 @@ representation of a clause.
 
 \subsection{Redundant Constraints}
 
-We add a number of redundant constraints to make search more efficient. First,
+We add several redundant constraints to make search more efficient. First,
 we can state that the positions occupied by different terms must be different.
 \begin{constraint} \label{constraint:all_diff}
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
@@ -522,33 +514,6 @@ variables as arguments.
 \end{constraint}
 
 \section{Counting Programs} \label{sec:counting}
-% TODO: Does this section still work if I don't allow duplicates?
-
-\setcounter{footnote}{0}
-
-% TODO: Review: Finally, regarding correctness of the proposal, I don´t
-% understand "the combinatorial argument for correctness" result, how does the
-% provided analysis show correctness relative to the properties? I was expecting
-% a proof that would show the relationship between the formalized constraint and
-% the desired property, to chow for instance that if such constraint is taken
-% into account in the construction of the program then it is impossible that the
-% program does not satisfy the property. Is there something I do not understand
-% from this? I find the proposal lacking in this terms, not finding the
-% arguments for validity strong enough, unless I misunderstood the analysis.
-% Answer: 
-% Regarding correctness, we decided against including proofs that a constraint for
-% a property ensures the property because the discussed properties are all
-% syntactic, and the constraint model itself is a representation of the same
-% syntax so the proofs would not be particularly revealing. We can nonetheless add
-% them if necessary.
-%
-% Instead, Section 6 shows correctness in a sense that if two methods generate the
-% same numbers (i.e., numbers of programs with certain properties and parameters),
-% then they describe the same thing, and we gain confidence that the constraint
-% description (which matches the combinatorial description) accurately matches our
-% intentions. This method helped us debug many aspects of the model and can be
-% particularly revealing when both the model and the combinatorial argument become
-% more intricate.
 
 To demonstrate the correctness of the model and explain it in more
 detail, in this section we are going to derive combinatorial expressions for
@@ -623,11 +588,6 @@ multiplying the number of `unfinished' clauses $C(a)$ by the number of ways to
 select the required $a+a_i$ terms in the body and the head of the clause.
 
 \section{Predicate Independence} \label{sec:independence}
-
-% TODO: Answer to a review: All constraints have propagation and entailment
-% procedures behind them. When designing a new constraint, unless it can be
-% composed of already-existing constraints, designing these algorithms is, in
-% fact, completely in the spirit of constraint programming.
 
 In this section, we define a notion of predicate independence as a way to
 constrain the probability distributions defined by the generated programs. We
@@ -998,10 +958,9 @@ the clause would be decided in this order:
   \overset{4}{Z}).
 \]
 We also employ a geometric restart policy, restarting after $10, 20, 40,
-80, \dots$ contradictions\footnote{Restarts are helpful in overcoming early
-  mistakes in the search process, but can be disabled if one wants to find all
-  solutions, in which case search is complete regardless of the variable
-  ordering heuristic.}.
+80, \dots$ contradictions\footnote{Restarts help overcome early mistakes in the
+  search process but can be disabled if one wants to find all solutions, in
+  which case search is complete regardless of the variable ordering heuristic.}.
 
 We ran close to \num{400000} experiments, investigating whether the model is
 efficient enough to generate reasonably-sized programs and gaining insight into
@@ -1055,7 +1014,7 @@ structure and properties of the program, although the main disadvantage is
 that there are no guarantees about the underlying probability distribution from
 which programs are sampled.
 
-In addition, note that our model treats logically equivalent but syntactically
+Also, note that our model treats logically equivalent but syntactically
 different formulas as different. This is so in part because designing a
 constraint for logical equivalence fell outside the scope of this work and in
 part because in some situations one might want to enumerate all ways to express
