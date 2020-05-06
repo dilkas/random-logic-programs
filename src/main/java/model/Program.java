@@ -87,7 +87,8 @@ public class Program {
             aritiesTable.add(Token.values().length + i, config.arities.get(i)); // Predicate arities are predefined
         aritiesTable.add(numPredicates + Token.values().length, 0); // This stands for a disabled clause
 
-        // numbers < PREDICATES.length assign a clause to a predicate, PREDICATES.length is used to discard the clause
+        // numbers < config.predicates.size() assign a clause to a predicate,
+        // config.predicates.size() is used to discard the clause
         clauseAssignments = model.intVarArray("clauseAssignments", config.maxNumClauses, 0, numPredicates);
 
         clauseHeads = new Head[clauseAssignments.length];
@@ -113,10 +114,16 @@ public class Program {
 
         // The order of the clauses doesn't matter (and we don't allow duplicates)
         IntVar[][] decisionVariablesPerClause = new IntVar[config.maxNumClauses][];
-        for (int i = 0; i < config.maxNumClauses; i++)
+        for (int i = 0; i < config.maxNumClauses; i++) {
             decisionVariablesPerClause[i] = ArrayUtils.concat(clauseHeads[i].getDecisionVariables(),
                     bodies[i].getDecisionVariables());
-        model.lexChainLess(decisionVariablesPerClause).post();
+            if (i > 0) {
+                Constraint clauseIsActive = model.arithm(clauseAssignments[i], "!=", config.predicates.size());
+                Constraint sorted = model.lexLess(decisionVariablesPerClause[i - 1], decisionVariablesPerClause[i]);
+                model.ifThen(clauseIsActive, sorted);
+            }
+        }
+        //model.lexChainLessEq(decisionVariablesPerClause).post();
     }
 
     private void setUpVariableSymmetryElimination() {

@@ -11,11 +11,10 @@ import static java.util.stream.Collectors.toList;
 
 class GeneratePrograms {
 
-
     private static final int NUM_SOLUTIONS = 10;
-    private static final String OUTPUT_DIRECTORY = "programs/";
+    private static final String OUTPUT_DIRECTORY = "generated/programs/";
     private static final String CONFIG_FILENAME = "config.yaml";
-    private static final String PROGRAM_COUNTS_FILENAME = "../program_counts.csv";
+    private static final String PROGRAM_COUNTS_FILENAME = "data/program_counts.csv";
 
     private static void checkNumPrograms() throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(PROGRAM_COUNTS_FILENAME));
@@ -254,7 +253,7 @@ class GeneratePrograms {
 
     /** Four types of experiments */
     public static void main(String[] args) throws IOException {
-        //checkNumPrograms();
+        checkNumPrograms();
         //generateSmallPrograms();
         //generateBigPrograms(Arrays.asList(1, 2, 4, 8));
         runAccordingToConfig();
