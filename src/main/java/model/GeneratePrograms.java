@@ -253,7 +253,7 @@ class GeneratePrograms {
 
     /** Four types of experiments */
     public static void main(String[] args) throws IOException {
-        checkNumPrograms();
+        //checkNumPrograms();
         //generateSmallPrograms();
         //generateBigPrograms(Arrays.asList(1, 2, 4, 8));
         runAccordingToConfig();
