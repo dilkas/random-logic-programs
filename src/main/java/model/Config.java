@@ -1,13 +1,24 @@
 package model;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Config {
 
+    public static final String FILENAME = "config.yaml";
+    public static final String PROGRAM_COUNTS_FILENAME = "data/program_counts.csv";
+
     public final boolean allowEmptyBodies = true;
     public final boolean defineEachPredicate = true;
     public final boolean printDebugInfo = false;
+    public final boolean printProgramsWhileCounting = false;
+    public final int numSolutions = 10;
+    public final String outputDirectory = "generated/programs/";
 
     public int maxNumNodes;
     public int maxNumClauses;
@@ -41,6 +52,11 @@ public class Config {
         this.constants = constants;
         this.independentPairs = independentPairs;
         this.requiredFormula = requiredFormula;
+    }
+
+    public static Config initialiseFromFile() throws IOException {
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        return mapper.readValue(new File(FILENAME), Config.class);
     }
 
     public ForbidCycles getForbidCycles() {

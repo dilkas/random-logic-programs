@@ -100,7 +100,7 @@ def run_problog():
         sys.stdout.write('.')
         sys.stdout.flush()
         if filename.endswith('.pl'):
-            output = subprocess.Popen(['problog', '-v', PROGRAMS_DIR + filename],
+            output = subprocess.Popen(['problog', '-v', PROGRAMS_DIR + filename, '-t', '60'],
                                       stdout=subprocess.PIPE)
             output_str = output.communicate()[0][:-1].decode('utf-8')
             with open(OUTPUT_DIR + filename, 'w+') as f:

@@ -14,9 +14,9 @@ import java.util.List;
 
 public class Body {
 
-    private Program program;
-    private IntVar[] treeStructure;
-    private Node[] treeValues;
+    private final Program program;
+    private final IntVar[] treeStructure;
+    private final Node[] treeValues;
     // The decision variables relevant to negative cycle detection (i.e., everything except arguments)
     private IntVar[] structuralDecisionVariables;
     private BoolVar hasRequiredFormula;

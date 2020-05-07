@@ -39,7 +39,7 @@ public class Program {
     private java.util.Random rng;
     private double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1, 1, 1, 1, 1};
 
-    Program(Config config) {
+    public Program(Config config) {
         this.config = config;
         model = new Model();
         rng = new java.util.Random();
@@ -66,7 +66,7 @@ public class Program {
         }
     }
 
-    Program(Config config, double[] probabilities) {
+    public Program(Config config, double[] probabilities) {
         this(config);
         PROBABILITIES = probabilities;
     }
@@ -280,24 +280,24 @@ public class Program {
         model.getSolver().setSearch(new StrategiesSequencer(strategies));
     }
 
-    boolean solve() {
+    public boolean solve() {
         return model.getSolver().solve();
     }
 
-    void saveProgramsToFiles(int numSolutions, String directory) throws IOException {
+    public void saveProgramsToFiles() throws IOException {
         Solver solver = model.getSolver();
         if (config.printDebugInfo) {
             solver.showDecisions();
             solver.showContradiction();
         }
-        for (int i = 0; i < numSolutions && solver.solve(); i++) {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(directory + i + ".pl"));
+        for (int i = 0; i < config.numSolutions && solver.solve(); i++) {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(config.outputDirectory + i + ".pl"));
             writer.write(toString());
             writer.close();
         }
     }
 
-    void compileStatistics(int numSolutions, String prefix, String timeout) {
+    public void compileStatistics(int numSolutions, String prefix, String timeout) {
         Solver solver = model.getSolver();
         solver.setGeometricalRestart(10, 2, new FailCounter(model, 1), 100);
         //solver.setRestartOnSolutions();
