@@ -27,6 +27,8 @@ def next_name(name):
 
 def generate_constants(n, prefix='c'):
     'Generate n constants'
+    if (n == 0):
+        return []
     s = ['a']
     for _ in range(n - 1):
         s.append(next_name(s[-1]))

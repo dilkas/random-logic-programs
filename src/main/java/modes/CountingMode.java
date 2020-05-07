@@ -49,7 +49,8 @@ public class CountingMode {
 
             Config config = new Config(Integer.parseInt(data[4]), Integer.parseInt(data[5]), "NONE", "60s",
                     predicates, arities, variables, constants, new LinkedList<>(), null);
-            Program p = new Program(config, new double[]{1});
+            config.probabilities = new double[]{1};
+            Program p = new Program(config);
 
             // Count the number of solutions
             int i = 0;

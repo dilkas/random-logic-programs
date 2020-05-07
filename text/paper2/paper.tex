@@ -68,6 +68,26 @@
 % 1) Use American English
 % 2) Avoid the Definition environment (to save space)
 
+% Description of experimental options
+% Old options: (<600k experiments)
+% number of predicates (2, 4, 8)
+% number of variables (2, 4, 8)
+% max number of nodes (2, 4, 8)
+% max arity (1, 2, 3)
+% number of constants (0)
+% number of additional clauses (0)
+% number of independent pairs (all options)
+% New options:
+% define each predicate: true
+% empty bodies: true
+% num facts: 10k, 100k, 1M
+% average spots per constant: 1, 10, 100
+% proportion probabilistic: 0.25, 0.5, 0.75
+% timeout = 60s (for both?)
+% disable negative clauses
+% probabilities = [0.1, ..., 0.9]
+% generate 10 programs (with restarts, restarting arities and independent pairs)
+
 % Empirical tasks:
 % 1) make the CP model faster: apply the redundant constraints to predicates
 % (not just variables). Check if everything works out.

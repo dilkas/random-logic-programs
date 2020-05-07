@@ -13,12 +13,13 @@ public class Config {
     public static final String FILENAME = "config.yaml";
     public static final String PROGRAM_COUNTS_FILENAME = "data/program_counts.csv";
 
-    public final boolean allowEmptyBodies = true;
+    public final boolean allowEmptyBodies = false;
     public final boolean defineEachPredicate = true;
     public final boolean printDebugInfo = false;
     public final boolean printProgramsWhileCounting = false;
-    public final int numSolutions = 10;
+    public final int numSolutions = 1;
     public final String outputDirectory = "generated/programs/";
+    public double[] probabilities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9};
 
     public int maxNumNodes;
     public int maxNumClauses;

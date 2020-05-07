@@ -20,8 +20,11 @@ public class NormalMode {
             solver.showContradiction();
         }
         for (int i = 0; i < p.config.numSolutions && solver.solve(); i++) {
+            String suffix = "";
+            if (p.config.numSolutions > 1)
+                suffix = "_" + i;
             BufferedWriter writer = new BufferedWriter(new FileWriter(p.config.outputDirectory +
-                    p.config.prefix + i +".pl"));
+                    p.config.prefix + suffix +".pl"));
             writer.write(p.toString());
             writer.close();
         }

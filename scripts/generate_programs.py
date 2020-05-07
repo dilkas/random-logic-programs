@@ -14,14 +14,15 @@ OUTPUT_DIR = '../generated/problog_output/'
 TIMEOUT = '60' # in seconds
 FORBID_CYCLES = 'NEGATIVE'
 NUM_THREADS = 1
+REPEAT = 10
 
 class Config:
     def __init__(self, max_num_nodes, max_num_clauses, num_predicates, max_arity, num_variables, num_constants,
-                 num_independent_pairs, required_formula=None):
+                 num_independent_pairs, count, required_formula=None):
         self.forbidCycles = FORBID_CYCLES
         self.timeout = TIMEOUT + 's'
         self.prefix = '_'.join(str(x) for x in [num_predicates, num_variables, max_num_nodes, max_arity,
-                                                num_independent_pairs]) + '_'
+                                                num_independent_pairs, count])
 
         self.maxNumNodes = max_num_nodes
         self.maxNumClauses = max_num_clauses
@@ -61,13 +62,13 @@ def run_problog():
 
 def generate_programs(args):
     num_predicates, num_variables, max_num_nodes, max_arity, num_independent_pairs = args
-    time.sleep(0.1)
-    config = Config(max_num_nodes, num_predicates, num_predicates, max_arity, num_variables, 0, num_independent_pairs)
-    config.save()
-    time.sleep(0.1)
-    generator = subprocess.Popen(['mvn',  'exec:java', '-Dexec.mainClass=model.GeneratePrograms',
-                                  '-Dexec.classpathScope=runtime', '-Dexec.args="normal"'], cwd="../")
-    generator.wait()
+    for i in range(REPEAT):
+        config = Config(max_num_nodes, num_predicates, num_predicates,
+                        max_arity, num_variables, 0, num_independent_pairs, i)
+        config.save()
+        generator = subprocess.Popen(['mvn',  'exec:java', '-Dexec.mainClass=model.GeneratePrograms',
+                                      '-Dexec.classpathScope=runtime', '-Dexec.args="normal"'], cwd="../")
+        generator.wait()
 
 arguments = [(num_predicates, num_variables, max_num_nodes, max_arity, num_independent_pairs)
              for num_predicates, num_variables, max_num_nodes in itertools.product([2, 4, 8], repeat=3)

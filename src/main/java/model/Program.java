@@ -31,7 +31,6 @@ public class Program {
     private Head[] clauseHeads; // full heads (predicates, variables, constants)
     private IntVar[][] introductions; // for eliminating variable symmetries
     private final java.util.Random rng;
-    private double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1, 1, 1, 1, 1}; // TODO: update this
 
     public Program(Config config) {
         this.config = config;
@@ -58,11 +57,6 @@ public class Program {
             BoolVar one = model.boolVar(true);
             model.max(one, hasRequiredFormula).post();
         }
-    }
-
-    public Program(Config config, double[] probabilities) {
-        this(config);
-        PROBABILITIES = probabilities;
     }
 
     // ================================================== CONSTRAINTS ==================================================
@@ -296,10 +290,10 @@ public class Program {
             return "";
 
         // Add a probability to the statement
-        int probability = rng.nextInt(PROBABILITIES.length);
+        int probability = rng.nextInt(config.probabilities.length);
         String probabilityString = "";
-        if (PROBABILITIES[probability] < 1)
-            probabilityString = PROBABILITIES[probability] + " :: ";
+        if (config.probabilities[probability] < 1)
+            probabilityString = config.probabilities[probability] + " :: ";
 
         String body = bodies[i].toString();
         String head = clauseHeads[i].toString();
