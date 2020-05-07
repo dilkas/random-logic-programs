@@ -1,17 +1,13 @@
+import argparse
 import os
 import random
 import subprocess
 import sys
 import yaml
 
-NUM_FACTS = 100000
-AVERAGE_SPOTS_PER_CONSTANT = 2 # This determines the domain size after we generate a template
-PROPORTION_PROBABILISTIC = 0.5
-
 # Not expected to change
 PROBABILITIES = [x/10 for x in range(1, 10)]
 PROGRAMS_DIR = '../generated/programs/'
-OUTPUT_DIR = '../generated/problog_output/'
 CONFIG_FILENAME = '../config.yaml'
 
 def next_name(name):
@@ -29,15 +25,12 @@ def next_name(name):
         return name[:(first_z-1)] + chr(ord(name[first_z-1]) + 1) + 'a' * count_z
     return 'a' * (count_z + 1)
 
-def generate_constants(n):
+def generate_constants(n, prefix='c'):
     'Generate n constants'
     s = ['a']
     for _ in range(n - 1):
         s.append(next_name(s[-1]))
-    return ['c' + x for x in s]
-
-config = yaml.load(open(CONFIG_FILENAME, 'r'), Loader=yaml.Loader)
-predicates_and_arities = list(zip(config['predicates'], config['arities']))
+    return [prefix + x for x in s]
 
 def generate_fact(domain):
     'Generate a single fact'
@@ -45,9 +38,9 @@ def generate_fact(domain):
     constants = random.choices(domain, k=arity)
     return predicate + '(' + ','.join(constants) + ')'
 
-def facts_to_string(facts, domain):
+def facts_to_string(facts, domain, args):
     'Turn a fact sheet into a string'
-    num_probabilistic = int(round(PROPORTION_PROBABILISTIC * NUM_FACTS, 0))
+    num_probabilistic = int(round(args.probabilistic * args.num_facts, 0))
     factsheet = []
     for i, fact in enumerate(facts):
         if i < num_probabilistic:
@@ -64,51 +57,36 @@ def generate_template():
 def count_spots(templates):
     return sum([arity for _, arity in templates])
 
-def generate_factsheet():
+def generate_factsheet(args):
     factsheet = set()
     domain = None
     # While we don't have a fact sheet of the right size
-    while (len(factsheet) < NUM_FACTS):
+    while (len(factsheet) < args.num_facts):
         # Generate remaining templates
-        templates = [generate_template() for _ in range(NUM_FACTS - len(factsheet))]
+        templates = [generate_template() for _ in range(args.num_facts - len(factsheet))]
         # If a domain doesn't exist
         if domain is None:
             # Create a domain based on the number of spots
-            domain = generate_constants(count_spots(templates))
+            domain = generate_constants(int(count_spots(templates) / args.spots_per_constant))
         # Fill in the spots with constants at random and put the new facts into the set of facts
         for predicate, arity in templates:
             factsheet.add(predicate + '(' + ','.join(random.choices(domain, k=arity)) + ')')
     return factsheet, domain
 
-def append_factsheets():
+def append_factsheets(args):
     'Append fact sheet to existing programs'
     for filename in os.listdir(PROGRAMS_DIR):
         if filename.endswith('.pl'):
             with open(PROGRAMS_DIR + filename, 'a+') as f:
-                factsheet, domain = generate_factsheet()
-                f.write(facts_to_string(factsheet, domain))
+                factsheet, domain = generate_factsheet(args)
+                f.write(facts_to_string(factsheet, domain, args))
 
-def remove_programs(d=PROGRAMS_DIR):
-    'Remove files from a directory'
-    for filename in os.listdir(d):
-        if filename.endswith('.pl'):
-            os.remove(d + filename)
-
-def run_problog():
-    'Run a set of experiments'
-    for filename in os.listdir(PROGRAMS_DIR):
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        if filename.endswith('.pl'):
-            output = subprocess.Popen(['problog', '-v', PROGRAMS_DIR + filename, '-t', '60'],
-                                      stdout=subprocess.PIPE)
-            output_str = output.communicate()[0][:-1].decode('utf-8')
-            with open(OUTPUT_DIR + filename, 'w+') as f:
-                f.write(output_str)
-
-remove_programs()
-remove_programs(OUTPUT_DIR)
-generator = subprocess.Popen(['mvn',  'exec:java', '-Dexec.mainClass=model.GeneratePrograms', '-Dexec.classpathScope=runtime'], cwd="../")
-generator.wait()
-append_factsheets()
-run_problog()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('num_facts', type=int, help='the number of facts to generate')
+    parser.add_argument('spots_per_constant', type=int, help='the average number of times each constant is repeated')
+    parser.add_argument('probabilistic', type=float, help='the proportion of facts that should be probabilistic')
+    args = parser.parse_args()
+    config = yaml.load(open(CONFIG_FILENAME, 'r'), Loader=yaml.Loader)
+    predicates_and_arities = list(zip(config['predicates'], config['arities']))
+    append_factsheets(args)

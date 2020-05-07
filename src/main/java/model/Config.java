@@ -23,6 +23,8 @@ public class Config {
     public int maxNumNodes;
     public int maxNumClauses;
     public String forbidCycles;
+    public String prefix; // for output files
+    public String timeout;
     public Formula requiredFormula;
 
     public List<String> predicates;
@@ -40,12 +42,13 @@ public class Config {
         independentPairs = new ArrayList<>();
     }
 
-    public Config(int maxNumNodes, int maxNumClauses, String forbidCycles, List<String> predicates,
+    public Config(int maxNumNodes, int maxNumClauses, String forbidCycles, String timeout, List<String> predicates,
                   List<Integer> arities, List<String> variables, List<String> constants,
                   List<IndependentPair> independentPairs, Formula requiredFormula) {
         this.maxNumNodes = maxNumNodes;
         this.maxNumClauses = maxNumClauses;
         this.forbidCycles = forbidCycles;
+        this.timeout = timeout;
         this.predicates = predicates;
         this.arities = arities;
         this.variables = variables;

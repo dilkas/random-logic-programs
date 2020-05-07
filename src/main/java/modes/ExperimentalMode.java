@@ -4,6 +4,8 @@ import model.Config;
 import model.ForbidCycles;
 import model.IndependentPair;
 import model.Program;
+import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.search.limits.FailCounter;
 import org.chocosolver.util.tools.ArrayUtils;
 import java.util.*;
 
@@ -57,11 +59,11 @@ public class ExperimentalMode {
                                         IndependentPair[] independentPairs =
                                                 selectRandomSubset(potentialIndependentPairs, numIndependentPairs, rng);
                                         Config config = new Config(maxNumNodes, maxNumClauses, forbidCycles.toString(),
-                                                Arrays.asList(predicates), Arrays.asList(arities),
+                                                TIMEOUT, Arrays.asList(predicates), Arrays.asList(arities),
                                                 Arrays.asList(variables), Arrays.asList(constants),
                                                 Arrays.asList(independentPairs), null);
                                         Program p = new Program(config);
-                                        p.compileStatistics(SOLUTIONS_PER_RUN, prefix, TIMEOUT);
+                                        compileStatistics(p, SOLUTIONS_PER_RUN, prefix);
                                     }
                                 }
                             }
@@ -69,6 +71,19 @@ public class ExperimentalMode {
                     }
                 }
             }
+        }
+    }
+
+    private static void compileStatistics(Program p, int numSolutions, String prefix) {
+        Solver solver = p.model.getSolver();
+        solver.setGeometricalRestart(10, 2, new FailCounter(p.model, 1), 100);
+        //solver.setRestartOnSolutions();
+        if (p.config.timeout != null)
+            solver.limitTime(p.config.timeout);
+        for (int i = 0; i < numSolutions; i++) {
+            solver.solve();
+            System.out.print(prefix + ";");
+            solver.printCSVStatistics();
         }
     }
 

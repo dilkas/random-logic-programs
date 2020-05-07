@@ -7,10 +7,10 @@ import org.chocosolver.util.tools.ArrayUtils;
 
 class Node {
 
-    private IntVar predicate; // Tokens first, then predicates
-    private IntVar[] arguments; // Variables first, then constants
-    private IntVar arity;
-    private Program program;
+    private final IntVar predicate; // Tokens first, then predicates
+    private final IntVar[] arguments; // Variables first, then constants
+    private final IntVar arity;
+    private final Program program;
 
     Node(Program program, Model model, int clauseIndex, int position) {
         this.program = program;

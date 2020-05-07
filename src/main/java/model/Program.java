@@ -1,11 +1,9 @@
 package model;
 
 import org.chocosolver.solver.Model;
-import org.chocosolver.solver.Solver;
 import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.constraints.Propagator;
 import org.chocosolver.solver.constraints.extension.Tuples;
-import org.chocosolver.solver.search.limits.FailCounter;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.search.strategy.selectors.values.IntDomainRandom;
 import org.chocosolver.solver.search.strategy.selectors.variables.FirstFail;
@@ -18,10 +16,6 @@ import org.chocosolver.util.tools.ArrayUtils;
 import propagators.ConditionalIndependencePropagator;
 import propagators.IndependencePropagator;
 import propagators.NegativeCyclePropagator;
-
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Collections;
 
 public class Program {
@@ -29,15 +23,15 @@ public class Program {
     public Config config;
     public IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
     public Body[] bodies; // the body of each clause
+    public Model model; // a Choco-specific variable
 
     int maxArity;
     Tuples aritiesTable; // used in defining constraints
 
-    private Model model; // a Choco-specific variable
     private Head[] clauseHeads; // full heads (predicates, variables, constants)
     private IntVar[][] introductions; // for eliminating variable symmetries
-    private java.util.Random rng;
-    private double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1, 1, 1, 1, 1};
+    private final java.util.Random rng;
+    private double[] PROBABILITIES = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1, 1, 1, 1, 1}; // TODO: update this
 
     public Program(Config config) {
         this.config = config;
@@ -123,7 +117,6 @@ public class Program {
                 model.ifThen(clauseIsActive, sorted);
             }
         }
-        //model.lexChainLessEq(decisionVariablesPerClause).post();
     }
 
     private void setUpVariableSymmetryElimination() {
@@ -282,32 +275,6 @@ public class Program {
 
     public boolean solve() {
         return model.getSolver().solve();
-    }
-
-    public void saveProgramsToFiles() throws IOException {
-        Solver solver = model.getSolver();
-        if (config.printDebugInfo) {
-            solver.showDecisions();
-            solver.showContradiction();
-        }
-        for (int i = 0; i < config.numSolutions && solver.solve(); i++) {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(config.outputDirectory + i + ".pl"));
-            writer.write(toString());
-            writer.close();
-        }
-    }
-
-    public void compileStatistics(int numSolutions, String prefix, String timeout) {
-        Solver solver = model.getSolver();
-        solver.setGeometricalRestart(10, 2, new FailCounter(model, 1), 100);
-        //solver.setRestartOnSolutions();
-        if (timeout != null)
-            solver.limitTime(timeout);
-        for (int i = 0; i < numSolutions; i++) {
-            solver.solve();
-            System.out.print(prefix + ";");
-            solver.printCSVStatistics();
-        }
     }
 
     // ================================================== OUTPUT ==================================================

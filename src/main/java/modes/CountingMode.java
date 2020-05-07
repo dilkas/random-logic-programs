@@ -47,7 +47,7 @@ public class CountingMode {
                 constants.add("a" + (i + 1));
             int predictedProgramCount = Integer.parseInt(data[6]);
 
-            Config config = new Config(Integer.parseInt(data[4]), Integer.parseInt(data[5]), "NONE",
+            Config config = new Config(Integer.parseInt(data[4]), Integer.parseInt(data[5]), "NONE", "60s",
                     predicates, arities, variables, constants, new LinkedList<>(), null);
             Program p = new Program(config, new double[]{1});
 

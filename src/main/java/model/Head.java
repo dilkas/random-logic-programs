@@ -7,10 +7,10 @@ import org.chocosolver.util.tools.ArrayUtils;
 
 class Head {
 
-    private IntVar predicate; // PREDICATES.length means that the clause is disabled
-    private IntVar[] arguments;
-    private IntVar arity;
-    private Program program;
+    private final IntVar predicate; // PREDICATES.length means that the clause is disabled
+    private final IntVar[] arguments;
+    private final IntVar arity;
+    private final Program program;
 
     Head(Program program, Model model, IntVar predicate, int clauseIndex) {
         this.program = program;
