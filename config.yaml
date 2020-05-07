@@ -10,7 +10,7 @@ arities:
 - 1
 - 1
 constants: []
-forbidCycles: NEGATIVE
+forbidCycles: ALL
 #independentPairs:
 #- predicate1: p
 #  predicate2: q

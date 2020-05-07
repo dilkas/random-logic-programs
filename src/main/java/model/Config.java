@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Config {
+
+    public final boolean allowEmptyBodies = true;
+    public final boolean defineEachPredicate = true;
+    public final boolean printDebugInfo = false;
+
     public int maxNumNodes;
     public int maxNumClauses;
     public String forbidCycles;

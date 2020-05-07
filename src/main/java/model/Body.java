@@ -82,7 +82,12 @@ public class Body {
         Constraint shouldBeDisabled = model.arithm(assignment, "=", program.config.predicates.size());
         Constraint oneNode = model.arithm(numNodes, "=", 1);
         Constraint alwaysTrue = model.arithm(treeValues[0].getPredicate(), "=", Token.TRUE.ordinal());
-        model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
+        if (program.config.allowEmptyBodies) {
+            model.ifThen(shouldBeDisabled, model.and(oneNode, alwaysTrue));
+        } else {
+            Constraint notEmpty = model.arithm(treeValues[0].getPredicate(), "!=", Token.TRUE.ordinal());
+            model.ifThenElse(shouldBeDisabled, model.and(oneNode, alwaysTrue), notEmpty);
+        }
 
         structuralDecisionVariables = treeStructure;
         for (Node treeValue : treeValues)

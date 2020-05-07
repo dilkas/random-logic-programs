@@ -26,8 +26,6 @@ import java.util.Collections;
 
 public class Program {
 
-    private static final boolean PRINT_DEBUG_INFO = false;
-
     public Config config;
     public IntVar[] clauseAssignments; // an array of predicates occurring at the heads of clauses
     public Body[] bodies; // the body of each clause
@@ -103,10 +101,12 @@ public class Program {
         IntVar numDistinctValues = model.intVar("numDistinctValues", numPredicates, numPredicates + 1);
         model.nValues(clauseAssignments, numDistinctValues).post();
 
-        Constraint containsDisabledClause = model.arithm(numDisabledClauses, ">", 0);
-        Constraint allValues = model.arithm(numDistinctValues, "=", numPredicates + 1);
-        Constraint allButOne = model.arithm(numDistinctValues, "=", numPredicates);
-        model.ifThenElse(containsDisabledClause, allValues, allButOne);
+        if (config.defineEachPredicate) {
+            Constraint containsDisabledClause = model.arithm(numDisabledClauses, ">", 0);
+            Constraint allValues = model.arithm(numDistinctValues, "=", numPredicates + 1);
+            Constraint allButOne = model.arithm(numDistinctValues, "=", numPredicates);
+            model.ifThenElse(containsDisabledClause, allValues, allButOne);
+        }
 
         bodies = new Body[config.maxNumClauses];
         for (int i = 0; i < config.maxNumClauses; i++)
@@ -286,7 +286,7 @@ public class Program {
 
     void saveProgramsToFiles(int numSolutions, String directory) throws IOException {
         Solver solver = model.getSolver();
-        if (PRINT_DEBUG_INFO) {
+        if (config.printDebugInfo) {
             solver.showDecisions();
             solver.showContradiction();
         }
