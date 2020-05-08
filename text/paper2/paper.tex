@@ -79,14 +79,16 @@
 % number of independent pairs (all options)
 % New options:
 % define each predicate: true
-% empty bodies: true
-% num facts: 10k, 100k, 1M
-% average spots per constant: 1, 10, 100
-% proportion probabilistic: 0.25, 0.5, 0.75
+% allow empty bodies: false
 % timeout = 60s (for both?)
-% disable negative clauses
+% disable negative cycles
 % probabilities = [0.1, ..., 0.9]
 % generate 10 programs (with restarts, restarting arities and independent pairs)
+% domain size: 1k, 10k, 100k
+% proportion_listed: 0.25, 0.5, 0.75
+% proportion probabilistic: 0.25, 0.5, 0.75
+% DERIVATIVE: num facts
+% DERIVATIVE: average spots per constant
 
 % Empirical tasks:
 % 1) make the CP model faster: apply the redundant constraints to predicates
