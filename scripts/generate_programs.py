@@ -68,16 +68,3 @@ remove_programs(PROGRAMS_DIR)
 remove_programs(FULL_PROGRAMS_DIR)
 for args in arguments:
     generate_programs(args)
-
-#run_problog()
-#def run_problog():
-#    'Run a set of experiments'
-#    for filename in os.listdir(PROGRAMS_DIR):
-#        sys.stdout.write('.')
-#        sys.stdout.flush()
-#        if filename.endswith('.pl'):
-#            output = subprocess.Popen(['problog', '-v', PROGRAMS_DIR + filename, '-t', '60'],
-#                                      stdout=subprocess.PIPE)
-#            output_str = output.communicate()[0][:-1].decode('utf-8')
-#            with open(OUTPUT_DIR + filename, 'w+') as f:
-#                f.write(output_str)
