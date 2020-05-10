@@ -51,14 +51,20 @@ def remove_programs(d):
 
 def generate_programs(args):
     num_predicates, num_variables, max_num_nodes, max_arity, num_independent_pairs = args
+    print('''number of predicates: {}, number of variables: {}, maximum number of
+          nodes: {}, maximum arity: {}, number of independent pairs: {}'''.
+          format(num_predicates, num_variables, max_num_nodes, max_arity, num_independent_pairs))
     for i in range(REPEAT):
         config = Config(max_num_nodes, num_predicates, num_predicates,
                         max_arity, num_variables, 0, num_independent_pairs, i)
+        if os.path.exists(PROGRAMS_DIR + config.prefix + '.pl'):
+            continue
         config.save()
         generator = subprocess.Popen(['mvn',  'exec:java', '-Dexec.mainClass=model.GeneratePrograms',
                                       '-Dexec.classpathScope=runtime', '-Dexec.args="normal"'], cwd="../")
         generator.wait()
         append_factsheets(config, i)
+        time.sleep(0.1)
 
 arguments = [(num_predicates, num_variables, max_num_nodes, max_arity, num_independent_pairs)
              for num_predicates, num_variables, max_num_nodes in itertools.product([2, 4, 8], repeat=3)
@@ -66,5 +72,6 @@ arguments = [(num_predicates, num_variables, max_num_nodes, max_arity, num_indep
              for num_independent_pairs in range(int(num_predicates * (num_predicates - 1) / 2) + 1)]
 remove_programs(PROGRAMS_DIR)
 remove_programs(FULL_PROGRAMS_DIR)
+random.shuffle(arguments)
 for args in arguments:
     generate_programs(args)

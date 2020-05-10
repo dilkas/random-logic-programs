@@ -64,6 +64,7 @@
 
 \maketitle
 
+% TODO: does the restart policy still matter? If so, update the numbers.
 % TODO (for later)
 % 1) Use American English
 % 2) Avoid the Definition environment (to save space)
@@ -84,11 +85,14 @@
 % disable negative cycles
 % probabilities = [0.1, ..., 0.9]
 % generate 10 programs (with restarts, restarting arities and independent pairs)
-% domain size: 1k, 10k, 100k
-% proportion_listed: 0.25, 0.5, 0.75
+% domain size: 100, 200, 400
 % proportion probabilistic: 0.25, 0.5, 0.75
-% DERIVATIVE: num facts
+% number of facts: 1k, 10k, 100k
 % DERIVATIVE: average spots per constant
+% DERIVATIVES: universe size, proportion listed
+% NOTE: The distribution of facts is uniformly distributed across predicates
+% (because it's easier this way)
+% NOTE: number of facts goes up to 75% of the universe
 
 % Empirical tasks:
 % 1) make the CP model faster: apply the redundant constraints to predicates

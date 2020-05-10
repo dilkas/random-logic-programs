@@ -3,9 +3,17 @@ import os
 
 DIR = '../generated/problog_output/'
 
+def extract_parameters_from_filename(filename):
+    values = filename[:filename.rindex('.')].split('_')
+    names = ['number.of.predicates', 'number.of.variables',
+             'maximum.number.of.nodes', 'maximum.arity',
+             'number.of.independent.pairs', 'instance', 'domain.size',
+             'number.of.facts', 'proportion.probabilistic', 'universe.size']
+    return dict(zip(names, values))
+
 data = []
 for filename in os.listdir(DIR):
-    d = {'instance': filename[:filename.index('.')]}
+    d = extract_parameters_from_filename(filename)
     if not filename.endswith('.pl'):
         continue
     with open(DIR + filename, 'r') as f:
