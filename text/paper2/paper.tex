@@ -1023,12 +1023,34 @@ situation as well.
 
 \begin{figure}[t]
   \centering
-  \input{impact.tex}
-  \caption{The mean number of nodes in the binary search tree for each value of
-    each experimental parameter. Note that the horizontal axis is on a $\log_2$
-    scale.}
-  \label{fig:impact}
+  \begin{minipage}[t]{.49\textwidth}
+    \centering
+    \input{impact.tex}
+    \captionof{figure}{The mean number of nodes in the binary search tree for
+      each value of each experimental parameter. Note that the horizontal axis
+      is on a $\log_2$ scale.}
+    \label{fig:impact}
+  \end{minipage}
+  \hfill
+  \begin{minipage}[t]{.49\textwidth}
+    \centering
+    \input{bars.tex}
+    \captionof{figure}{Inference time for different values of $\maxArity{}$ and
+      proportions of facts that are probabilistic. The total number of facts is
+      fixed at $10^5$.}
+    \label{fig:bars}
+  \end{minipage}
 \end{figure}
+
+\begin{figure}[t]
+  \centering
+  \input{line_plots.tex}
+  \caption{Mean inference time for a range of ProbLog inference algorithms as
+    a function of the total number of facts in the program and the proportion of
+    independent pairs of predicates. For the second plot, the number of facts is
+    fixed at $10^5$.}
+  \label{fig:line_plots}
+\end{figure} % TODO: describe in the text
 
 \section{Conclusions}
 

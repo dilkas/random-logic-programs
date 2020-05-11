@@ -13,7 +13,7 @@ def run_one(filename):
         return
     sys.stdout.write('.')
     sys.stdout.flush()
-    output = subprocess.Popen(['problog', '-v', PROGRAMS_DIR + filename, '-t', TIMEOUT, '--symbolic'],
+    output = subprocess.Popen(['problog', '-v', PROGRAMS_DIR + filename, '-t', TIMEOUT, '-k', 'bdd'],
                               stdout=subprocess.PIPE)
     output_str = output.communicate()[0][:-1].decode('utf-8')
     with open(output_filename, 'w+') as f:

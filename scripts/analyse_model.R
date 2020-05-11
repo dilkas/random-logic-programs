@@ -5,12 +5,14 @@ library(ggrepel)
 
 # This is all for the runtime data of the CP model
 
-df <- read.csv("src/runtime.csv", header = FALSE, sep = ";", skip = 1)
+df <- read.csv("../data/runtime.csv", header = FALSE, sep = ";", skip = 1)
 df <- df[, colSums(is.na(df)) < nrow(df)]
 names(df) <- c("numPredicates", "maxArity", "numVariables", "numConstants", "numAdditionalClauses", "numIndependentPairs", "maxNumNodes",
                  "solutionCount", "buildingTime", "totalTime", "initTime", "nodes", "backtracks", "fails", "restarts")
 df$percentageIndependent <- round(ifelse(df$numIndependentPairs >= 2, df$numIndependentPairs / choose(df$numPredicates, 2), 0), 2)
 df$numClauses <- df$numPredicates + df$numAdditionalClauses
+
+# =========================================================
 
 # Numbers
 small <- df[df$totalTime < 1, ]
@@ -75,6 +77,8 @@ boxplots(df, df$numIndependentPairs, df$nodes)
 cor.test(df$percentageIndependent, df$nodes)
 boxplots(df, df$percentageIndependent, df$nodes)
 
+# ================================================================
+
 # Each parameter is a colour
 # 1, 2, 4, 8 on the x-axis
 # Something that represents the distribution of nodes on the y-axis. Start with a mean or median.
@@ -99,28 +103,29 @@ mytolatex <- function(name) {
 
 # reformat the table to have 3 columns: parameter_name, value (1, 2, 4, 8), and mean of nodes
 effects <- data.frame(Variable = factor(), Value = integer(), mean = numeric(), aritylabel = character())
-for (Variable in c('numPredicates', 'maxArity', 'numVariables', 'numConstants', 'numAdditionalClauses', 'maxNumNodes')) {
+factors <- c('numPredicates', 'maxArity', 'numVariables', 'numConstants', 'numAdditionalClauses', 'maxNumNodes')
+labels <- c("$|\\mathcal{P}|$", "$\\mathcal{M}_{\\mathcal{A}}$", "$|\\mathcal{V}|$", "$|\\mathcal{C}|$", "$\\mathcal{M}_{\\mathcal{C}}-|\\mathcal{P}|$", "$\\mathcal{M}_{\\mathcal{N}}$")
+for (Variable in factors) {
   foo <- df %>% group_by_at(Variable) %>% summarise(mean(nodes)) %>% rename(Value = Variable, mean = "mean(nodes)")
+#  foo$Variable <- factor(Variable, levels = factors, labels = labels)
   foo$Variable <- as.factor(Variable)
   foo$aritylabel <- ""
   effects <- rbind(effects, foo)
 }
-
 effects$label <- ifelse(effects$Value == 8, sapply(as.character(effects$Variable), mytolatex), "")
 effects$aritylabel[effects$Variable == "maxArity" & effects$Value == 4] <- "$\\mathcal{M}_{\\mathcal{A}}$"
 
-tikz(file = "paper/impact.tex", width = 3, height = 2.4375)
+tikz(file = "../text/paper2/impact.tex", width = 2.4, height = 1.8)
 ggplot(effects, aes(Value, mean, color = factor(Variable))) +
-  geom_line(alpha = 0.5) +
-  geom_point(aes(shape = factor(Variable), size = 1), alpha = 0.75) +
+  geom_line(aes(linetype = factor(Variable))) +
   scale_x_continuous(trans = "log2", limits = c(1, 10)) +
   ylab("Mean number of nodes") +
-  scale_shape_manual(values = c(15, 16, 17, 18, 19, 20)) +
   geom_label_repel(aes(label = label, size = 1), nudge_x = 1, segment.color = "transparent", box.padding = 0.1) +
   geom_label_repel(aes(label = aritylabel, size = 1), segment.color = "transparent", nudge_y = 300) +
-  theme_set(theme_minimal(base_size = 7)) +
-  theme(legend.position = "none") +
-  xlab("Value of each parameter") +
+#  theme_set(theme_minimal(base_size = 7)) +
+  xlab("The value of each parameter") +
   scale_color_brewer(palette = "Dark2") +
-  scale_size_area(max_size = 2)
+  scale_size_area(max_size = 2) +
+  theme_bw() +
+  theme(legend.position = "none")
 dev.off()
