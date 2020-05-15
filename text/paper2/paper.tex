@@ -7,7 +7,7 @@
 \usepackage{mathrsfs}
 \usepackage[nounderscore]{syntax}
 \usepackage{blkarray}
-\usepackage{siunitx}
+\usepackage[binary-units]{siunitx}
 \usepackage[inline]{enumitem}
 \usepackage{capt-of}
 \usepackage[caption=false]{subfig}
@@ -64,45 +64,6 @@
 
 \maketitle
 
-% TODO: does the restart policy still matter? If so, update the numbers.
-% TODO (for later)
-% 1) Use American English
-% 2) Avoid the Definition environment (to save space)
-
-% Description of experimental options
-% Old options: (<600k experiments)
-% number of predicates (2, 4, 8)
-% number of variables (2, 4, 8)
-% max number of nodes (2, 4, 8)
-% max arity (1, 2, 3)
-% number of constants (0)
-% number of additional clauses (0)
-% number of independent pairs (all options)
-% New options:
-% define each predicate: true
-% allow empty bodies: false
-% timeout = 60s (for both?)
-% disable negative cycles
-% probabilities = [0.1, ..., 0.9]
-% generate 10 programs (with restarts, restarting arities and independent pairs)
-% domain size: 100, 200, 400
-% proportion probabilistic: 0.25, 0.5, 0.75
-% number of facts: 1k, 10k, 100k
-% DERIVATIVE: average spots per constant
-% DERIVATIVES: universe size, proportion listed
-% NOTE: The distribution of facts is uniformly distributed across predicates
-% (because it's easier this way)
-% NOTE: number of facts goes up to 75% of the universe
-
-% Empirical tasks:
-% 1) make the CP model faster: apply the redundant constraints to predicates
-% (not just variables). Check if everything works out.
-% 2) motivate either for benchmarking or by comparing parameter learning with ProbFOIL
-% 3) create a constraint for groundedness (see the ProbLog FAQ)
-% New things I could talk about:
-% 1) entailment for conditional independence
-% 2) the 'required formula' part of the model
-
 %The abstract should briefly summarize the contents of the paper in
 %150--250 words.
 \begin{abstract}
@@ -113,15 +74,15 @@
   advantage in that one can easily add additional conditions for the generated
   programs. As an example of this, we introduce a new constraint for predicate
   independence with efficient propagation and entailment algorithms, allowing
-  one to generate programs that have a certain independence structure. To
-  generate valid probabilistic logic programs, we also present a new constraint
-  for negative cycle detection. Finally, we provide a combinatorial argument for
-  the correctness of the model and describe how the parameters of the model
-  affect the empirical difficulty of the program generation task.
+  one to generate programs that have a certain independence structure. Finally,
+  we provide a combinatorial argument for the correctness of the model and
+  describe how the parameters of the model affect the empirical difficulty of
+  the program generation task.
 
   \keywords{Constraint programming \and Probabilistic logic programming \and
     Statistical relational learning.}
 \end{abstract}
+% TODO: update the introduction and the abstract
 
 \section{Introduction}
 
@@ -170,23 +131,13 @@ Prolog programs.
 A major advantage of a constraint-based approach is the ability to add
 additional constraints as needed, and to do that efficiently (compared to
 generate-and-test approaches). As an example of this, we develop a custom
-constraint (with propagation and entailment algorithms) that, given two
-predicates $\mathsf{P}$ and $\mathsf{Q}$, ensures that any ground atom with
-predicate $\mathsf{P}$ is independent of any ground atom with predicate
-$\mathsf{Q}$. In this way, we can easily regulate the independence structure of
-the underlying probability distribution. We also present a combinatorial
-argument for correctness, counting the number of programs that the model
-produces for various parameter values and show how the model scales when tasked
-with producing more complicated programs.
-
-A common restriction put on both logic programs and probabilistic logic programs
-to ensure that there is a unique answer to every query is known as
-\emph{stratification}
-\cite{DBLP:journals/jlp/BalbinPRM91,DBLP:conf/padl/MantadelisR17}. We extend
-this idea to programs that have arbitrary well-formed formulas in clause bodies
-(as ProbLog supports this) and describe a custom constraint that ensures
-stratification by checking for negative cycles in the predicate dependency
-graph.
+constraint that, given two predicates $\mathsf{P}$ and $\mathsf{Q}$, ensures
+that any ground atom with predicate $\mathsf{P}$ is independent of any ground
+atom with predicate $\mathsf{Q}$. In this way, we can easily regulate the
+independence structure of the underlying probability distribution. We also
+present a combinatorial argument for correctness, counting the number of
+programs that the model produces for various parameter values and show how the
+model scales when tasked with producing more complicated programs.
 
 Overall, our main contributions are concerned with logic programming-based
 languages and frameworks, which capture a major fragment of SRL
@@ -209,10 +160,8 @@ $\neg$\footnote{One can add a couple of extra constraints to restrict the
   generated programs to logic programs that only allow a single disjunction with
   positive and negative literals.}.
 A \emph{clause} is a pair of a \emph{head} (which is an atom) and a \emph{body}
-(which is a formula). A \emph{(logic) program} is a set of clauses. Given a
-program $\mathscr{P}$, a \emph{subprogram} $\mathscr{R}$ of $\mathscr{P}$ is a
-subset of the clauses of $\mathscr{P}$ and is denoted by $\mathscr{R} \subseteq
-\mathscr{P}$.
+(which is a formula). A \emph{(logic) program} is a set of clauses, and a
+\emph{ProbLog program} is a set of clause-probability pairs.
 
 In the world of constraint satisfaction, we also have \emph{(constraint)
   variables}, each with a \emph{domain}, whose values are restricted using
@@ -327,18 +276,14 @@ forbid cycles in the $\variable{structure}$ array and simultaneously define
 $\variable{numTrees} \in \{ 1, \dots, \maxNumNodes{} \}$ to count the number of
 trees. We will view the tree rooted at the zeroth node as the main tree and
 restrict all other trees to single nodes. For this to work, we need to make sure
-that the zeroth node is indeed a root.
-\begin{constraint}
-  $\variable{structure}[0] = 0$.
-\end{constraint}
+that the zeroth node is indeed a root, i.e., fix $\variable{structure}[0] = 0$.
 For convenience, we also define $\variable{numNodes} \in \{ 1, \dots,
 \maxNumNodes{} \}$ to count the number of nodes in the main tree. We define it
 as $\variable{numNodes} = \maxNumNodes{} - \variable{numTrees} + 1$.
 
 \begin{example} \label{example:formula}
   Let $\maxNumNodes{} = 8$. Then $\neg\mathsf{P}(X) \lor (\mathsf{Q}(X) \land
-  \mathsf{P}(X))$ corresponds to the tree in \cref{fig:example_tree} and can be
-  encoded as:
+  \mathsf{P}(X))$ can be encoded as:
   \begin{alignat*}{9}
     \variable{structure} &= [0, &&0, &&0, &&1, &&2, &&2, &&6, &&7], \quad
     &&\variable{numNodes} = 6, \\
@@ -347,25 +292,6 @@ as $\variable{numNodes} = \maxNumNodes{} - \variable{numTrees} + 1$.
     &&\variable{numTrees} = 3.
   \end{alignat*}
 \end{example}
-
-\begin{figure}[t]
-  \centering
-  \begin{tikzpicture}
-    \node[draw,circle,gray,text=black] (or) at (-0.375, 0) {$\lor$};
-    \node[draw,circle,gray,text=black] (not) at (-1.5, -1) {$\neg$};
-    \node[draw,circle,gray,text=black] (and) at (0.75, -1) {$\land$};
-    \node[draw,gray,text=black] (P) at (-1.5, -2) {$\mathsf{P}(X)$};
-    \node[draw,gray,text=black] (Q) at (0, -2) {$\mathsf{Q}(X)$};
-    \node[draw,gray,text=black] (R) at (1.5, -2) {$\mathsf{P}(X)$};
-    \draw[gray] (or) -- (not);
-    \draw[gray] (or) -- (and);
-    \draw[gray] (not) -- (P);
-    \draw[gray] (and) -- (Q);
-    \draw[gray] (and) -- (R);
-  \end{tikzpicture}
-  \caption{A tree representation of the formula from \cref{example:formula}}
-  \label{fig:example_tree}
-\end{figure}
 
 Here, $\top$ is the value we use for the remaining one-node trees. The
 elements of the $\variable{values}$ array are nodes. A \emph{node} has a
@@ -387,15 +313,11 @@ array together with its $\variable{values}$ to eliminate symmetries and adhere
 to our desired format. First, we can recognise that the order of the elements in
 the $\variable{structure}$ array does not matter, i.e., the structure is only
 defined by how the elements link to each other, so we can add a constraint
-saying that
+saying that $\variable{structure}$ is sorted. Next, since we already have a
+variable that counts the number of nodes in the main tree, we can fix the
+structure and the values of the remaining trees to some constant values.
 \begin{constraint}
-  \variable{structure} is sorted.
-\end{constraint}
-Next, since we already have a variable that counts the number of nodes in the
-main tree, we can fix the structure and the values of the remaining trees to
-some constant values.
-\begin{constraint}
-  For $i = 1, \dots, \maxNumNodes{} - 1$, if $i \ge \variable{numNodes}$, then
+  For $i = 1, \dots, \maxNumNodes{} - 1$, if $i < \variable{numNodes}$, then
   \[
     \variable{structure}[i] = i, \quad \text{and} \quad
     \variable{values}[i].\variable{name} = \top,
@@ -478,17 +400,13 @@ Next, we introduce an array that holds the first occurrence of each variable.
     \end{cases}
   \]
 \end{definition}
-Here, a value of zero means that the variable does not occur in the clause. The
-reason why we want to use specifically zero for this will become clear with
-\cref{constraint:diffbutzero}. Because of this choice, the definition of
-$\variable{intros}$ shifts all indices by one. Lastly, we add the variable
-symmetry-breaking constraint.
-\begin{constraint}
-  $\variable{intros}$ are sorted.
-\end{constraint}
-In other words, we constrain the model so that the variable listed first (in
-whatever order $\variables{}$ is presented in) has to occur first in our
-representation of a clause.
+Here, a value of zero means that the variable does not occur in the clause (this
+choice is motivated by subsequent constraints). This means that the definition
+of $\variable{intros}$ shifts all indices by one. Lastly, we add the variable
+symmetry-breaking constraint for sorting $\variable{intros}$. In other words, we
+constrain the model so that the variable listed first (in whatever order
+$\variables{}$ is presented in) has to occur first in our representation of a
+clause.
 
 \begin{example} \label{example:sibling}
   Let $\constants{} = \emptyset$, $\variables{} = \{ X, Y, Z \}$, $\maxArity{} =
@@ -502,23 +420,17 @@ representation of a clause.
   where the $\Box$'s correspond to the conjunction node.
 \end{example}
 
-\subsection{Redundant Constraints}
-
-We add several redundant constraints to make search more efficient. First,
-we can state that the positions occupied by different terms must be different.
+We end the section with several redundant constraints. First, we can state that
+the positions occupied by different terms must be different.
 \begin{constraint} \label{constraint:all_diff}
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   $\variable{occ}[u] \cap \variable{occ}[v] = \emptyset$.
 \end{constraint}
 The reason why we used zero to represent an unused variable is so that we could
-efficiently rephrase \cref{constraint:all_diff} for the $\variable{intros}$
-array.
-\begin{constraint} \label{constraint:diffbutzero}
-  $\variable{allDifferentExcept0}(\variable{intros})$.
-\end{constraint}
-We can also add another link between $\variable{intros}$ and $\variable{occ}$
-that essentially says that the smallest element of a set is an element of the
-set.
+now use the `all different except zero' constraint for the $\variable{intros}$
+array. We can also add another link between $\variable{intros}$ and
+$\variable{occ}$ that essentially says that the smallest element of a set is an
+element of the set.
 \begin{constraint}
   For $v \in \variables{}$, $\variable{intros}[v] \ne 0 \iff
   \variable{intros}[v] - 1 \in \variable{occ}[v]$.
@@ -551,10 +463,9 @@ $\arities{}$, $\variables{}$, and $\constants{}$\footnote{We checked that
   as they are not crucial to the thrust of this paper.}. Being able to establish
 two ways to generate the same sequence of numbers (i.e., numbers of programs
 with certain properties and parameters) allows us to gain confidence that the
-constraint model accurately matches our intentions. To simplify the task, we
-only consider clauses without probabilities and disable (negative) cycle
-elimination. We also introduce the term \emph{total arity} of a body of a clause
-to refer to the sum total of arities of all predicates in the body.
+constraint model accurately matches our intentions. For this section, we
+introduce the term \emph{total arity} of a body of a clause to refer to the sum
+total of arities of all predicates in the body.
 
 We will first consider clauses with \emph{gaps}, i.e., without taking variables
 and constants into account. Let $T(n, a)$ denote the number of possible clause
@@ -613,11 +524,25 @@ possible clauses can be computed by considering each possible arity $a$, and
 multiplying the number of `unfinished' clauses $C(a)$ by the number of ways to
 select the required $a+a_i$ terms in the body and the head of the clause.
 
-\section{Predicate Independence} \label{sec:independence}
+\section{Stratification and Independence} \label{sec:independence}
 
-In this section, we define a notion of predicate independence as a way to
-constrain the probability distributions defined by the generated programs. We
-also describe efficient algorithms for propagation and entailment checking.
+% TODO: explain about entailment and propagation
+
+A ProbLog program has to be stratified in order to ensure a unique
+solution to every query
+\cite{DBLP:journals/jlp/BalbinPRM91,DBLP:conf/padl/MantadelisR17}. Independence
+is a fundamental concept in probability theory that imposes structure on the
+probability distribution and makes probabilistic inference easier. In the
+context of probabilistic logic programming languages, these two seemingly
+disparate concepts can be defined using the same building block, i.e., a
+predicate dependency graph. In this section, we define both notions and describe
+custom constraints meant to ensure that our generated programs are valid and
+have the desired independence structure. A new constraint is usually presented
+with two algorithms: one for \emph{entailment} checking, i.e., checking if the
+(partially solved) constraint model satisfies the constraint or not, and one for
+\emph{propagation}, i.e., removing values from domains that are incompatible
+with the current state of the model.
+
 Let $\mathscr{P}$ be a probabilistic logic program. Its \emph{predicate
   dependency graph} is a directed graph $G_{\mathscr{P}} = (V, E)$ with the set
 of nodes $V$ consisting of all predicates in $\mathscr{P}$. For any two
@@ -629,19 +554,19 @@ and at least one instance of $\mathsf{P}$ at the body such that the path from
 the root to the $\mathsf{P}$ node in the tree representation of the clause
 passes through at least one negation node. Otherwise, it is \emph{positive}. We
 say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a \emph{negative cycle} if
-$G_{\mathscr{P}}$ has a cycle with at least one negative edge. Labelling the
-edges as positive/negative will be immaterial for predicate independence, but
-the same graph will play a crucial role in designing a constraint for
-stratification in the next section. In fact, a program $\mathscr{P}$ is
-\emph{stratified} if $G_{\mathscr{P}}$ has no negative cycles.
-\begin{definition}
-  Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The set of
-  \emph{dependencies} of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such
-  that $\mathsf{P} \in D_{\mathsf{P}}$, and, for every $\mathsf{Q} \in
-  D_{\mathsf{P}}$, all direct predecessors of $\mathsf{Q}$ in $G_{\mathscr{P}}$
-  are in $D_{\mathsf{P}}$. Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are
-  \emph{independent} if $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
-\end{definition}
+$G_{\mathscr{P}}$ has a cycle with at least one negative edge. A program
+$\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$ has no negative cycles.
+Thus a simple entailment algorithm for stratification can be constructed by
+selecting all clauses, all predicates of which are fully determined, and looking
+for negative cycles in the dependency graph constructed based on those clauses
+using an algorithm such as Bellman-Ford.
+
+Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The set of
+\emph{dependencies} of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such
+that $\mathsf{P} \in D_{\mathsf{P}}$, and, for every $\mathsf{Q} \in
+D_{\mathsf{P}}$, all direct predecessors of $\mathsf{Q}$ in $G_{\mathscr{P}}$
+are in $D_{\mathsf{P}}$. Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are
+\emph{independent} if $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
 
 \begin{example} \label{ex:program}
   Consider the following (fragment of a) program:
@@ -675,7 +600,7 @@ stratification in the next section. In fact, a program $\mathscr{P}$ is
       \draw[gray] (and) -- (parent);
       \draw[gray] (and) -- (not);
       \draw[gray] (not) -- (mother);
-    \end{tikzpicture}
+    \end{tikzpicture}%
     \captionof{figure}{A tree representation of the body of \eqref{eq:example_clause}}
     \label{fig:example_tree2}
   \end{minipage}
@@ -689,7 +614,7 @@ stratification in the next section. In fact, a program $\mathscr{P}$ is
       \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (sibling);
       \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (father);
       \draw[-{Stealth[scale=1.5]}] (mother) edge node[below] {$-$} (father);
-    \end{tikzpicture}
+    \end{tikzpicture}%
     \captionof{figure}{The predicate dependency graph of the program in
       \cref{ex:program}. Positive edges are labelled with `$+$', and negative
       edges with `$-$'.}
@@ -697,37 +622,31 @@ stratification in the next section. In fact, a program $\mathscr{P}$ is
   \end{minipage}
 \end{figure}
 
-Next, we add a constraint that defines an adjacency matrix for the predicate
-dependency graph but without positivity/negativity:
-\begin{definition} \label{def:adjacency_matrix}
-  An $|\predicates{}| \times |\predicates{}|$ adjacency matrix $\mathbf{A}$ with
-  $\{ 0, 1 \}$ as its domain is defined by stating that $\mathbf{A}[i][j] = 0$
-  if and only if, for all $k \in \{ 0, \dots, \maxNumClauses{} - 1 \}$, either
-  $\variable{heads}[k].\variable{predicate} \ne j$ or $ i \not\in
-  \{a.\variable{name} \mid a \in \variable{bodies}[k].\variable{values} \}$.
-\end{definition}
+Next, we can define a $|\predicates{}| \times |\predicates{}|$ adjacency matrix
+$\mathbf{A}$ with a binary domain (i.e., without positivity/negativity). It can
+be defined element-wise by stating that $\mathbf{A}[i][j] = 0$ if and only if,
+for all $k \in \{ 0, \dots, \maxNumClauses{} - 1 \}$, either
+$\variable{heads}[k].\variable{predicate} \ne j$ or $ i \not\in
+\{a.\variable{name} \mid a \in \variable{bodies}[k].\variable{values} \}$.
+
 Given an undetermined model, we can classify all dependencies of a predicate
 $\mathsf{P}$ into three categories based on how many of the edges on the path
 from the dependency to $\mathsf{P}$ are undetermined. In the case of zero, we
 call the dependency \emph{determined}. In the case of one, we call it
 \emph{almost determined}. Otherwise, it is \emph{undetermined}. In the context
 of propagation and entailment algorithms, we define a \emph{dependency} as the
-sum type:
-\begin{grammar}
-  <dependency> ::= $\Determined(p)$ | $\Undetermined(p)$ | $\AlmostDetermined(p,
-  s, t)$
-\end{grammar}
-where each alternative represents a determined, undetermined, and almost
-determined dependency, respectively. Here, $p \in \predicates{}$ is the name of
-the predicate which is the dependency of $\mathsf{P}$, and---in the case of
-$\AlmostDetermined$---$(s, t) \in \predicates{}^2$ is the one undetermined edge
-in $\mathbf{A}$ that prevents the dependency from being determined. For a
-dependency $d$---regardless of its exact type---we will refer to its predicate
-$p$ as $d.\mathsf{predicate}$. In describing the algorithms, we will use an
-underscore to replace any of $p$, $s$, $t$ in situations where the name is
-unimportant.
+sum type: \syntax{<dependency> ::= $\Determined(p)$ | $\Undetermined(p)$ |
+  $\AlmostDetermined(p, s, t)$}. Each alternative represents a determined,
+undetermined, and almost determined dependency, respectively. Here, $p \in
+\predicates{}$ is the name of the predicate which is the dependency of
+$\mathsf{P}$, and---in the case of $\AlmostDetermined$---$(s, t) \in
+\predicates{}^2$ is the one undetermined edge in $\mathbf{A}$ that prevents the
+dependency from being determined. For a dependency $d$---regardless of its exact
+type---we will refer to its predicate $p$ as $d.\mathsf{predicate}$. In
+describing the algorithms, we will use an underscore to replace any of $p$, $s$,
+$t$ in situations where the name is unimportant.
 
-\begin{algorithm}
+\begin{algorithm}[t]
   \SetKwFunction{getDependencies}{deps}
   \SetKwFunction{isDetermined}{isDetermined}
   \SetKwData{predicate}{predicate}
@@ -753,7 +672,7 @@ predicates are clearly independent. If they have a dependency in common that is
 already fully determined ($\Determined$) for both predicates, then they cannot be
 independent. Otherwise, we return \textsc{undefined}.
 
-\begin{algorithm}[h]
+\begin{algorithm}[t]
   \LinesNumbered
   \SetKwFunction{getDependencies}{deps}
   \SetKwFunction{fail}{fail}
@@ -788,12 +707,12 @@ that prevents the $\AlmostDetermined$ from becoming a $\Determined$ cannot
 exist--\cref{line:propagation_condition,line:propagation_result} handle this
 possibility.
 
-\begin{algorithm}
+\begin{algorithm}[t]
   \SetKwData{edgeExists}{edge}
   \SetKwData{predicate}{predicate}
   \SetKwData{source}{source}
   \SetKwData{target}{target}
-  \SetKwData{all}{allDependencies}
+  \SetKwData{all}{allDeps}
   \SetKwFunction{getDependencies}{deps}
   \SetKwProg{Fn}{Function}{:}{}
   \KwData{adjacency matrix $\mathbf{A}$}
@@ -803,22 +722,17 @@ possibility.
       $D' \gets \emptyset$\;
       \For{$d \in D$ {\bf and} $q \in \predicates{}$}{
         $\edgeExists \gets \mathbf{A}[q][d.\predicate] = \{ 1 \}$\;
-        \uIf{$\edgeExists$ {\bf and} $d$ {\bf is} $\Determined(\_)$}{
-          $D' \gets D' \cup \{ \Determined(q) \}$
-        }
-        \uElseIf{$\edgeExists$ {\bf and} $d$ {\bf is} $\AlmostDetermined(\_, s,
-          t)$}{
-          $D' \gets D' \cup \{ \AlmostDetermined(q, s, t) \}$\;
-        }
+        \lIf{$\edgeExists$ {\bf and} $d$ {\bf is} $\Determined(\_)$}{$D' \gets
+          D' \cup \{ \Determined(q) \}$}
+        \lElseIf{$\edgeExists$ {\bf and} $d$ {\bf is} $\AlmostDetermined(\_, s,
+          t)$}{$D' \gets D' \cup \{ \AlmostDetermined(q, s, t) \}$}
         \uElseIf{$|\mathbf{A}[q][d.\predicate]| > 1$ {\bf and} $d$~{\bf is}~$\Determined(r)$}{
           $D' \gets D' \cup \{ \AlmostDetermined(q, q, r) \}$\;
         }
-        \ElseIf{$|\mathbf{A}[q][d.\predicate]| > 1$ {\bf and} \all}{
-          $D' \gets D' \cup \{ \Undetermined(q) \}$\;
-        }
+        \lElseIf{$|\mathbf{A}[q][d.\predicate]| > 1$ {\bf and} \all}{$D' \gets
+          D' \cup \{ \Undetermined(q) \}$}
       }
-      \lIf{$D' = D$}{\Return{$D$}}
-      $D \gets D'$\;
+      \leIf{$D' = D$}{\Return{$D$}}{$D \gets D'$}
     }
   }
   \caption{Dependencies of a predicate}
@@ -856,8 +770,20 @@ as intended.
     D_\Box = \{ \mathsf{father}, \mathsf{mother}, \mathsf{parent},
     \mathsf{sibling} \}.
   \]
-  The predicate dependency graph without positivity/negativity (as defined in
-  \cref{def:adjacency_matrix}) is represented in \cref{fig:example}.
+  The predicate dependency graph is pictured in \cref{fig:example}. Suppose we
+  have a constraint that $\mathsf{mother}$ and $\mathsf{parent}$ must be
+  independent. The lists of potential dependencies for both predicates are:
+  \begin{align*}
+    D_{\mathsf{mother}} &= \{ \Determined(\mathsf{mother}), \AlmostDetermined(\mathsf{parent}, \mathsf{parent}, \mathsf{mother}) \}, \\
+    D_{\mathsf{parent}} &= \{ \Determined(\mathsf{parent}) \}.
+  \end{align*}
+  An entailment check at this stage would produce \textsc{undefined}, but
+  propagation replaces the boxed value in \cref{fig:dependencies_matrix} with
+  zero, eliminating the potential edge from $\mathsf{parent}$ to
+  $\mathsf{mother}$. This also eliminates $\mathsf{mother}$ from $D_\Box$, and
+  this is enough to make \cref{alg:independence_entailment} return
+  \textsc{true}.
+\end{example}
 
   \begin{figure}[t]
     \begin{minipage}{.49\textwidth}
@@ -899,63 +825,21 @@ as intended.
     \label{fig:example}
   \end{figure}
 
-  Suppose we have a constraint that $\mathsf{mother}$ and $\mathsf{parent}$ must
-  be independent. The lists of potential dependencies for both predicates are:
-  \begin{align*}
-    D_{\mathsf{mother}} &= \{ \Determined(\mathsf{mother}), \AlmostDetermined(\mathsf{parent}, \mathsf{parent}, \mathsf{mother}) \}, \\
-    D_{\mathsf{parent}} &= \{ \Determined(\mathsf{parent}) \}.
-  \end{align*}
-  An entailment check at this stage would produce \textsc{undefined}, but
-  propagation replaces the boxed value in \cref{fig:dependencies_matrix} with
-  zero, eliminating the potential edge from $\mathsf{parent}$ to
-  $\mathsf{mother}$. This also eliminates $\mathsf{mother}$ from $D_\Box$, and,
-  although some undetermined variables remain, this is enough to make
-  \cref{alg:independence_entailment} return \textsc{true}.
-\end{example}
+\section{Experimental Results}
 
-\section{Negative Cycles} \label{sec:cycles}
+This section presents two empirical investigations: in \cref{sec:experiment1} we
+examine the scalability of our constraint model with respect to its parameters
+and in \cref{sec:experiment2} we demonstrate how the model can be used to
+compare inference algorithms and describe their behaviour across a wide range of
+programs---something that has not been done before. The experiments were run on
+a system with Intel Core i5-8250U processor, \SI{8}{\giga\byte} RAM, and Arch
+Linux~5.6.11-arch1-1 operating system. The constraint model was implemented in
+Java~8 with Choco~4.10.2. All inference algorithms are implemented in
+ProbLog~2.1.0.39 and were run using Python~3.8.2 with PySDD~0.2.10 and
+PyEDA~0.28.0. For both sets of experiments, we generate programs without
+negative cycles and use a \SI{60}{\second} timeout.
 
-Ideally, we would like to design a constraint for negative cycles similar to the
-constraint for independence in the previous section. However, the difficulty
-with creating a propagation algorithm for negative cycles is that there seems to
-be no good way to extend \cref{def:adjacency_matrix} so that the adjacency
-matrix captures positivity/negativity. Thus, we settle for an entailment
-algorithm with no propagation.
-
-\begin{algorithm}
-  \KwData{a program $\mathscr{P}$}
-  \SetKwFunction{hasNegativeCycles}{hasNegativeCycles}
-  Let $\mathscr{R} \subseteq \mathscr{P}$ be the largest subprogram of
-  $\mathscr{P}$ with its $\variable{structure}$ and predicates in both body
-  and head fully determined\footnotemark\;
-  \If{\hasNegativeCycles($G_{\mathscr{R}}$)}{
-    \Return{\textsc{false}}\;
-  }
-  \lIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}
-  \Return{\textsc{undefined}}\;
-  \caption{Entailment for negative cycles}
-  \label{alg:negative_cycles}
-\end{algorithm}
-\footnotetext{The arguments (whether variables or constants) are irrelevant to
-  our definition of independence.}
-
-The algorithm takes all clauses whose structure and predicates have been fully
-determined and uses them to construct a full dependency graph. In our
-implementation, \texttt{hasNegativeCycles} function is just a simple extension
-of the backtracking cycle detection algorithm that `travels' around the graph
-following edges and checking if each vertex has already been visited or not.
-Alternatively, one could assign weights to the edges (e.g., $1$ for positive
-and $-\infty$ for negative edges), thus reducing our negative cycle detection
-problem to what is typically known as the negative cycle detection problem in
-the literature, and use an algorithm such as Bellman-Ford
-\cite{shimbel1954structure}.
-
-If the algorithm finds a negative cycle in this fully-determined part of the
-program, then we must return \textsc{false}. If there was no negative cycle and
-the entire program is (sufficiently) determined, then there cannot be any
-negative cycles. In all other cases, it is too early to tell.
-
-\section{Empirical Performance} \label{sec:experiments}
+\subsection{Empirical Performance of the Model} \label{sec:experiment1}
 
 Along with constraints, variables, and their domains, two more design decisions
 are needed to complete the model: heuristics and restarts. By trial and error,
@@ -983,25 +867,22 @@ the clause would be decided in this order:
   \overset{2}{\land} \overset{2}{\mathsf{parent}}(\overset{4}{Y},
   \overset{4}{Z}).
 \]
-We also employ a geometric restart policy, restarting after $10, 20, 40,
-80, \dots$ contradictions\footnote{Restarts help overcome early mistakes in the
-  search process but can be disabled if one wants to find all solutions, in
-  which case search is complete regardless of the variable ordering heuristic.}.
-
-We ran close to \num{400000} experiments, investigating whether the model is
-efficient enough to generate reasonably-sized programs and gaining insight into
-what parameter values make the constraint satisfaction problem harder. For these
-experiments, we use Choco~4.10.2 \cite{choco} with Java~8. For
-$|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$, and
-$\maxNumClauses{} - |\predicates{}|$ (i.e., the number of clauses in addition to
-the mandatory $|\predicates{}|$ clauses), we assign all combinations of 1, 2, 4,
-8. $\maxArity{}$ is assigned to values 1--4. For each $|\predicates{}|$, we also
-iterate over all possible numbers of independent pairs of predicates, ranging
-from 0 up to $\binom{|\predicates{}|}{2}$. For each combination of the
-above-mentioned parameters, we pick ten random ways to assign arities to
-predicates (such that $\maxArity{}$ occurs at least once) and ten random
-combinations of independent pairs. We then run the solver with a
-\SI{60}{\second} timeout.
+We also employ a geometric restart policy, restarting after $10, 10 \times 1.1,
+10 \times 1.1^2, \dots$ contradictions\footnote{Restarts help overcome early
+  mistakes in the search process but can be disabled if one wants to find all
+  solutions, in which case search is complete regardless of the variable
+  ordering heuristic.}. We ran close to \num{400000} experiments, investigating
+whether the model is efficient enough to generate reasonably-sized programs and
+gaining insight into what parameter values make the constraint satisfaction
+problem harder. For $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$,
+$\maxNumNodes{}$, and $\maxNumClauses{} - |\predicates{}|$ (i.e., the number of
+clauses in addition to the mandatory $|\predicates{}|$ clauses), we assign all
+combinations of 1, 2, 4, 8. $\maxArity{}$ is assigned to values 1--4. For each
+$|\predicates{}|$, we also iterate over all possible numbers of independent
+pairs of predicates, ranging from 0 up to $\binom{|\predicates{}|}{2}$. For each
+combination of the above-mentioned parameters, we pick ten random ways to assign
+arities to predicates (such that $\maxArity{}$ occurs at least once) and ten
+random combinations of independent pairs.
 
 The majority (\SI{97.7}{\percent}) of runs finished in under \SI{1}{\second},
 while four instances timed out: all with $|\predicates{}| = \maxNumClauses{} -
@@ -1025,7 +906,7 @@ situation as well.
   \centering
   \begin{minipage}[t]{.49\textwidth}
     \centering
-    \input{impact.tex}
+    \input{impact.tex}%
     \captionof{figure}{The mean number of nodes in the binary search tree for
       each value of each experimental parameter. Note that the horizontal axis
       is on a $\log_2$ scale.}
@@ -1034,7 +915,7 @@ situation as well.
   \hfill
   \begin{minipage}[t]{.49\textwidth}
     \centering
-    \input{bars.tex}
+    \input{bars.tex}%
     \captionof{figure}{Inference time for different values of $\maxArity{}$ and
       proportions of facts that are probabilistic. The total number of facts is
       fixed at $10^5$.}
@@ -1042,32 +923,93 @@ situation as well.
   \end{minipage}
 \end{figure}
 
+\subsection{Experimental Comparison of Inference Algorithms} \label{sec:experiment2}
+
+For this experiment, we consider clauses of two types: \emph{rules} are clauses
+such that the head atom has at least one variable, and \emph{facts} are clauses
+with no bodies and no variables. We use our constraint model to generate the
+rules according to the following parameter values: $|\predicates{}|,
+|\variables{}|, \maxNumNodes{} \in \{ 2, 4, 8 \}$, $\maxArity{} \in \{ 1, 2, 3
+\}$, $\maxNumClauses{} = |\predicates{}|$, $\constants{} = \emptyset$. Just like
+before, we explore all possible numbers of independent predicate pairs. We also
+add a constraint that forbids empty bodies. For both rules and facts,
+probabilities are uniformly sampled from $\{ 0.1, 0.2, \dots, 0.9 \}$.
+Furthermore, all rules are probabilistic, while we vary the proportion of
+probabilistic facts among \SI{25}{\percent}, \SI{50}{\percent}, and
+\SI{75}{\percent}. For generating facts, we consider $|\constants{}| \in \{100,
+200, 400 \}$ and vary the number of facts among $10^3$, $10^4$, and $10^5$ but
+with one exception: the number of facts is not allowed to exceed
+\SI{75}{\percent} of all possible facts with the given values of
+$\predicates{}$, $\arities{}$, and $\constants{}$. Facts are generated using a
+simple procedure that randomly selects a predicate, combines it with the right
+number of constants, and checks whether the generated atom is already included
+or not. We randomly select configurations from the description above and
+generate ten programs with a complete restart of the constraint solver before
+the generation of each program, including choosing different arities and
+independent pairs. Finally, we set the query of each program to a random fact
+not explicitly included in the program and consider six natively supported
+algorithms and knowledge compilation techniques: binary decision diagrams (BDDs)
+\cite{DBLP:journals/tc/Bryant86}, negation normal form (NNF), deterministic
+decomposable NNF (d-DNNF) \cite{DBLP:journals/jair/DarwicheM02}, K-Best
+\cite{DBLP:conf/pkdd/GutmannKKR08}, and two encodings based on sentential
+decision diagrams \cite{DBLP:conf/ijcai/Darwiche11}, one of which encodes the
+entire program (SDDX), while the other one encodes only the part of the program
+relevant to the query (SDD)\footnote{Forward SDDs (FSDDs) and forward BDDs
+  (FBDDs)
+  \cite{DBLP:journals/corr/abs-1911-07750,DBLP:conf/ijcai/VlasselaerBKMR15} are
+  omitted because the former uses too much memory and the implementation of the
+  latter seems to be broken at the time of writing.}.
+
+Out of \num{11310} generated problem instances, about \SI{35}{\percent} were
+discarded because one or more algorithms were not able to ground the instance in
+an unambiguous way. The first observation (pictured in \cref{fig:line_plots}) is
+that the algorithms are remarkably similar, i.e., the differences in performance
+are small and consistent across all parameter values (including parameters not
+shown in the figure). Unsurprisingly, the most important predictor of inference
+time is the number of facts. However, after fixing the number of facts to a
+constant value, we can still observe that inference becomes harder with higher
+arity predicates as well as when facts are mostly probabilistic (see
+\cref{fig:bars}). Finally, according to \cref{fig:line_plots}, the independence
+structure of a program does not affect inference time, i.e., state-of-the-art
+inference algorithms---although they are supposed to
+\cite{DBLP:conf/uai/FierensBTGR11}---do not exploit situations where separate
+parts of a program can be handled independently.
+
 \begin{figure}[t]
   \centering
-  \input{line_plots.tex}
+  \input{line_plots.tex}%
   \caption{Mean inference time for a range of ProbLog inference algorithms as
     a function of the total number of facts in the program and the proportion of
     independent pairs of predicates. For the second plot, the number of facts is
     fixed at $10^5$.}
   \label{fig:line_plots}
-\end{figure} % TODO: describe in the text
+\end{figure}
 
-\section{Conclusions}
+\section{Conclusion}
 
-We were able to design an efficient model for generating both logic programs and
-probabilistic logic programs. The model avoids unnecessary symmetries, generates
-valid programs, and can ensure predicate independence. Our constraint-driven
-approach is advantageous in that one can easily add additional conditions on the
-structure and properties of the program, although the main disadvantage is
-that there are no guarantees about the underlying probability distribution from
-which programs are sampled.
+We presented a constraint model for generating both logic programs and
+probabilistic logic programs. The model avoids unnecessary symmetries, is
+reasonably efficient and supports additional constraints such as predicate
+independence. The advantages of this approach lie in customisability and speed,
+although the main disadvantage is that there are no guarantees about the
+underlying probability distribution from which programs are sampled.
 
-Also, note that our model treats logically equivalent but syntactically
+Also note that our model treats logically equivalent but syntactically
 different formulas as different. This is so in part because designing a
 constraint for logical equivalence fell outside the scope of this work and in
 part because in some situations one might want to enumerate all ways to express
 the same probability distribution or knowledge base, e.g., to investigate
 whether inference algorithms are robust to changes in representation.
+
+Finally, our experimental results provide the first comparison of inference
+algorithms for probabilistic logic programming languages that generalises over
+programs, i.e., is not restricted to just a few programs and data sets. While
+the results did not reveal any significant differences among the algorithms,
+they did reveal a shared weakness, i.e., the inability to ignore the part of a
+program that is easily seen to be irrelevant to the given query. We hope that
+our work can facilitate the development of inference (as well as learning)
+algorithms and provide a better understanding of the strengths and weaknesses of
+current approaches.
 
 %\subsubsection*{Acknowledgments.}
 %This work was supported by the EPSRC Centre for Doctoral Training in Robotics
@@ -1077,6 +1019,16 @@ whether inference algorithms are robust to changes in representation.
 % ==============================================================================
 %                                   NOTES
 % ==============================================================================
+
+% Empirical tasks:
+% 1) make the CP model faster: apply the redundant constraints to predicates
+% (not just variables). Check if everything works out.
+% 2) compare to parameter learning with ProbFOIL
+% 3) create a constraint for groundedness (see the ProbLog FAQ)
+% New things I could talk about:
+% 1) entailment for conditional independence
+% 2) the 'required formula' part of the model
+% 3) how linear models can predict inference time
 
 % Notes on papers that test ProbLog inference algorithms:
 % - On the Implementation: published, one biological network
@@ -1119,6 +1071,25 @@ whether inference algorithms are robust to changes in representation.
 %  \label{fig:phase_transition}
 %\end{figure*}
 
+%\begin{figure}[t]
+%  \centering
+%  \begin{tikzpicture}
+%    \node[draw,circle,gray,text=black] (or) at (-0.375, 0) {$\lor$};
+%    \node[draw,circle,gray,text=black] (not) at (-1.5, -1) {$\neg$};
+%    \node[draw,circle,gray,text=black] (and) at (0.75, -1) {$\land$};
+%    \node[draw,gray,text=black] (P) at (-1.5, -2) {$\mathsf{P}(X)$};
+%    \node[draw,gray,text=black] (Q) at (0, -2) {$\mathsf{Q}(X)$};
+%    \node[draw,gray,text=black] (R) at (1.5, -2) {$\mathsf{P}(X)$};
+%    \draw[gray] (or) -- (not);
+%    \draw[gray] (or) -- (and);
+%    \draw[gray] (not) -- (P);
+%    \draw[gray] (and) -- (Q);
+%    \draw[gray] (and) -- (R);
+%  \end{tikzpicture}
+%  \caption{A tree representation of the formula from \cref{example:formula}}
+%  \label{fig:example_tree}
+%\end{figure}
+
 % Extra notes.
 % 1. Randomness. The value heuristic is random because we want randomness. After
 % finding one solution, one can continue the search for more, but they will be
@@ -1135,6 +1106,45 @@ whether inference algorithms are robust to changes in representation.
 % nodes grows with $n$---it is much more likely to have $\maxNumNodes{}$ or
 % $\maxNumNodes{} - 1$ nodes than, e.g., one or two.
 % 5. It can easily be shown that all generated logic programs are satisfiable
+
+% \section{Entailment Checking of Negative Cycles} \label{sec:cycles}
+
+% Ideally, we would like to design a constraint for negative cycles similar to the
+% constraint for independence in the previous section. However, the difficulty
+% with creating a propagation algorithm for negative cycles is that there seems to
+% be no good way to extend \cref{def:adjacency_matrix} so that the adjacency
+% matrix captures positivity/negativity. Thus, we settle for an entailment
+% algorithm with no propagation.
+
+%\begin{algorithm}
+%  \KwData{a program $\mathscr{P}$}
+%  \SetKwFunction{hasNegativeCycles}{hasNegativeCycles}
+%  Let $\mathscr{R} \subseteq \mathscr{P}$ be the largest subprogram of
+%  $\mathscr{P}$ with its $\variable{structure}$ and predicates in both body
+%  and head fully determined\footnotemark\;
+%  \lIf{\hasNegativeCycles($G_{\mathscr{R}}$)}{\Return{\textsc{false}}}
+%  \leIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}{\Return{\textsc{undefined}}}
+%  \caption{Entailment for negative cycles}
+%  \label{alg:negative_cycles}
+%\end{algorithm}
+%\footnotetext{Variables and constants are irrelevant to our definition of
+%  independence.}
+
+% The algorithm takes all clauses whose structure and predicates have been fully
+% determined and uses them to construct a full dependency graph. In our
+% implementation, \texttt{hasNegativeCycles} function is just a simple extension
+% of the backtracking cycle detection algorithm that `travels' around the graph
+% following edges and checking if each vertex has already been visited or not.
+% Alternatively, one could assign weights to the edges (e.g., $1$ for positive
+% and $-\infty$ for negative edges), thus reducing our negative cycle detection
+% problem to what is typically known as the negative cycle detection problem in
+% the literature, and use an algorithm such as Bellman-Ford
+% \cite{shimbel1954structure}.
+
+% If the algorithm finds a negative cycle in this fully-determined part of the
+% program, then we must return \textsc{false}. If there was no negative cycle and
+% the entire program is (sufficiently) determined, then there cannot be any
+% negative cycles. In all other cases, it is too early to tell.
 
 \bibliographystyle{splncs04}
 \bibliography{paper}

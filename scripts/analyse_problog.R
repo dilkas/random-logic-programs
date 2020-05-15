@@ -38,28 +38,28 @@ prepare.csv <- function(filename) {
 
 sdd <- prepare.csv("../data/problog/sdd.csv")
 nnf <- prepare.csv("../data/problog/nnf.csv")
-symbolic <- prepare.csv("../data/problog/symbolic.csv")
 kbest <- prepare.csv("../data/problog/kbest.csv")
 sddx <- prepare.csv("../data/problog/sddx.csv")
 ddnnf <- prepare.csv("../data/problog/ddnnf.csv")
+bdd <- prepare.csv("../data/problog/bdd.csv")
 
 sdd <- sdd[sdd$ID %in% nnf$ID,]
-sdd <- sdd[sdd$ID %in% symbolic$ID,]
 sdd <- sdd[sdd$ID %in% kbest$ID,]
 sdd <- sdd[sdd$ID %in% sddx$ID,]
 sdd <- sdd[sdd$ID %in% ddnnf$ID,]
+sdd <- sdd[sdd$ID %in% bdd$ID,]
 nnf <- nnf[nnf$ID %in% sdd$ID,]
-symbolic <- symbolic[symbolic$ID %in% sdd$ID,]
 kbest <- kbest[kbest$ID %in% sdd$ID,]
 sddx <- sddx[sddx$ID %in% sdd$ID,]
 ddnnf <- ddnnf[ddnnf$ID %in% sdd$ID,]
+bdd <- bdd[bdd$ID %in% sdd$ID,]
 
 combined <- rbind(cbind(melt(sdd[, relevant_columns], id.var = "Total.time"), Algorithm = "SDD"),
                   cbind(melt(nnf[, relevant_columns], id.var = "Total.time"), Algorithm = "NNF"),
-                  cbind(melt(symbolic[, relevant_columns], id.var = "Total.time"), Algorithm = "Symbolic"),
                   cbind(melt(kbest[, relevant_columns], id.var = "Total.time"), Algorithm = "K-Best"),
                   cbind(melt(sddx[, relevant_columns], id.var = "Total.time"), Algorithm = "SDDX"),
-                  cbind(melt(ddnnf[, relevant_columns], id.var = "Total.time"), Algorithm = "dDNNF"))
+                  cbind(melt(ddnnf[, relevant_columns], id.var = "Total.time"), Algorithm = "d-DNNF"),
+                  cbind(melt(bdd[, relevant_columns], id.var = "Total.time"), Algorithm = "BDD"))
 summarised <- combined %>% group_by(variable, value, Algorithm) %>%
   summarize(mean.time = mean(Total.time), sd.time = sd(Total.time))
 
@@ -140,29 +140,29 @@ grid.arrange(plot("number.of.predicates", combined, summarised),
 
 # ======================= 1v1 comparison scatter plots ======================
 
-merged <- merge(sdd, ddnnf, by = 'ID')
+merged <- merge(sdd, sddx, by = 'ID')
 ggplot(merged, aes(x = Total.time.x, y = Total.time.y)) +
   geom_point() +
   scale_x_continuous(trans = log2_trans()) +
   scale_y_continuous(trans = log2_trans()) +
-  geom_abline(colour = "blue")
+  geom_abline(colour = "blue", slope = 1, intercept = 0)
 
 # ========================== Selecting a subset of data ======================
 
 num_facts = 1e5
 sdd2 <- sdd[sdd$number.of.facts == num_facts,]
 nnf2 <- nnf[nnf$number.of.facts == num_facts,]
-symbolic2 <- symbolic[symbolic$number.of.facts == num_facts,]
 kbest2 <- kbest[kbest$number.of.facts == num_facts,]
 sddx2 <- sddx[sddx$number.of.facts == num_facts,]
 ddnnf2 <- ddnnf[ddnnf$number.of.facts == num_facts,]
+bdd2 <- bdd[bdd$number.of.facts == num_facts,]
 
 combined2 <- rbind(cbind(melt(sdd2[, relevant_columns], id.var = "Total.time"), Algorithm = "SDD"),
                   cbind(melt(nnf2[, relevant_columns], id.var = "Total.time"), Algorithm = "NNF"),
-                  cbind(melt(symbolic2[, relevant_columns], id.var = "Total.time"), Algorithm = "Symbolic"),
                   cbind(melt(kbest2[, relevant_columns], id.var = "Total.time"), Algorithm = "K-Best"),
                   cbind(melt(sddx2[, relevant_columns], id.var = "Total.time"), Algorithm = "SDDX"),
-                  cbind(melt(ddnnf2[, relevant_columns], id.var = "Total.time"), Algorithm = "dDNNF"))
+                  cbind(melt(ddnnf2[, relevant_columns], id.var = "Total.time"), Algorithm = "d-DNNF"),
+                  cbind(melt(bdd2[, relevant_columns], id.var = "Total.time"), Algorithm = "BDD"))
 summarised2 <- combined2 %>% group_by(variable, value, Algorithm) %>%
   summarize(mean.time = mean(Total.time), sd.time = sd(Total.time))
 summary <- rbind(summarised2[summarised2$variable %in% c("proportion.independent.pairs", "Total.time"),],
@@ -199,3 +199,9 @@ ggplot(data = summary, aes(x = value, y = mean.time, color = Algorithm, shape = 
   scale_colour_brewer(palette = "Dark2") +
   theme_bw()
 dev.off()
+
+cor(sdd[, -1])
+model <- lm(Total.time ~ number.of.facts, data = sdd)
+model <- lm(Total.time ~ number.of.facts + maximum.arity, data = sdd)
+model <- lm(Total.time ~ number.of.facts + maximum.arity + proportion.probabilistic, data = sdd)
+summary(model)
