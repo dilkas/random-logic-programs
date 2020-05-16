@@ -11,6 +11,7 @@
 \usepackage[inline]{enumitem}
 \usepackage{capt-of}
 \usepackage[caption=false]{subfig}
+\usepackage{booktabs}
 
 \captionsetup[subfigure]{width=\linewidth}
 
@@ -85,6 +86,8 @@
 % TODO: update the introduction and the abstract
 
 \section{Introduction}
+
+TODO: Review \cite{DBLP:journals/tplp/WangWM15,DBLP:conf/ijcai/AmendolaRT17,DBLP:journals/ai/AmendolaRT20}
 
 Unifying logic and probability is a long-standing challenge in artificial
 intelligence \cite{DBLP:journals/cacm/Russell15}, and, in that regard,
@@ -526,33 +529,31 @@ select the required $a+a_i$ terms in the body and the head of the clause.
 
 \section{Stratification and Independence} \label{sec:independence}
 
-% TODO: explain about entailment and propagation
-
-A ProbLog program has to be stratified in order to ensure a unique
-solution to every query
-\cite{DBLP:journals/jlp/BalbinPRM91,DBLP:conf/padl/MantadelisR17}. Independence
-is a fundamental concept in probability theory that imposes structure on the
-probability distribution and makes probabilistic inference easier. In the
+In this section, we present custom constraints for stratification and
+independence. Stratification is a condition that both logic programs and
+probabilistic logic programs need to satisfy to ensure a unique answer
+to every query
+\cite{DBLP:journals/jlp/BalbinPRM91,DBLP:conf/padl/MantadelisR17}, while
+independence is a fundamental concept in probability theory that imposes
+structure on the probability distribution and simplifies inference. In the
 context of probabilistic logic programming languages, these two seemingly
 disparate concepts can be defined using the same building block, i.e., a
-predicate dependency graph. In this section, we define both notions and describe
-custom constraints meant to ensure that our generated programs are valid and
-have the desired independence structure. A new constraint is usually presented
-with two algorithms: one for \emph{entailment} checking, i.e., checking if the
-(partially solved) constraint model satisfies the constraint or not, and one for
+predicate dependency graph. Constraints are usually presented with two
+algorithms: one for \emph{entailment} checking, i.e., checking if the (partially
+solved) constraint model satisfies the constraint or not, and one for
 \emph{propagation}, i.e., removing values from domains that are incompatible
-with the current state of the model.
+with the current state of the model. We present both algorithms for independence
+while settling for a short description of entailment for stratification.
 
-Let $\mathscr{P}$ be a probabilistic logic program. Its \emph{predicate
-  dependency graph} is a directed graph $G_{\mathscr{P}} = (V, E)$ with the set
-of nodes $V$ consisting of all predicates in $\mathscr{P}$. For any two
-different predicates $\mathsf{P}$ and $\mathsf{Q}$, we add an edge from
-$\mathsf{P}$ to $\mathsf{Q}$ if there is a clause in $\mathscr{P}$ with
+Let $\mathscr{P}$ be a probabilistic logic program with predicates
+$\predicates{}$. Its \emph{(predicate) dependency graph} is a directed graph
+$G_{\mathscr{P}}$ with $\predicates{}$ as nodes and an edge between $\mathsf{P},
+\mathsf{Q} \in \predicates{}$ if there is a clause in $\mathscr{P}$ with
 $\mathsf{Q}$ as the head and $\mathsf{P}$ mentioned in the body. We say that the
 edge is \emph{negative} if there exists a clause with $\mathsf{Q}$ as the head
 and at least one instance of $\mathsf{P}$ at the body such that the path from
 the root to the $\mathsf{P}$ node in the tree representation of the clause
-passes through at least one negation node. Otherwise, it is \emph{positive}. We
+passes through at least one negation node; otherwise, it is \emph{positive}. We
 say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a \emph{negative cycle} if
 $G_{\mathscr{P}}$ has a cycle with at least one negative edge. A program
 $\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$ has no negative cycles.
@@ -561,12 +562,12 @@ selecting all clauses, all predicates of which are fully determined, and looking
 for negative cycles in the dependency graph constructed based on those clauses
 using an algorithm such as Bellman-Ford.
 
-Let $\mathsf{P}$ be a predicate in a program $\mathscr{P}$. The set of
-\emph{dependencies} of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such
-that $\mathsf{P} \in D_{\mathsf{P}}$, and, for every $\mathsf{Q} \in
-D_{\mathsf{P}}$, all direct predecessors of $\mathsf{Q}$ in $G_{\mathscr{P}}$
-are in $D_{\mathsf{P}}$. Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are
-\emph{independent} if $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
+For any predicate $\mathsf{P} \in \predicates{}$, the set of \emph{dependencies}
+of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such that $\mathsf{P} \in
+D_{\mathsf{P}}$, and, for every $\mathsf{Q} \in D_{\mathsf{P}}$, all direct
+predecessors of $\mathsf{Q}$ in $G_{\mathscr{P}}$ are in $D_{\mathsf{P}}$. Two
+predicates $\mathsf{P}$ and $\mathsf{Q}$ are \emph{independent} if
+$D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
 
 \begin{example} \label{ex:program}
   Consider the following (fragment of a) program:
@@ -575,10 +576,9 @@ are in $D_{\mathsf{P}}$. Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are
     \mathsf{father}(X, Y) &\gets \mathsf{parent}(X, Y) \land \neg\mathsf{mother}(X, Y). \label[clause]{eq:example_clause}
   \end{align}
   Its predicate dependency graph is in \cref{fig:predicate_dependencies}.
-  Because of the negation in \eqref{eq:example_clause} (as seen in
-  \cref{fig:example_tree2}), the edge from $\mathsf{mother}$ to
-  $\mathsf{father}$ is negative, while the other two edges are positive.
-  The dependencies of each predicate are:
+  Because of the negation in \eqref{eq:example_clause}, the edge from
+  $\mathsf{mother}$ to $\mathsf{father}$ is negative, while the other two edges
+  are positive. The dependencies of each predicate are:
   \begin{alignat*}{3}
     D_{\mathsf{parent}} &= \{ \mathsf{parent} \}, \quad && D_{\mathsf{sibling}}
     &&= \{\mathsf{sibling}, \mathsf{parent} \},\\
@@ -588,22 +588,9 @@ are in $D_{\mathsf{P}}$. Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are
   Hence, we have two pairs of independent predicates, i.e., $\mathsf{mother}$ is
   independent of $\mathsf{parent}$ and $\mathsf{sibling}$.
 \end{example}
+
 \begin{figure}[t]
   \centering
-  \begin{minipage}{.49\textwidth}
-    \centering
-    \begin{tikzpicture}
-      \node[draw,circle,gray,text=black] (and) at (0, 0) {$\land$};
-      \node[draw,circle,gray,text=black] (not) at (1.5, -1) {$\neg$};
-      \node[draw,gray,text=black] (parent) at (-1.5, -1) {$\mathsf{parent}(X, Y)$};
-      \node[draw,gray,text=black] (mother) at (1.5, -2) {$\mathsf{mother}(X, Y)$};
-      \draw[gray] (and) -- (parent);
-      \draw[gray] (and) -- (not);
-      \draw[gray] (not) -- (mother);
-    \end{tikzpicture}%
-    \captionof{figure}{A tree representation of the body of \eqref{eq:example_clause}}
-    \label{fig:example_tree2}
-  \end{minipage}
   \begin{minipage}{.49\textwidth}
     \centering
     \begin{tikzpicture}
@@ -620,31 +607,46 @@ are in $D_{\mathsf{P}}$. Two predicates $\mathsf{P}$ and $\mathsf{Q}$ are
       edges with `$-$'.}
     \label{fig:predicate_dependencies}
   \end{minipage}
+  \begin{minipage}{.49\textwidth}
+    \centering
+    \captionof{table}{Types of (potential) dependencies of a predicate
+      $\mathsf{P}$ based on the number of undetermined edges on the path from
+      the dependency to $\mathsf{P}$}
+    \label{tbl:dependencies}
+    \begin{tabular}{clc}
+      \toprule
+      Edges & Name & Notation \\
+      \midrule
+      $0$ & determined & $\Determined(p)$ \\
+      $1$ & almost determined & $\AlmostDetermined(p, s, t)$ \\
+      $>1$ & undetermined & $\Undetermined(p)$ \\
+      \bottomrule
+    \end{tabular}
+  \end{minipage}
 \end{figure}
 
-Next, we can define a $|\predicates{}| \times |\predicates{}|$ adjacency matrix
-$\mathbf{A}$ with a binary domain (i.e., without positivity/negativity). It can
-be defined element-wise by stating that $\mathbf{A}[i][j] = 0$ if and only if,
-for all $k \in \{ 0, \dots, \maxNumClauses{} - 1 \}$, either
+Since the definition of independence relies on the dependency graph, we can
+represent this graph as an adjacency matrix constructed as part of the model.
+Let $\mathbf{A}$ be a $|\predicates{}| \times |\predicates{}|$ binary matrix
+defined element-wise by stating that $\mathbf{A}[i][j] = 0$ if and only if, for
+all $k = 0, \dots, \maxNumClauses{} - 1$, either
 $\variable{heads}[k].\variable{predicate} \ne j$ or $ i \not\in
 \{a.\variable{name} \mid a \in \variable{bodies}[k].\variable{values} \}$.
 
-Given an undetermined model, we can classify all dependencies of a predicate
-$\mathsf{P}$ into three categories based on how many of the edges on the path
-from the dependency to $\mathsf{P}$ are undetermined. In the case of zero, we
-call the dependency \emph{determined}. In the case of one, we call it
-\emph{almost determined}. Otherwise, it is \emph{undetermined}. In the context
-of propagation and entailment algorithms, we define a \emph{dependency} as the
-sum type: \syntax{<dependency> ::= $\Determined(p)$ | $\Undetermined(p)$ |
-  $\AlmostDetermined(p, s, t)$}. Each alternative represents a determined,
-undetermined, and almost determined dependency, respectively. Here, $p \in
-\predicates{}$ is the name of the predicate which is the dependency of
-$\mathsf{P}$, and---in the case of $\AlmostDetermined$---$(s, t) \in
-\predicates{}^2$ is the one undetermined edge in $\mathbf{A}$ that prevents the
-dependency from being determined. For a dependency $d$---regardless of its exact
-type---we will refer to its predicate $p$ as $d.\mathsf{predicate}$. In
-describing the algorithms, we will use an underscore to replace any of $p$, $s$,
-$t$ in situations where the name is unimportant.
+Given a partially-solved model with its predicate dependency graph, let us pick
+an arbitrary path from $\mathsf{Q}$ to $\mathsf{P}$ (for some $\mathsf{P},
+\mathsf{Q} \in \predicates{}$) that consists of determined edges that are
+denoted by $1$ in $\mathbf{A}$ and potential/undetermined edges that are
+denoted by $\{ 0, 1 \}$. Each such path characterises a \emph{(potential)
+  dependency} $\mathsf{Q}$ for $\mathsf{P}$. We can put each such dependency
+into one out of three classes depending on the number of undetermined edges on
+the path. These classes are outlined in \cref{tbl:dependencies}, where $p$
+represents the dependency predicate $\mathsf{Q}$, and, in the case of
+$\AlmostDetermined{}$, $(s, t) \in \predicates{}^2$ is the one undetermined edge
+on the path. For a dependency $d$---regardless of its exact type---we will refer
+to its predicate $p$ as $d.\mathsf{predicate}$. In describing the algorithms, we
+will use an underscore to replace any of $p$, $s$, $t$ in situations where the
+name is unimportant.
 
 \begin{algorithm}[t]
   \SetKwFunction{getDependencies}{deps}
@@ -685,12 +687,8 @@ independent. Otherwise, we return \textsc{undefined}.
       0}$ s.t. $d_1.\predicate = d_2.\predicate$}{
     \lIf{$d_1$ {\bf is} $\Determined(\_)$ {\bf and} $d_2$ {\bf is}
       $\Determined(\_)$}{\fail{}} \label{line:fail}
-    \If{$d_1$ {\bf is} $\Determined(\_)$ {\bf and} $d_2$ {\bf is}
-      $\AlmostDetermined(\_, s, t)$ {\bf or} $d_2$ {\bf is} $\Determined(\_)$
-      {\bf and} $d_1$ {\bf is} $\AlmostDetermined(\_, s,
-      t)$ \label{line:propagation_condition}}{
-      $\mathbf{A}[s][t]$.\removeValue{$1$}\; \label{line:propagation_result}
-    }
+    \lIf{$\{ d_1, d_2 \} = \{ \Determined(\_), \AlmostDetermined(\_, s, t)
+      \}$ \label{line:propagation_condition}}{$\mathbf{A}[s][t]$.\removeValue{$1$}}
   }
   \caption{Propagation for independence}
   \label{alg:independence_propagation}
@@ -704,8 +702,7 @@ the former on \cref{line:fail}. Furthermore, for any dependency shared between
 predicates $p_1$ and $p_2$, if it is determined ($\Determined$) for one
 predicate and almost determined ($\AlmostDetermined$) for another, then the edge
 that prevents the $\AlmostDetermined$ from becoming a $\Determined$ cannot
-exist--\cref{line:propagation_condition,line:propagation_result} handle this
-possibility.
+exist---\cref{line:propagation_condition} handles this possibility.
 
 \begin{algorithm}[t]
   \SetKwData{edgeExists}{edge}
@@ -1145,6 +1142,18 @@ current approaches.
 % program, then we must return \textsc{false}. If there was no negative cycle and
 % the entire program is (sufficiently) determined, then there cannot be any
 % negative cycles. In all other cases, it is too early to tell.
+
+%    \begin{tikzpicture}
+%      \node[draw,circle,gray,text=black] (and) at (0, 0) {$\land$};
+%      \node[draw,circle,gray,text=black] (not) at (1.5, -1) {$\neg$};
+%      \node[draw,gray,text=black] (parent) at (-1.5, -1) {$\mathsf{parent}(X, Y)$};
+%      \node[draw,gray,text=black] (mother) at (1.5, -2) {$\mathsf{mother}(X, Y)$};
+%      \draw[gray] (and) -- (parent);
+%      \draw[gray] (and) -- (not);
+%      \draw[gray] (not) -- (mother);
+%    \end{tikzpicture}%
+%    \captionof{figure}{A tree representation of the body of \eqref{eq:example_clause}}
+%    \label{fig:example_tree2}
 
 \bibliographystyle{splncs04}
 \bibliography{paper}
