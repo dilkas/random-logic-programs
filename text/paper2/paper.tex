@@ -76,25 +76,26 @@
   programs. As an example of this, we introduce a new constraint for predicate
   independence with efficient propagation and entailment algorithms, allowing
   one to generate programs that have a certain independence structure. Finally,
-  we provide a combinatorial argument for the correctness of the model and
+  we provide a combinatorial argument for the correctness of the model,
   describe how the parameters of the model affect the empirical difficulty of
-  the program generation task.
+  the program generation task, and use the model to compare probabilistic
+  inference algorithms across a range of synthetic problems.
 
   \keywords{Constraint programming \and Probabilistic logic programming \and
     Statistical relational learning.}
 \end{abstract}
-% TODO: update the introduction and the abstract
+
+% TODO: proofread, run a grammar checker on everything
 
 \section{Introduction}
-
-TODO: Review \cite{DBLP:journals/tplp/WangWM15,DBLP:conf/ijcai/AmendolaRT17,DBLP:journals/ai/AmendolaRT20}
 
 Unifying logic and probability is a long-standing challenge in artificial
 intelligence \cite{DBLP:journals/cacm/Russell15}, and, in that regard,
 statistical relational learning (SRL) has developed into an exciting area that
 mixes machine learning and symbolic (logical and relational) structures. In
-particular, probabilistic logic programs---including languages such as PRISM
-\cite{DBLP:conf/ijcai/SatoK97}, ICL \cite{DBLP:journals/ai/Poole97}, and ProbLog
+particular, probabilistic logic programs---including languages such as
+\textsc{PRISM} \cite{DBLP:conf/ijcai/SatoK97}, \textsc{ICL}
+\cite{DBLP:journals/ai/Poole97}, and \textsc{ProbLog}
 \cite{DBLP:conf/ijcai/RaedtKT07}---are promising frameworks for codifying
 complex SRL models. With the enhanced structure, however, inference becomes more
 challenging as algorithms have to correctly handle hard and soft logical
@@ -112,35 +113,44 @@ of clarity \cite{DBLP:journals/ai/SelmanML96}. This changed with the study of
 generating random SAT instances against different input parameters (e.g.,
 clause length and the total number of variables) to better understand the
 behaviour of algorithms and their ability to solve random synthetic problems.
-Unfortunately, in the context of probabilistic logic programming, most current
-approaches to random instance generation are very restrictive, e.g., limited to
-clauses with only two literals \cite{DBLP:conf/lpnmr/NamasivayamT09}, or clauses
-of the form $a \gets \neg b$ \cite{DBLP:journals/tocl/WenWSL16}, although some
-are more expressive, e.g., defining a program only by the (maximum) number of
-atoms in the body and the total number of rules \cite{DBLP:conf/iclp/ZhaoL03}.
+Unfortunately, when it comes to generating random logic programs, all approaches
+so far focused exclusively on propositional programs
+\cite{DBLP:conf/ijcai/AmendolaRT17,DBLP:journals/ai/AmendolaRT20,DBLP:journals/tplp/WangWM15,DBLP:conf/iclp/ZhaoL03},
+often with severely limiting conditions such as two-literal clauses
+\cite{DBLP:conf/iclp/Namasivayam09,DBLP:conf/lpnmr/NamasivayamT09} or clauses of
+the form $a \gets \neg b$.
 
-In this work, we introduce a constraint-based representation for logic programs
-based on some simple parameters that describe the program's size, what
-predicates and constants it uses, etc. This representation takes the form of a
-constraint satisfaction problem, i.e., a set of discrete variables and
-restrictions on what values they can take. Every solution to this problem (as
-output by a constraint solver) directly translates into a logic program. One can
-either use random value-ordering heuristics and restarts to generate random
-programs or find all (sufficiently small) programs that satisfy the given
-requirements. In fact, the same model can generate both probabilistic programs
-in the syntax of ProbLog \cite{DBLP:conf/ijcai/RaedtKT07} and non-probabilistic
-Prolog programs.
+In \cref{sec:heads,sec:bodies,sec:variable_symmetry}, we introduce a
+constraint-based representation for logic programs based on simple parameters
+that describe the program's size, what predicates and constants it uses, etc.
+This representation takes the form of a \emph{constraint satisfaction problem}
+(CSP), i.e., a set of discrete variables and restrictions on what values they
+can take. Every solution to this problem (as output by a constraint solver)
+directly translates into a logic program. One can either output all
+(sufficiently small) programs that satisfy the given conditions or use random
+value-ordering heuristics and restarts to generate random programs. For sampling
+from a uniform distribution, the CSP can be transformed into a belief network
+\cite{DBLP:conf/aaai/DechterKBE02}. In fact, the same model can generate both
+probabilistic programs in the syntax of \textsc{ProbLog}
+\cite{DBLP:conf/ijcai/RaedtKT07} and non-probabilistic \textsc{Prolog} programs.
+This is both the first time the problem of generating random logic programs has
+been approached in its full generality (i.e., including first-order clauses with
+variables) and the first time inference algorithms for probabilistic logic
+programs can be evaluated on more than a handful of instances.
 
 A major advantage of a constraint-based approach is the ability to add
 additional constraints as needed, and to do that efficiently (compared to
-generate-and-test approaches). As an example of this, we develop a custom
-constraint that, given two predicates $\mathsf{P}$ and $\mathsf{Q}$, ensures
-that any ground atom with predicate $\mathsf{P}$ is independent of any ground
-atom with predicate $\mathsf{Q}$. In this way, we can easily regulate the
-independence structure of the underlying probability distribution. We also
-present a combinatorial argument for correctness, counting the number of
-programs that the model produces for various parameter values and show how the
-model scales when tasked with producing more complicated programs.
+generate-and-test approaches). As an example of this, in \cref{sec:independence}
+we develop a custom constraint that, given two predicates $\mathsf{P}$ and
+$\mathsf{Q}$, ensures that any ground atom with predicate $\mathsf{P}$ is
+independent of any ground atom with predicate $\mathsf{Q}$. In this way, we can
+easily regulate the independence structure of the underlying probability
+distribution. In \cref{sec:counting} we also present a combinatorial argument
+for correctness that counts the number of programs that the model produces for
+various parameter values. We end the paper with two experimental results in
+\cref{sec:experiments}: one investigating how the constraint model scales when
+tasked with producing more complex programs, and one showing how the model can
+be used to evaluate and compare probabilistic inference algorithms.
 
 Overall, our main contributions are concerned with logic programming-based
 languages and frameworks, which capture a major fragment of SRL
@@ -164,23 +174,22 @@ $\neg$\footnote{One can add a couple of extra constraints to restrict the
   positive and negative literals.}.
 A \emph{clause} is a pair of a \emph{head} (which is an atom) and a \emph{body}
 (which is a formula). A \emph{(logic) program} is a set of clauses, and a
-\emph{ProbLog program} is a set of clause-probability pairs.
+\emph{\textsc{ProbLog} program} is a set of clause-probability pairs.
 
-In the world of constraint satisfaction, we also have \emph{(constraint)
-  variables}, each with a \emph{domain}, whose values are restricted using
-\emph{constraints}. All constraint variables in the model are integer or set
-variables, however, if an integer refers to a logical construct
-(e.g., a logical variable or a constant), we will make no distinction between
-the two and often use names of logical constructs to refer to the underlying
-integers. We say that a constraint variable is \emph{(fully) determined} if its
-domain (at the given moment in the execution) has exactly one value. We will
-often use $\Box$ as a special domain value to indicate a `disabled' (i.e., fixed
-and ignored) part of the model. We write $\arrayd{a}{b}{c}$ to mean that
-$\variable{a}$ is an array of variables of length $b$ such that each element of
-$\variable{a}$ has domain $c$. Similarly, we write $\arrayt{a}{b}{c}$ to denote
-an array $\variable{a}$ of length $b$ such that each element of $\variable{a}$
-has type $\variable{c}$. Finally, we assume that all arrays start with index
-zero.
+In the world of CSPs, we also have \emph{(constraint) variables}, each with a
+\emph{domain}, whose values are restricted using \emph{constraints}. All
+constraint variables in the model are integer or set variables, however, if an
+integer refers to a logical construct (e.g., a logical variable or a constant),
+we will make no distinction between the two and often use names of logical
+constructs to refer to the underlying integers. We say that a constraint
+variable is \emph{(fully) determined} if its domain (at the given moment in the
+execution) has exactly one value. We will often use $\Box$ as a special domain
+value to indicate a `disabled' (i.e., fixed and ignored) part of the model. We
+write $\arrayd{a}{b}{c}$ to mean that $\variable{a}$ is an array of variables of
+length $b$ such that each element of $\variable{a}$ has domain $c$. Similarly,
+we write $\arrayt{a}{b}{c}$ to denote an array $\variable{a}$ of length $b$ such
+that each element of $\variable{a}$ has type $\variable{c}$. Finally, we assume
+that all arrays start with index zero.
 
 \paragraph{Parameters of the Model.} We begin defining the parameters of our
 model by initialising sets and lists of the primitives used in constructing
@@ -530,15 +539,14 @@ select the required $a+a_i$ terms in the body and the head of the clause.
 \section{Stratification and Independence} \label{sec:independence}
 
 In this section, we present custom constraints for stratification and
-independence. Stratification is a condition that both logic programs and
-probabilistic logic programs need to satisfy to ensure a unique answer
-to every query
-\cite{DBLP:journals/jlp/BalbinPRM91,DBLP:conf/padl/MantadelisR17}, while
-independence is a fundamental concept in probability theory that imposes
-structure on the probability distribution and simplifies inference. In the
-context of probabilistic logic programming languages, these two seemingly
-disparate concepts can be defined using the same building block, i.e., a
-predicate dependency graph. Constraints are usually presented with two
+independence. Stratification is a condition necessary for probabilistic logic
+programs \cite{DBLP:conf/padl/MantadelisR17} and often enforced on logic
+programs \cite{DBLP:journals/tcs/Bidoit91} that helps to ensure a unique answer
+to every query, while independence is a fundamental concept in probability
+theory that imposes structure on the probability distribution and simplifies
+inference. In the context of probabilistic logic programming languages, these
+two seemingly disparate concepts can be defined using the same building block,
+i.e., a predicate dependency graph. Constraints are usually presented with two
 algorithms: one for \emph{entailment} checking, i.e., checking if the (partially
 solved) constraint model satisfies the constraint or not, and one for
 \emph{propagation}, i.e., removing values from domains that are incompatible
@@ -556,11 +564,14 @@ the root to the $\mathsf{P}$ node in the tree representation of the clause
 passes through at least one negation node; otherwise, it is \emph{positive}. We
 say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a \emph{negative cycle} if
 $G_{\mathscr{P}}$ has a cycle with at least one negative edge. A program
-$\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$ has no negative cycles.
-Thus a simple entailment algorithm for stratification can be constructed by
-selecting all clauses, all predicates of which are fully determined, and looking
-for negative cycles in the dependency graph constructed based on those clauses
-using an algorithm such as Bellman-Ford.
+$\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$ has no negative
+cycles\footnote{This definition is an extension of a well-known result for logic
+programs \cite{DBLP:journals/jlp/BalbinPRM91} to probabilistic logic programs
+with arbitrary complex clause bodies.}. Thus a simple entailment algorithm for
+stratification can be constructed by selecting all clauses, all predicates of
+which are fully determined, and looking for negative cycles in the dependency
+graph constructed based on those clauses using an algorithm such as
+Bellman-Ford.
 
 For any predicate $\mathsf{P} \in \predicates{}$, the set of \emph{dependencies}
 of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such that $\mathsf{P} \in
@@ -822,19 +833,19 @@ as intended.
     \label{fig:example}
   \end{figure}
 
-\section{Experimental Results}
+\section{Experimental Results} \label{sec:experiments}
 
-This section presents two empirical investigations: in \cref{sec:experiment1} we
-examine the scalability of our constraint model with respect to its parameters
-and in \cref{sec:experiment2} we demonstrate how the model can be used to
-compare inference algorithms and describe their behaviour across a wide range of
+This section presents two experiments: in \cref{sec:experiment1} we examine the
+scalability of our constraint model with respect to its parameters and in
+\cref{sec:experiment2} we demonstrate how the model can be used to compare
+inference algorithms and describe their behaviour across a wide range of
 programs---something that has not been done before. The experiments were run on
 a system with Intel Core i5-8250U processor, \SI{8}{\giga\byte} RAM, and Arch
 Linux~5.6.11-arch1-1 operating system. The constraint model was implemented in
-Java~8 with Choco~4.10.2. All inference algorithms are implemented in
-ProbLog~2.1.0.39 and were run using Python~3.8.2 with PySDD~0.2.10 and
-PyEDA~0.28.0. For both sets of experiments, we generate programs without
-negative cycles and use a \SI{60}{\second} timeout.
+Java~8 with \textsc{Choco}~4.10.2 \cite{choco}. All inference algorithms are
+implemented in \textsc{ProbLog}~2.1.0.39 and were run using Python~3.8.2 with
+PySDD~0.2.10 and PyEDA~0.28.0. For both sets of experiments, we generate
+programs without negative cycles and use a \SI{60}{\second} timeout.
 
 \subsection{Empirical Performance of the Model} \label{sec:experiment1}
 
@@ -870,16 +881,16 @@ We also employ a geometric restart policy, restarting after $10, 10 \times 1.1,
   solutions, in which case search is complete regardless of the variable
   ordering heuristic.}. We ran close to \num{400000} experiments, investigating
 whether the model is efficient enough to generate reasonably-sized programs and
-gaining insight into what parameter values make the constraint satisfaction
-problem harder. For $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$,
-$\maxNumNodes{}$, and $\maxNumClauses{} - |\predicates{}|$ (i.e., the number of
-clauses in addition to the mandatory $|\predicates{}|$ clauses), we assign all
-combinations of 1, 2, 4, 8. $\maxArity{}$ is assigned to values 1--4. For each
-$|\predicates{}|$, we also iterate over all possible numbers of independent
-pairs of predicates, ranging from 0 up to $\binom{|\predicates{}|}{2}$. For each
-combination of the above-mentioned parameters, we pick ten random ways to assign
-arities to predicates (such that $\maxArity{}$ occurs at least once) and ten
-random combinations of independent pairs.
+gaining insight into what parameter values make the CSP harder. For
+$|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$, and
+$\maxNumClauses{} - |\predicates{}|$ (i.e., the number of clauses in addition to
+the mandatory $|\predicates{}|$ clauses), we assign all combinations of 1, 2, 4,
+8. $\maxArity{}$ is assigned to values 1--4. For each $|\predicates{}|$, we also
+iterate over all possible numbers of independent pairs of predicates, ranging
+from 0 up to $\binom{|\predicates{}|}{2}$. For each combination of the
+above-mentioned parameters, we pick ten random ways to assign arities to
+predicates (such that $\maxArity{}$ occurs at least once) and ten random
+combinations of independent pairs.
 
 The majority (\SI{97.7}{\percent}) of runs finished in under \SI{1}{\second},
 while four instances timed out: all with $|\predicates{}| = \maxNumClauses{} -
@@ -975,10 +986,10 @@ parts of a program can be handled independently.
 \begin{figure}[t]
   \centering
   \input{line_plots.tex}%
-  \caption{Mean inference time for a range of ProbLog inference algorithms as
-    a function of the total number of facts in the program and the proportion of
-    independent pairs of predicates. For the second plot, the number of facts is
-    fixed at $10^5$.}
+  \caption{Mean inference time for a range of \textsc{ProbLog} inference
+    algorithms as a function of the total number of facts in the program and the
+    proportion of independent pairs of predicates. For the second plot, the
+    number of facts is fixed at $10^5$.}
   \label{fig:line_plots}
 \end{figure}
 
