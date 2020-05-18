@@ -118,7 +118,7 @@ so far focused exclusively on propositional programs
 \cite{DBLP:conf/ijcai/AmendolaRT17,DBLP:journals/ai/AmendolaRT20,DBLP:journals/tplp/WangWM15,DBLP:conf/iclp/ZhaoL03},
 often with severely limiting conditions such as two-literal clauses
 \cite{DBLP:conf/iclp/Namasivayam09,DBLP:conf/lpnmr/NamasivayamT09} or clauses of
-the form $a \gets \neg b$.
+the form $a \gets \neg b$ \cite{DBLP:journals/tocl/WenWSL16}.
 
 In \cref{sec:heads,sec:bodies,sec:variable_symmetry}, we introduce a
 constraint-based representation for logic programs based on simple parameters
@@ -169,12 +169,13 @@ defines the number of terms that it can be applied to. A \emph{term} is either a
 variable or a constant, and an \emph{atom} is a predicate of arity $n$ applied
 to $n$ terms. A \emph{formula} is any well-formed expression that connects
 atoms using conjunction $\land$, disjunction $\lor$, and negation
-$\neg$\footnote{One can add a couple of extra constraints to restrict the
-  generated programs to logic programs that only allow a single disjunction with
-  positive and negative literals.}.
-A \emph{clause} is a pair of a \emph{head} (which is an atom) and a \emph{body}
-(which is a formula). A \emph{(logic) program} is a set of clauses, and a
-\emph{\textsc{ProbLog} program} is a set of clause-probability pairs.
+$\neg$. A \emph{clause} is a pair of a \emph{head} (which is an atom) and a
+\emph{body} (which is a formula\footnote{Our model supports arbitrarily complex
+  bodies of clauses because \textsc{ProbLog} does too. However, one can easily
+  restrict our representation of a body to a single disjunction of literals by
+  adding a couple of additional constraints.}). A \emph{(logic) program} is a
+set of clauses, and a \emph{\textsc{ProbLog} program} is a set of
+clause-probability pairs.
 
 In the world of CSPs, we also have \emph{(constraint) variables}, each with a
 \emph{domain}, whose values are restricted using \emph{constraints}. All
@@ -191,7 +192,7 @@ we write $\arrayt{a}{b}{c}$ to denote an array $\variable{a}$ of length $b$ such
 that each element of $\variable{a}$ has type $\variable{c}$. Finally, we assume
 that all arrays start with index zero.
 
-\paragraph{Parameters of the Model.} We begin defining the parameters of our
+\paragraph{Parameters of the model.} We begin defining the parameters of our
 model by initialising sets and lists of the primitives used in constructing
 logic programs: a list of predicates $\predicates{}$, a list of their
 corresponding arities $\arities{}$ (so $|\arities{}|$ = $|\predicates{}|$), a
@@ -200,8 +201,8 @@ $\variables{}$ or $\constants{}$ can be empty, but we assume that
 $|\constants{}| + |\variables{}| > 0$. Similarly, the model supports zero-arity
 predicates but requires at least one predicate to have non-zero arity. For
 notational convenience, we also set $\maxArity{} = \max \arities{}$. Next, we
-need a measure of how complex a body of a clause can be. As each body is
-represented by a tree (see \cref{sec:bodies}), we set $\maxNumNodes{} \ge 1$ to
+need a measure of how complex a body of a clause can be. As we represent each
+body by a tree (see \cref{sec:bodies}), we set $\maxNumNodes{} \ge 1$ to
 be the maximum number of nodes in the tree representation of any clause. We also
 set $\maxNumClauses{}$ to be the maximum number of clauses in a program. We must
 have that $\maxNumClauses{} \ge |\predicates{}|$ because we require each
@@ -229,12 +230,12 @@ the $\variable{predicate}$ is less than $\maxArity{}$. The reason why we need a
 separate value for the latter (i.e., why it is not enough to fix disabled
 arguments to a single already-existing value) will become clear in
 \cref{sec:variable_symmetry}. This $\variable{predicate}$ variable has a
-corresponding arity that depends on the value of $\variable{predicate}$. We can
+corresponding arity that depends on the $\variable{predicate}$. We can
 define $\variable{arity} \in [0, \maxArity{}]$ as the arity of the
 $\variable{predicate}$ if $\variable{predicate} \in \predicates{}$ and zero
 otherwise using the table constraint \cite{DBLP:conf/cpaior/MairyDL15}. This
 constraint uses a set of pairs of the form $(p, a)$, where $p$ ranges over all
-possible values of $\variable{predicate}$, and $a$ is either the arity of
+possible values of the $\variable{predicate}$, and $a$ is either the arity of
 predicate $p$ or zero. Having defined arity, we can now fix the superfluous
 arguments.
 \begin{constraint} \label{constr:arity}
@@ -276,11 +277,11 @@ As was briefly mentioned before, the \emph{body} of a clause is represented by a
 tree. It has two parts. First, there is the
 $\arrayd{structure}{\maxNumNodes{}}{[0, \maxNumNodes{} - 1]}$ array that encodes
 the structure of the tree using the following two rules:
-$\variable{structure}[i] = i$ means that the $i$-th node is a root, and
-$\variable{structure}[i] = j$ (for $j \ne i$) means that the $i$-th node's
+$\variable{structure}[i] = i$ means that the $i$th node is a root, and
+$\variable{structure}[i] = j$ (for $j \ne i$) means that the $i$th node's
 parent is node $j$. The second part is the array
 $\arrayt{values}{\maxNumNodes{}}{Node}$ such that $\variable{values}[i]$ holds
-the value of the $i$-th node, i.e., a representation of the atom or logical
+the value of the $i$th node, i.e., a representation of the atom or logical
 operator.
 
 We can use the $\variable{tree}$ constraint \cite{DBLP:conf/cp/FagesL11} to
@@ -352,8 +353,8 @@ number of children (zero, one, and two, respectively).
 \end{constraint}
 The value $\top$ serves a twofold purpose: it is used as the fixed value for
 nodes outside the main tree, and, when located at the zeroth node, it can
-represent a clause with no body. Thus, we can say that only root nodes can have
-$\top$ as the value:
+represent a clause with an empty body. Thus, we can say that only root nodes can
+have $\top$ as the value.
 \begin{constraint}
   For $i = 0, \dots, \maxNumNodes{} - 1$,
   \[
@@ -362,7 +363,7 @@ $\top$ as the value:
   \]
 \end{constraint}
 Finally, we add a way to disable a clause by setting its head predicate to
-$\Box$:
+$\Box$.
 \begin{constraint}
   For $i = 0, \dots, \maxNumClauses{} - 1$, if
   $\variable{heads}[i].\variable{predicate} = \Box$, then
@@ -413,12 +414,11 @@ Next, we introduce an array that holds the first occurrence of each variable.
   \]
 \end{definition}
 Here, a value of zero means that the variable does not occur in the clause (this
-choice is motivated by subsequent constraints). This means that the definition
-of $\variable{intros}$ shifts all indices by one. Lastly, we add the variable
-symmetry-breaking constraint for sorting $\variable{intros}$. In other words, we
-constrain the model so that the variable listed first (in whatever order
-$\variables{}$ is presented in) has to occur first in our representation of a
-clause.
+choice is motivated by subsequent constraints). As a consequence, all other
+indices are shifted by one. Having set this up, we can now eliminate variable
+symmetries simply by sorting $\variable{intros}$. In other words, we constrain
+the model so that the variable listed first (in whatever order $\variables{}$ is
+presented in) has to occur first in our representation of a clause.
 
 \begin{example} \label{example:sibling}
   Let $\constants{} = \emptyset$, $\variables{} = \{ X, Y, Z \}$, $\maxArity{} =
@@ -438,7 +438,7 @@ the positions occupied by different terms must be different.
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   $\variable{occ}[u] \cap \variable{occ}[v] = \emptyset$.
 \end{constraint}
-The reason why we used zero to represent an unused variable is so that we could
+The reason why we use zero to represent an unused variable is so that we could
 now use the `all different except zero' constraint for the $\variable{intros}$
 array. We can also add another link between $\variable{intros}$ and
 $\variable{occ}$ that essentially says that the smallest element of a set is an
@@ -470,7 +470,7 @@ detail, in this section we are going to derive combinatorial expressions for
 counting the number of programs with up to $\maxNumClauses{}$ clauses and up to
 $\maxNumNodes{}$ nodes per clause, and arbitrary $\predicates{}$,
 $\arities{}$, $\variables{}$, and $\constants{}$\footnote{We checked that
-  our model agrees with the derived combinatorial formula in close to a thousand
+  our model agrees with the derived combinatorial formula in up to a thousand
   different scenarios. The details of this empirical investigation are omitted
   as they are not crucial to the thrust of this paper.}. Being able to establish
 two ways to generate the same sequence of numbers (i.e., numbers of programs
@@ -492,7 +492,7 @@ definition can be applied for $n > 1$:
 \]
 The first term here represents negation, i.e., negating a formula consumes
 one node but otherwise leaves the task unchanged. If the first operation is not
-negation, then it must be either conjunction or disjunction (hence the
+a negation, then it must be either conjunction or disjunction (hence the
 coefficient `2'). In the first sum, $k$ represents the number of children of the
 root node, and each $c_i$ is the number of nodes dedicated to child $i$. Thus,
 the first sum iterates over all possible ways to partition the remaining $n-1$
@@ -505,7 +505,6 @@ possible clause bodies with total arity $a$ (and any number of nodes) as
     \sum_{n=1}^{\maxNumNodes{}} T(n, a) & \text{otherwise.}
   \end{cases}
 \]
-Here, the empty clause is considered separately.
 
 The number of ways to select $n$ terms is
 \[
@@ -513,15 +512,15 @@ The number of ways to select $n$ terms is
       s_0 < s_1 < \dots < s_k < s_{k+1} = n+1}} \prod_{i=0}^k (|\constants{}| +
   i)^{s_{i+1} - s_i - 1}.
 \]
-The first term is the number of ways select $n$ constants. The parameter $k$ is
-the number of variables used in the clause, and $s_1, \dots, s_k$ mark the first
-occurrence of each variable. For each gap between any two introductions (or
-before the first introduction, or after the last introduction), we have
+The first term is the number of ways to select $n$ constants. The parameter $k$
+is the number of variables used in the clause, and $s_1, \dots, s_k$ mark the
+first occurrence of each variable. For each gap between any two introductions
+(or before the first introduction, or after the last introduction), we have
 $s_{i+1}-s_i-1$ spaces to be filled with any of the $|\constants{}|$ constants
 or any of the $i$ already-introduced variables.
 
 Let us order the elements of $\predicates{}$, and let $a_i$ be the arity of the
-$i$-th predicate. The number of programs is then:
+$i$th predicate. The number of programs is then:
 \[
   \sum_{\substack{ \sum_{i=1}^{|\predicates{}|} h_i = n,\\
       |\predicates{}| \le n \le \maxNumClauses{},\\
@@ -553,25 +552,25 @@ solved) constraint model satisfies the constraint or not, and one for
 with the current state of the model. We present both algorithms for independence
 while settling for a short description of entailment for stratification.
 
-Let $\mathscr{P}$ be a probabilistic logic program with predicates
+Let $\mathscr{P}$ be a probabilistic logic program with its set of predicates
 $\predicates{}$. Its \emph{(predicate) dependency graph} is a directed graph
-$G_{\mathscr{P}}$ with $\predicates{}$ as nodes and an edge between $\mathsf{P},
-\mathsf{Q} \in \predicates{}$ if there is a clause in $\mathscr{P}$ with
-$\mathsf{Q}$ as the head and $\mathsf{P}$ mentioned in the body. We say that the
-edge is \emph{negative} if there exists a clause with $\mathsf{Q}$ as the head
-and at least one instance of $\mathsf{P}$ at the body such that the path from
-the root to the $\mathsf{P}$ node in the tree representation of the clause
-passes through at least one negation node; otherwise, it is \emph{positive}. We
-say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a \emph{negative cycle} if
-$G_{\mathscr{P}}$ has a cycle with at least one negative edge. A program
-$\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$ has no negative
-cycles\footnote{This definition is an extension of a well-known result for logic
-programs \cite{DBLP:journals/jlp/BalbinPRM91} to probabilistic logic programs
-with arbitrary complex clause bodies.}. Thus a simple entailment algorithm for
-stratification can be constructed by selecting all clauses, all predicates of
-which are fully determined, and looking for negative cycles in the dependency
-graph constructed based on those clauses using an algorithm such as
-Bellman-Ford.
+$G_{\mathscr{P}}$ with elements of $\predicates{}$ as nodes and an edge between
+$\mathsf{P}, \mathsf{Q} \in \predicates{}$ if there is a clause in $\mathscr{P}$
+with $\mathsf{Q}$ as the head and $\mathsf{P}$ mentioned in the body. We say
+that the edge is \emph{negative} if there exists a clause with $\mathsf{Q}$ as
+the head and at least one instance of $\mathsf{P}$ at the body such that the
+path from the root to the $\mathsf{P}$ node in the tree representation of the
+clause passes through at least one negation node; otherwise, it is
+\emph{positive}. We say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a
+\emph{negative cycle} if $G_{\mathscr{P}}$ has a cycle with at least one
+negative edge. A program $\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$
+has no negative cycles\footnote{This definition is an extension of a well-known
+  result for logic programs \cite{DBLP:journals/jlp/BalbinPRM91} to
+  probabilistic logic programs with arbitrary complex clause bodies.}. Thus a
+simple entailment algorithm for stratification can be constructed by selecting
+all clauses, all predicates of which are fully determined, and looking for
+negative cycles in the dependency graph constructed based on those clauses using
+an algorithm such as Bellman-Ford.
 
 For any predicate $\mathsf{P} \in \predicates{}$, the set of \emph{dependencies}
 of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such that $\mathsf{P} \in
@@ -613,7 +612,7 @@ $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
       \draw[-{Stealth[scale=1.5]}] (parent) edge node[above] {$+$} (father);
       \draw[-{Stealth[scale=1.5]}] (mother) edge node[below] {$-$} (father);
     \end{tikzpicture}%
-    \captionof{figure}{The predicate dependency graph of the program in
+    \captionof{figure}{The predicate dependency graph of the program from
       \cref{ex:program}. Positive edges are labelled with `$+$', and negative
       edges with `$-$'.}
     \label{fig:predicate_dependencies}
@@ -649,15 +648,14 @@ an arbitrary path from $\mathsf{Q}$ to $\mathsf{P}$ (for some $\mathsf{P},
 \mathsf{Q} \in \predicates{}$) that consists of determined edges that are
 denoted by $1$ in $\mathbf{A}$ and potential/undetermined edges that are
 denoted by $\{ 0, 1 \}$. Each such path characterises a \emph{(potential)
-  dependency} $\mathsf{Q}$ for $\mathsf{P}$. We can put each such dependency
-into one out of three classes depending on the number of undetermined edges on
-the path. These classes are outlined in \cref{tbl:dependencies}, where $p$
-represents the dependency predicate $\mathsf{Q}$, and, in the case of
-$\AlmostDetermined{}$, $(s, t) \in \predicates{}^2$ is the one undetermined edge
-on the path. For a dependency $d$---regardless of its exact type---we will refer
-to its predicate $p$ as $d.\mathsf{predicate}$. In describing the algorithms, we
-will use an underscore to replace any of $p$, $s$, $t$ in situations where the
-name is unimportant.
+  dependency} $\mathsf{Q}$ for $\mathsf{P}$. We classify all such dependencies
+into three classes depending on the number of undetermined edges on the path.
+These classes are outlined in \cref{tbl:dependencies}, where $p$ represents the
+dependency predicate $\mathsf{Q}$, and, in the case of $\AlmostDetermined{}$,
+$(s, t) \in \predicates{}^2$ is the one undetermined edge on the path. For a
+dependency $d$---regardless of its exact type---we will refer to its predicate
+$p$ as $d.\mathsf{predicate}$. In describing the algorithms, we will use `$\_$'
+to replace any of $p$, $s$, $t$ in situations where the name is unimportant.
 
 \begin{algorithm}[t]
   \SetKwFunction{getDependencies}{deps}
@@ -673,7 +671,7 @@ name is unimportant.
   \label{alg:independence_entailment}
 \end{algorithm}
 
-Each entailment algorithm returns one out of three different values:
+Each entailment algorithm returns one out of three values:
 \textsc{true} if the constraint is guaranteed to hold, \textsc{false} if the
 constraint is violated, and \textsc{undefined} if whether the constraint will be
 satisfied or not depends on the future decisions made by the solver.
@@ -835,17 +833,17 @@ as intended.
 
 \section{Experimental Results} \label{sec:experiments}
 
-This section presents two experiments: in \cref{sec:experiment1} we examine the
-scalability of our constraint model with respect to its parameters and in
-\cref{sec:experiment2} we demonstrate how the model can be used to compare
-inference algorithms and describe their behaviour across a wide range of
-programs---something that has not been done before. The experiments were run on
-a system with Intel Core i5-8250U processor, \SI{8}{\giga\byte} RAM, and Arch
-Linux~5.6.11-arch1-1 operating system. The constraint model was implemented in
-Java~8 with \textsc{Choco}~4.10.2 \cite{choco}. All inference algorithms are
-implemented in \textsc{ProbLog}~2.1.0.39 and were run using Python~3.8.2 with
-PySDD~0.2.10 and PyEDA~0.28.0. For both sets of experiments, we generate
-programs without negative cycles and use a \SI{60}{\second} timeout.
+We now present the results of two experiments: in \cref{sec:experiment1} we
+examine the scalability of our constraint model with respect to its parameters
+and in \cref{sec:experiment2} we demonstrate how the model can be used to
+compare inference algorithms and describe their behaviour across a wide range of
+programs. The experiments were run on a system with Intel Core i5-8250U
+processor, \SI{8}{\giga\byte} RAM, and Arch Linux~5.6.11-arch1-1 operating
+system. The constraint model was implemented in Java~8 with
+Choco~4.10.2 \cite{choco}. All inference algorithms are implemented in
+\textsc{ProbLog}~2.1.0.39 and were run using Python~3.8.2 with PySDD~0.2.10 and
+PyEDA~0.28.0. For both sets of experiments, we generate programs without
+negative cycles and use a \SI{60}{\second} timeout.
 
 \subsection{Empirical Performance of the Model} \label{sec:experiment1}
 
@@ -854,12 +852,12 @@ are needed to complete the model: heuristics and restarts. By trial and error,
 the variable ordering heuristic was devised to eliminate sources of
 \emph{thrashing}, i.e., situations where a contradiction is being `fixed' by
 making changes that have no hope of fixing the contradiction. Thus, we partition
-all decision variables into an ordered list of groups, and require the values of
+all decision variables into an ordered list of groups and require the values of
 all variables from one group to be determined before moving to the next group.
 Within each group, we use the `fail first' variable ordering heuristic. The
 first group consists of all head predicates. Afterwards, we handle all remaining
 decision variables from the first clause before proceeding to the next. The
-decision variables within each clause are divided into:
+decision variables within each clause are divided into
 \begin{enumerate*}
 \item the $\variable{structure}$ array,
 \item body predicates,
@@ -902,13 +900,12 @@ solutions.
 
 In \cref{fig:impact}, we plot how the mean number of nodes in the binary search
 tree grows as a function of each parameter (the plot for the median is very
-similar). The growth of each curve suggest how well/poorly the model scales with
-higher values of the parameter. From this plot, it is clear that
-$\maxNumNodes{}$ is the limiting factor. This is because some tree structures
-can be impossible to fill with predicates without creating either a negative
-cycle or a forbidden dependency, and such trees become more common as the number
-of nodes increases. Likewise, a higher number of predicates complicates the
-situation as well.
+similar). The growth of each curve suggests how the model scales with higher
+values of the parameter. From this plot, it is clear that $\maxNumNodes{}$ is
+the limiting factor. This is because some tree structures can be impossible to
+fill with predicates without creating either a negative cycle or a forbidden
+dependency, and such trees become more common as the number of nodes increases.
+Likewise, a higher number of predicates complicates the situation as well.
 
 \begin{figure}[t]
   \centering
@@ -935,7 +932,7 @@ situation as well.
 
 For this experiment, we consider clauses of two types: \emph{rules} are clauses
 such that the head atom has at least one variable, and \emph{facts} are clauses
-with no bodies and no variables. We use our constraint model to generate the
+with empty bodies and no variables. We use our constraint model to generate the
 rules according to the following parameter values: $|\predicates{}|,
 |\variables{}|, \maxNumNodes{} \in \{ 2, 4, 8 \}$, $\maxArity{} \in \{ 1, 2, 3
 \}$, $\maxNumClauses{} = |\predicates{}|$, $\constants{} = \emptyset$. Just like
@@ -968,18 +965,18 @@ relevant to the query (SDD)\footnote{Forward SDDs (FSDDs) and forward BDDs
   omitted because the former uses too much memory and the implementation of the
   latter seems to be broken at the time of writing.}.
 
-Out of \num{11310} generated problem instances, about \SI{35}{\percent} were
-discarded because one or more algorithms were not able to ground the instance in
-an unambiguous way. The first observation (pictured in \cref{fig:line_plots}) is
-that the algorithms are remarkably similar, i.e., the differences in performance
-are small and consistent across all parameter values (including parameters not
-shown in the figure). Unsurprisingly, the most important predictor of inference
-time is the number of facts. However, after fixing the number of facts to a
-constant value, we can still observe that inference becomes harder with higher
-arity predicates as well as when facts are mostly probabilistic (see
-\cref{fig:bars}). Finally, according to \cref{fig:line_plots}, the independence
-structure of a program does not affect inference time, i.e., state-of-the-art
-inference algorithms---although they are supposed to
+Out of over \num{11000} generated problem instances, about \SI{35}{\percent} were
+discarded because one or more algorithms were not able to ground the instance
+unambiguously. The first observation (pictured in \cref{fig:line_plots}) is that
+the algorithms are remarkably similar, i.e., the differences in performance are
+small and consistent across all parameter values (including parameters not shown
+in the figure). Unsurprisingly, the most important predictor of inference time
+is the number of facts. However, after fixing the number of facts to a constant
+value, we can still observe that inference becomes harder with higher arity
+predicates as well as when facts are mostly probabilistic (see \cref{fig:bars}).
+Finally, according to \cref{fig:line_plots}, the independence structure of a
+program does not affect inference time, i.e., state-of-the-art inference
+algorithms---although they are supposed to
 \cite{DBLP:conf/uai/FierensBTGR11}---do not exploit situations where separate
 parts of a program can be handled independently.
 
@@ -995,14 +992,14 @@ parts of a program can be handled independently.
 
 \section{Conclusion}
 
-We presented a constraint model for generating both logic programs and
+We described a constraint model for generating both logic programs and
 probabilistic logic programs. The model avoids unnecessary symmetries, is
 reasonably efficient and supports additional constraints such as predicate
 independence. The advantages of this approach lie in customisability and speed,
 although the main disadvantage is that there are no guarantees about the
 underlying probability distribution from which programs are sampled.
 
-Also note that our model treats logically equivalent but syntactically
+As a side note, our model treats logically equivalent but syntactically
 different formulas as different. This is so in part because designing a
 constraint for logical equivalence fell outside the scope of this work and in
 part because in some situations one might want to enumerate all ways to express
