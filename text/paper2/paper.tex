@@ -8,7 +8,7 @@
 \usepackage[nounderscore]{syntax}
 \usepackage{blkarray}
 \usepackage[binary-units]{siunitx}
-\usepackage[inline]{enumitem}
+\usepackage[inline,shortlabels]{enumitem}
 \usepackage{capt-of}
 \usepackage[caption=false]{subfig}
 \usepackage{booktabs}
@@ -65,27 +65,26 @@
 
 \maketitle
 
-%The abstract should briefly summarize the contents of the paper in
-%150--250 words.
 \begin{abstract}
-  We present a novel approach to generating random logic programs and
-  random probabilistic logic programs using constraint programming. The
-  generated programs are useful in empirical testing of inference algorithms,
-  random data generation, and program learning. This approach has a major
-  advantage in that one can easily add additional conditions for the generated
-  programs. As an example of this, we introduce a new constraint for predicate
-  independence with efficient propagation and entailment algorithms, allowing
-  one to generate programs that have a certain independence structure. Finally,
-  we provide a combinatorial argument for the correctness of the model,
-  describe how the parameters of the model affect the empirical difficulty of
-  the program generation task, and use the model to compare probabilistic
-  inference algorithms across a range of synthetic problems.
+  Testing algorithms across a wide range of problem instances is crucial to
+  ensure the validity of any claim about one algorithm's superiority over
+  another. However, when it comes to inference algorithms for probabilistic
+  logic programs, experimental evaluations are limited to only a few programs.
+  Existing methods to generate random logic programs are limited to
+  propositional programs and often impose stringent syntactic restrictions. We
+  present a novel approach to generating random logic programs and random
+  probabilistic logic programs using constraint programming, introducing a new
+  constraint to control the independence structure of the underlying probability
+  distribution. We also provide a combinatorial argument for the correctness of
+  the model, show how the model scales with parameter values, and use the model
+  to compare probabilistic inference algorithms across a range of synthetic
+  problems. Our model allows inference algorithm developers to evaluate and
+  compare the algorithms across a wide range of instances, providing a detailed
+  picture of their (comparative) strengths and weaknesses.
 
   \keywords{Constraint programming \and Probabilistic logic programming \and
     Statistical relational learning.}
 \end{abstract}
-
-% TODO: proofread, run a grammar checker on everything
 
 \section{Introduction}
 
@@ -98,15 +97,14 @@ particular, probabilistic logic programs---including languages such as
 \cite{DBLP:journals/ai/Poole97}, and \textsc{ProbLog}
 \cite{DBLP:conf/ijcai/RaedtKT07}---are promising frameworks for codifying
 complex SRL models. With the enhanced structure, however, inference becomes more
-challenging as algorithms have to correctly handle hard and soft logical
-constraints. At the moment, we have no precise way of evaluating and comparing
-different inference algorithms. Incidentally, if one were to survey the
-literature, one often finds that an inference algorithm is only tested on 1--4
-data sets
+challenging. At the moment, we have no precise way of evaluating and comparing
+inference algorithms. Incidentally, if one were to survey the literature, one
+often finds that an inference algorithm is only tested on a small number (1--4)
+of data sets
 \cite{DBLP:conf/ecai/BruynoogheMKGVJR10,DBLP:journals/tplp/KimmigDRCR11,DBLP:conf/ijcai/VlasselaerBKMR15},
 originating from areas such as social networks, citation patterns, and
-biological data. But how confidently can we claim that an algorithm works well
-if it is only tested on a few types of problems?
+biological data. But how confident can we be that an algorithm works well if it
+is only tested on a few problems?
 
 About thirty years ago, SAT solving technology was dealing with a similar lack
 of clarity \cite{DBLP:journals/ai/SelmanML96}. This changed with the study of
@@ -120,7 +118,7 @@ often with severely limiting conditions such as two-literal clauses
 \cite{DBLP:conf/iclp/Namasivayam09,DBLP:conf/lpnmr/NamasivayamT09} or clauses of
 the form $a \gets \neg b$ \cite{DBLP:journals/tocl/WenWSL16}.
 
-In \cref{sec:heads,sec:bodies,sec:variable_symmetry}, we introduce a
+In this work (\cref{sec:heads,sec:bodies,sec:variable_symmetry}), we introduce a
 constraint-based representation for logic programs based on simple parameters
 that describe the program's size, what predicates and constants it uses, etc.
 This representation takes the form of a \emph{constraint satisfaction problem}
@@ -133,10 +131,13 @@ from a uniform distribution, the CSP can be transformed into a belief network
 \cite{DBLP:conf/aaai/DechterKBE02}. In fact, the same model can generate both
 probabilistic programs in the syntax of \textsc{ProbLog}
 \cite{DBLP:conf/ijcai/RaedtKT07} and non-probabilistic \textsc{Prolog} programs.
-This is both the first time the problem of generating random logic programs has
-been approached in its full generality (i.e., including first-order clauses with
-variables) and the first time inference algorithms for probabilistic logic
-programs can be evaluated on more than a handful of instances.
+To the best of our knowledge, this is the first work that
+\begin{enumerate*}[(a)]
+\item addresses the problem of generating random logic programs in its full
+  generality (i.e., including first-order clauses with variables), and
+\item compares and evaluates inference algorithms for probabilistic logic
+  programs on more than a handful of instances.
+\end{enumerate*}
 
 A major advantage of a constraint-based approach is the ability to add
 additional constraints as needed, and to do that efficiently (compared to
@@ -164,18 +165,19 @@ machine learning.
 \section{Preliminaries}
 
 The basic primitives of logic programs are \emph{constants}, \emph{(logic)
-  variables}, and \emph{predicates}. Each predicate has an \emph{arity} that
-defines the number of terms that it can be applied to. A \emph{term} is either a
-variable or a constant, and an \emph{atom} is a predicate of arity $n$ applied
-to $n$ terms. A \emph{formula} is any well-formed expression that connects
-atoms using conjunction $\land$, disjunction $\lor$, and negation
+  variables}, and \emph{predicates} with their \emph{arities}. A \emph{term} is
+either a variable or a constant, and an \emph{atom} is a predicate of arity $n$
+applied to $n$ terms. A \emph{formula} is any well-formed expression that
+connects atoms using conjunction $\land$, disjunction $\lor$, and negation
 $\neg$. A \emph{clause} is a pair of a \emph{head} (which is an atom) and a
 \emph{body} (which is a formula\footnote{Our model supports arbitrarily complex
-  bodies of clauses because \textsc{ProbLog} does too. However, one can easily
-  restrict our representation of a body to a single disjunction of literals by
-  adding a couple of additional constraints.}). A \emph{(logic) program} is a
-set of clauses, and a \emph{\textsc{ProbLog} program} is a set of
-clause-probability pairs.
+  bodies of clauses (e.g., $\neg\mathsf{P}(X) \lor (\mathsf{Q}(X) \land
+  \mathsf{P}(X))$) because \textsc{ProbLog} does too. However, one can easily
+  restrict our representation of a body to a single conjunction of literals
+  (e.g., $\mathsf{Q}(X) \land \neg\mathsf{P}(X))$) by adding a couple of
+  additional constraints.}). A \emph{(logic) program} is a set of clauses, and a
+\emph{\textsc{ProbLog} program} is a set of clause-probability pairs
+\cite{DBLP:journals/tplp/FierensBRSGTJR15}.
 
 In the world of CSPs, we also have \emph{(constraint) variables}, each with a
 \emph{domain}, whose values are restricted using \emph{constraints}. All
@@ -325,8 +327,8 @@ We need to constrain the forest represented by the $\variable{structure}$
 array together with its $\variable{values}$ to eliminate symmetries and adhere
 to our desired format. First, we can recognise that the order of the elements in
 the $\variable{structure}$ array does not matter, i.e., the structure is only
-defined by how the elements link to each other, so we can add a constraint
-saying that $\variable{structure}$ is sorted. Next, since we already have a
+defined by how the elements link to each other, so we can add a constraint for
+sorting the $\variable{structure}$ array. Next, since we already have a
 variable that counts the number of nodes in the main tree, we can fix the
 structure and the values of the remaining trees to some constant values.
 \begin{constraint}
@@ -432,8 +434,9 @@ presented in) has to occur first in our representation of a clause.
   where the $\Box$'s correspond to the conjunction node.
 \end{example}
 
-We end the section with several redundant constraints. First, we can state that
-the positions occupied by different terms must be different.
+We end the section with several redundant constraints that make the CSP easier
+to solve. First, we can state that the positions occupied by different terms
+must be different.
 \begin{constraint} \label{constraint:all_diff}
   For $u \ne v \in \constants{} \cup \variables{} \cup \{ \Box \}$,
   $\variable{occ}[u] \cap \variable{occ}[v] = \emptyset$.
@@ -465,19 +468,15 @@ variables as arguments.
 
 \section{Counting Programs} \label{sec:counting}
 
-To demonstrate the correctness of the model and explain it in more
-detail, in this section we are going to derive combinatorial expressions for
-counting the number of programs with up to $\maxNumClauses{}$ clauses and up to
-$\maxNumNodes{}$ nodes per clause, and arbitrary $\predicates{}$,
-$\arities{}$, $\variables{}$, and $\constants{}$\footnote{We checked that
-  our model agrees with the derived combinatorial formula in up to a thousand
-  different scenarios. The details of this empirical investigation are omitted
-  as they are not crucial to the thrust of this paper.}. Being able to establish
-two ways to generate the same sequence of numbers (i.e., numbers of programs
-with certain properties and parameters) allows us to gain confidence that the
-constraint model accurately matches our intentions. For this section, we
-introduce the term \emph{total arity} of a body of a clause to refer to the sum
-total of arities of all predicates in the body.
+To demonstrate the correctness of the model, in this section we are going to
+derive combinatorial expressions for counting the number of programs with up to
+$\maxNumClauses{}$ clauses and up to $\maxNumNodes{}$ nodes per clause, and
+arbitrary $\predicates{}$, $\arities{}$, $\variables{}$, and $\constants{}$.
+Being able to establish two ways to generate the same sequence of numbers (i.e.,
+numbers of programs with certain properties and parameters) allows us to gain
+confidence that the constraint model accurately matches our intentions. For this
+section, we introduce the term \emph{total arity} of a body of a clause to refer
+to the sum total of arities of all predicates in the body.
 
 We will first consider clauses with \emph{gaps}, i.e., without taking variables
 and constants into account. Let $T(n, a)$ denote the number of possible clause
@@ -564,9 +563,9 @@ clause passes through at least one negation node; otherwise, it is
 \emph{positive}. We say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a
 \emph{negative cycle} if $G_{\mathscr{P}}$ has a cycle with at least one
 negative edge. A program $\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$
-has no negative cycles\footnote{This definition is an extension of a well-known
+has no negative cycles.\footnote{This definition is an extension of a well-known
   result for logic programs \cite{DBLP:journals/jlp/BalbinPRM91} to
-  probabilistic logic programs with arbitrary complex clause bodies.}. Thus a
+  probabilistic logic programs with arbitrary complex clause bodies.} Thus a
 simple entailment algorithm for stratification can be constructed by selecting
 all clauses, all predicates of which are fully determined, and looking for
 negative cycles in the dependency graph constructed based on those clauses using
@@ -858,7 +857,7 @@ Within each group, we use the `fail first' variable ordering heuristic. The
 first group consists of all head predicates. Afterwards, we handle all remaining
 decision variables from the first clause before proceeding to the next. The
 decision variables within each clause are divided into
-\begin{enumerate*}
+\begin{enumerate*}[(a)]
 \item the $\variable{structure}$ array,
 \item body predicates,
 \item head arguments,
@@ -874,10 +873,10 @@ the clause would be decided in this order:
   \overset{4}{Z}).
 \]
 We also employ a geometric restart policy, restarting after $10, 10 \times 1.1,
-10 \times 1.1^2, \dots$ contradictions\footnote{Restarts help overcome early
+10 \times 1.1^2, \dots$ contradictions.\footnote{Restarts help overcome early
   mistakes in the search process but can be disabled if one wants to find all
   solutions, in which case search is complete regardless of the variable
-  ordering heuristic.}. We ran close to \num{400000} experiments, investigating
+  ordering heuristic.} We ran close to \num{400000} experiments, investigating
 whether the model is efficient enough to generate reasonably-sized programs and
 gaining insight into what parameter values make the CSP harder. For
 $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$, and
@@ -959,11 +958,11 @@ decomposable NNF (d-DNNF) \cite{DBLP:journals/jair/DarwicheM02}, K-Best
 \cite{DBLP:conf/pkdd/GutmannKKR08}, and two encodings based on sentential
 decision diagrams \cite{DBLP:conf/ijcai/Darwiche11}, one of which encodes the
 entire program (SDDX), while the other one encodes only the part of the program
-relevant to the query (SDD)\footnote{Forward SDDs (FSDDs) and forward BDDs
+relevant to the query (SDD).\footnote{Forward SDDs (FSDDs) and forward BDDs
   (FBDDs)
   \cite{DBLP:journals/corr/abs-1911-07750,DBLP:conf/ijcai/VlasselaerBKMR15} are
   omitted because the former uses too much memory and the implementation of the
-  latter seems to be broken at the time of writing.}.
+  latter seems to be broken at the time of writing.}
 
 Out of over \num{11000} generated problem instances, about \SI{35}{\percent} were
 discarded because one or more algorithms were not able to ground the instance
@@ -1162,6 +1161,10 @@ current approaches.
 %    \end{tikzpicture}%
 %    \captionof{figure}{A tree representation of the body of \eqref{eq:example_clause}}
 %    \label{fig:example_tree2}
+
+% We checked that our model agrees with the derived combinatorial formula in up
+% to a thousand different scenarios. The details of this empirical investigation
+% are omitted as they are not crucial to the thrust of this paper.
 
 \bibliographystyle{splncs04}
 \bibliography{paper}
