@@ -2,6 +2,7 @@ library(ggplot2)
 library(tikzDevice)
 library(dplyr)
 library(ggrepel)
+library(RColorBrewer)
 
 # This is all for the runtime data of the CP model
 
@@ -22,16 +23,21 @@ df %>% group_by(df$numPredicates) %>% tally()
 
 # Phase transition
 big <- df[df$numPredicates == 8, ]
-tikz(file = "paper/phase_transition.tex", width = 6, height = 2)
+#colourCount = length(unique(big$numIndependentPairs))
+#getPalette = colorRampPalette(brewer.pal(9, "BuPu"))
+# fill = getPalette(colourCount)
+tikz(file = "../text/paper2/phase_transition.tex", width = 4.8, height = 1.8)
 ggplot(big, aes(factor(numIndependentPairs), nodes, group = numIndependentPairs)) +
-  geom_boxplot(outlier.shape = NA) +
+  geom_boxplot(outlier.shape = NA, fill = "#e0ecf4") +
   coord_trans(y = "log10", limy = c(100, quantile(big$nodes, 0.91))) +
   scale_y_continuous(breaks = c(1, 20, 100, 1000, 10000),
                      labels = c("1", "20", expression(10^2), expression(10^3), expression(10^4))) +
   stat_summary(fun.y = mean, geom = "point") +
   xlab("Independent pairs") +
   ylab("Nodes") +
-  theme_set(theme_minimal(base_size = 7))
+  theme_set(theme_minimal(base_size = 7)) +
+  theme_bw() +
+  theme(legend.position = "none")
 dev.off()
 
 # Extra stuff to investigate the phase transition

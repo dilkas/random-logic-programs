@@ -955,7 +955,7 @@ not explicitly included in the program and consider six natively supported
 algorithms and knowledge compilation techniques: binary decision diagrams (BDDs)
 \cite{DBLP:journals/tc/Bryant86}, negation normal form (NNF), deterministic
 decomposable NNF (d-DNNF) \cite{DBLP:journals/jair/DarwicheM02}, K-Best
-\cite{DBLP:conf/pkdd/GutmannKKR08}, and two encodings based on sentential
+\cite{DBLP:conf/ijcai/RaedtKT07}, and two encodings based on sentential
 decision diagrams \cite{DBLP:conf/ijcai/Darwiche11}, one of which encodes the
 entire program (SDDX), while the other one encodes only the part of the program
 relevant to the query (SDD).\footnote{Forward SDDs (FSDDs) and forward BDDs
@@ -1020,6 +1020,263 @@ current approaches.
 %and Autonomous Systems, funded by the UK Engineering and Physical Sciences
 %Research Council (grant EP/S023208/1).
 
+\bibliographystyle{splncs04}
+\bibliography{paper}
+
+\appendix
+
+% \section{Entailment Checking of Negative Cycles}
+
+% Ideally, we would like to design a constraint for negative cycles similar to the
+% constraint for independence in the previous section. However, the difficulty
+% with creating a propagation algorithm for negative cycles is that there seems to
+% be no good way to extend \cref{def:adjacency_matrix} so that the adjacency
+% matrix captures positivity/negativity. Thus, we settle for an entailment
+% algorithm with no propagation.
+
+% \begin{algorithm}
+%  \KwData{a program $\mathscr{P}$}
+%  \SetKwFunction{hasNegativeCycles}{hasNegativeCycles}
+%  Let $\mathscr{R} \subseteq \mathscr{P}$ be the largest subprogram of
+%  $\mathscr{P}$ with its $\variable{structure}$ and predicates in both body
+%  and head fully determined\footnotemark\;
+%  \lIf{\hasNegativeCycles($G_{\mathscr{R}}$)}{\Return{\textsc{false}}}
+%  \leIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}{\Return{\textsc{undefined}}}
+%  \caption{Entailment for negative cycles}
+%  \label{alg:negative_cycles}
+% \end{algorithm}
+% \footnotetext{Variables and constants are irrelevant to our definition of
+%  independence.}
+
+% The algorithm takes all clauses whose structure and predicates have been fully
+% determined and uses them to construct a full dependency graph. In our
+% implementation, \texttt{hasNegativeCycles} function is just a simple extension
+% of the backtracking cycle detection algorithm that `travels' around the graph
+% following edges and checking if each vertex has already been visited or not.
+% Alternatively, one could assign weights to the edges (e.g., $1$ for positive
+% and $-\infty$ for negative edges), thus reducing our negative cycle detection
+% problem to what is typically known as the negative cycle detection problem in
+% the literature, and use an algorithm such as Bellman-Ford.
+
+% If the algorithm finds a negative cycle in this fully-determined part of the
+% program, then we must return \textsc{false}. If there was no negative cycle and
+% the entire program is (sufficiently) determined, then there cannot be any
+% negative cycles. In all other cases, it is too early to tell.
+
+%    \begin{tikzpicture}
+%      \node[draw,circle,gray,text=black] (and) at (0, 0) {$\land$};
+%      \node[draw,circle,gray,text=black] (not) at (1.5, -1) {$\neg$};
+%      \node[draw,gray,text=black] (parent) at (-1.5, -1) {$\mathsf{parent}(X, Y)$};
+%      \node[draw,gray,text=black] (mother) at (1.5, -2) {$\mathsf{mother}(X, Y)$};
+%      \draw[gray] (and) -- (parent);
+%      \draw[gray] (and) -- (not);
+%      \draw[gray] (not) -- (mother);
+%    \end{tikzpicture}%
+%    \captionof{figure}{A tree representation of the body of \eqref{eq:example_clause}}
+%    \label{fig:example_tree2}
+
+\section{Additional Plots}
+
+\begin{figure*}
+ \centering
+ \input{phase_transition.tex}
+ \caption{The distribution of the number of nodes in the search tree of the
+   constraint solver as a function of the number of independent pairs of
+   predicates for $|\predicates{}| = 8$. Outliers are hidden, the dots denote
+   mean values, and the vertical axis is on a $\log_{10}$ scale. This plot
+   suggests that exceptional runs when the constraint solver takes much longer
+   than usual are most likely to occur with average levels of independence.}
+ \label{fig:phase_transition}
+\end{figure*}
+
+\begin{figure}
+  \centering
+  \input{scatterplot.tex}
+  \caption{An instance-by-instance comparison of the inference times of SDD and
+    SDDX knowledge compilation techniques. The colours show the percentage of
+    predicate pairs that were constrained to be independent. With
+    mostly-independent programs, one would expect SDD to outperform SDDX,
+    however, the data shows no significant difference.}
+\end{figure}
+
+%\begin{figure}
+%  \centering
+%  \includegraphics{algorithms.pdf}
+%\end{figure}
+
+%\begin{figure}
+%  \centering
+%  \includegraphics{cumulative.pdf}
+%  \caption{The cumulative number of instances solved by inference algorithms for
+%    increasing time limits}
+%\end{figure}
+
+\section{Example Programs}
+
+In this appendix, we provide examples of probabilistic logic programs generated
+by various combinations of parameters. In all cases, we use
+\[
+  [0.1, 0.2, \dots, 0.9, 1, 1, 1, 1, 1]
+\]
+as the list of probabilities. Each clause is written on a separate line and ends
+with a full stop. The head and the body of each clause are separated with
+\texttt{:-} (instead of $\gets$). The probability of each clause is prepended to
+the clause, using \texttt{::} as a separator. Probabilities equal to one and
+empty bodies of clauses can be omitted. Conjunction, disjunction, and negation
+are denoted by commas, semicolons, and `\texttt{\textbackslash+}', respectively.
+Parentheses are used to demonstrate precedence, although many of them are
+redundant.
+
+By setting $\predicates{} = [\texttt{p}]$, $\arities{} = [1]$, $\variables{} =
+\{ \texttt{X} \}$, $\constants{} = \emptyset$, $\maxNumNodes{} = 4$, and
+$\maxNumClauses{} = 1$, we get fifteen one-line programs, six of which are
+without negative cycles (as highlighted below). Only the last program has no
+cycles at all.
+
+\begin{enumerate}[label=\arabic*.]
+\item
+\begin{verbatim}
+0.5 :: p(X) :- (\+(p(X))), (p(X)).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.8 :: p(X) :- (\+(p(X))); (p(X)).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.8 :: p(X) :- (p(X)); (p(X)).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.7 :: p(X) :- (p(X)), (p(X)).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.6 :: p(X) :- (p(X)), (\+(p(X))).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(X) :- (p(X)); (\+(p(X))).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.1 :: p(X) :- (p(X)); (p(X)); (p(X)).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.8 :: p(X) :- (p(X)), (p(X)), (p(X)).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(X) :- \+(p(X)).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.1 :: p(X) :- \+(\+(p(X))).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(X) :- \+((p(X)); (p(X))).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.4 :: p(X) :- \+((p(X)), (p(X))).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.4 :: p(X) :- \+(\+(\+(p(X)))).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.7 :: p(X) :- p(X).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+p(X).
+\end{verbatim}
+\end{enumerate}
+
+Note that:
+\begin{itemize}
+\item A program such as Program~14, because of its cyclic definition, defines a
+  predicate that has probability zero across all constants. This can more easily
+  be seen as solving the equation $0.7x = x$.
+\item Programs 10 and 14 are not equivalent (i.e., double negation does not
+  cancel out) because Program 10 has a negative cycle and is thus considered to
+  be ill-defined.
+\end{itemize}
+
+To demonstrate variable symmetry reduction in action, we set $\predicates{} =
+[\texttt{p}]$, $\arities{} = [3]$, $\variables{} = \{\texttt{X}, \texttt{Y},
+\texttt{Z} \}$, $\constants{} = \emptyset$, $\maxNumNodes{} = 1$,
+$\maxNumClauses{} = 1$, and forbid all cycles. This gives us the following five
+programs:
+
+\begin{itemize}
+\item
+\begin{verbatim}
+0.8 :: p(Z, Z, Z).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(Y, Y, Z).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(Y, Z, Z).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(Y, Z, Y).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.1 :: p(X, Y, Z).
+\end{verbatim}
+\end{itemize}
+
+This is one of many possible programs with $\predicates{} = [\texttt{p},
+\texttt{q}, \texttt{r}]$, $\arities{} = [1, 2, 3]$, $\variables{} =
+\{\texttt{X}, \texttt{Y}, \texttt{Z} \}$, $\constants{} = \{ \texttt{a},
+\texttt{b}, \texttt{c} \}$, $\maxNumNodes{} = 5$, $\maxNumClauses{} = 5$, and
+without negative cycles:
+
+\begin{verbatim}
+p(b) :- \+((q(a, b)), (q(X, Y)), (q(Z, X))).
+0.4 :: q(X, X) :- \+(r(Y, Z, a)).
+q(X, a) :- r(Y, Y, Z).
+q(X, a) :- r(Y, b, Z).
+r(Y, b, Z).
+\end{verbatim}
+
+Finally, we set
+$\predicates{} = [\texttt{p}, \texttt{q}, \texttt{r}]$, $\arities{} = [1, 1,
+1]$, $\variables{} = \emptyset$, $\constants{} = \{ \texttt{a} \}$,
+$\maxNumNodes{} = 3$, $\maxNumClauses{} = 3$, forbid negative cycles, and
+constrain predicates \texttt{p} and \texttt{q} to be independent. The resulting
+search space contains thousands of programs such as:
+
+\begin{itemize}
+\item
+\begin{verbatim}
+0.5 :: p(a) :- (p(a)); (p(a)).
+0.2 :: q(a) :- (q(a)), (q(a)).
+0.4 :: r(a) :- \+(q(a)).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(a) :- p(a).
+0.5 :: q(a) :- (r(a)); (q(a)).
+r(a) :- (r(a)); (r(a)).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(a) :- (p(a)); (p(a)).
+0.6 :: q(a) :- q(a).
+0.7 :: r(a) :- \+(q(a)).
+\end{verbatim}
+\end{itemize}
+
 % ==============================================================================
 %                                   NOTES
 % ==============================================================================
@@ -1065,16 +1322,6 @@ current approaches.
 %each clause (since all of them have to be independent with the head predicate),
 %and we can either quickly find a solution or identify that there is none.
 
-%\begin{figure*}
-%  \centering
-%  \input{phase_transition.tex}
-%  \caption{The distribution of the number of nodes in the binary search tree as
-%    a function of the number of independent pairs of predicates for
-%    $|\predicates{}| = 8$. Outliers are hidden, the dots denote mean values, and
-%    the vertical axis is on a $\log_{10}$ scale.}
-%  \label{fig:phase_transition}
-%\end{figure*}
-
 %\begin{figure}[t]
 %  \centering
 %  \begin{tikzpicture}
@@ -1111,62 +1358,5 @@ current approaches.
 % $\maxNumNodes{} - 1$ nodes than, e.g., one or two.
 % 5. It can easily be shown that all generated logic programs are satisfiable
 
-% \section{Entailment Checking of Negative Cycles} \label{sec:cycles}
-
-% Ideally, we would like to design a constraint for negative cycles similar to the
-% constraint for independence in the previous section. However, the difficulty
-% with creating a propagation algorithm for negative cycles is that there seems to
-% be no good way to extend \cref{def:adjacency_matrix} so that the adjacency
-% matrix captures positivity/negativity. Thus, we settle for an entailment
-% algorithm with no propagation.
-
-%\begin{algorithm}
-%  \KwData{a program $\mathscr{P}$}
-%  \SetKwFunction{hasNegativeCycles}{hasNegativeCycles}
-%  Let $\mathscr{R} \subseteq \mathscr{P}$ be the largest subprogram of
-%  $\mathscr{P}$ with its $\variable{structure}$ and predicates in both body
-%  and head fully determined\footnotemark\;
-%  \lIf{\hasNegativeCycles($G_{\mathscr{R}}$)}{\Return{\textsc{false}}}
-%  \leIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}{\Return{\textsc{undefined}}}
-%  \caption{Entailment for negative cycles}
-%  \label{alg:negative_cycles}
-%\end{algorithm}
-%\footnotetext{Variables and constants are irrelevant to our definition of
-%  independence.}
-
-% The algorithm takes all clauses whose structure and predicates have been fully
-% determined and uses them to construct a full dependency graph. In our
-% implementation, \texttt{hasNegativeCycles} function is just a simple extension
-% of the backtracking cycle detection algorithm that `travels' around the graph
-% following edges and checking if each vertex has already been visited or not.
-% Alternatively, one could assign weights to the edges (e.g., $1$ for positive
-% and $-\infty$ for negative edges), thus reducing our negative cycle detection
-% problem to what is typically known as the negative cycle detection problem in
-% the literature, and use an algorithm such as Bellman-Ford
-% \cite{shimbel1954structure}.
-
-% If the algorithm finds a negative cycle in this fully-determined part of the
-% program, then we must return \textsc{false}. If there was no negative cycle and
-% the entire program is (sufficiently) determined, then there cannot be any
-% negative cycles. In all other cases, it is too early to tell.
-
-%    \begin{tikzpicture}
-%      \node[draw,circle,gray,text=black] (and) at (0, 0) {$\land$};
-%      \node[draw,circle,gray,text=black] (not) at (1.5, -1) {$\neg$};
-%      \node[draw,gray,text=black] (parent) at (-1.5, -1) {$\mathsf{parent}(X, Y)$};
-%      \node[draw,gray,text=black] (mother) at (1.5, -2) {$\mathsf{mother}(X, Y)$};
-%      \draw[gray] (and) -- (parent);
-%      \draw[gray] (and) -- (not);
-%      \draw[gray] (not) -- (mother);
-%    \end{tikzpicture}%
-%    \captionof{figure}{A tree representation of the body of \eqref{eq:example_clause}}
-%    \label{fig:example_tree2}
-
-% We checked that our model agrees with the derived combinatorial formula in up
-% to a thousand different scenarios. The details of this empirical investigation
-% are omitted as they are not crucial to the thrust of this paper.
-
-\bibliographystyle{splncs04}
-\bibliography{paper}
 
 \end{document}

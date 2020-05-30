@@ -6,6 +6,8 @@ require(scales)
 require(grid)
 require(tidyr)
 require(tikzDevice)
+require(tidyverse)
+require(plyr)
 
 only_relevant_columns <- c("number.of.predicates", "number.of.variables",
                            "maximum.number.of.nodes", "maximum.arity",
@@ -17,12 +19,12 @@ relevant_columns <- c("number.of.predicates", "number.of.variables",
                       "number.of.independent.pairs", "domain.size",
                       "number.of.facts", "proportion.probabilistic",
                       "proportion.listed", "proportion.independent.pairs", "universe.size", "Total.time")
-pretty_names <- c("The number of predicates", "The number of variables",
-                  "Maximum number of nodes", "Maximum arity",
-                  "The number of independent pairs", "Domain size",
-                  "The number of facts", "The proportion of probabilistic facts",
-                  "The proportion of listed facts", "The proportion of independent pairs",
-                  "The number of possible facts")
+pretty_names <- c("Predicates", "Variables",
+                  "Nodes", "Maximum arity",
+                  "Independent", "Domain size",
+                  "Facts ($\\times 10^3$)", "Probabilistic (\\%)",
+                  "Proportion listed", "Independent (\\%)",
+                  "Possible facts")
 
 prepare.csv <- function(filename) {
   df <- read.csv(filename, header = TRUE, sep = ",")
@@ -54,12 +56,27 @@ sddx <- sddx[sddx$ID %in% sdd$ID,]
 ddnnf <- ddnnf[ddnnf$ID %in% sdd$ID,]
 bdd <- bdd[bdd$ID %in% sdd$ID,]
 
+sdd <- sdd %>% mutate(count = map_int(Total.time, ~ sum(.x >= Total.time)))
+nnf <- nnf %>% mutate(count = map_int(Total.time, ~ sum(.x >= Total.time)))
+kbest <- kbest %>% mutate(count = map_int(Total.time, ~ sum(.x >= Total.time)))
+sddx <- sddx %>% mutate(count = map_int(Total.time, ~ sum(.x >= Total.time)))
+ddnnf <- ddnnf %>% mutate(count = map_int(Total.time, ~ sum(.x >= Total.time)))
+bdd <- bdd %>% mutate(count = map_int(Total.time, ~ sum(.x >= Total.time)))
+
+combined.pure <- rbind.fill(cbind(sdd, Algorithm = "SDD"),
+                            cbind(nnf, Algorithm = "NNF"),
+                            cbind(kbest, Algorithm = "K-Best"),
+                            cbind(sddx, Algorithm = "SDDX"),
+                            cbind(ddnnf, Algorithm = "d-DNNF"),
+                            cbind(bdd, Algorithm = "BDD"))
+
 combined <- rbind(cbind(melt(sdd[, relevant_columns], id.var = "Total.time"), Algorithm = "SDD"),
                   cbind(melt(nnf[, relevant_columns], id.var = "Total.time"), Algorithm = "NNF"),
                   cbind(melt(kbest[, relevant_columns], id.var = "Total.time"), Algorithm = "K-Best"),
                   cbind(melt(sddx[, relevant_columns], id.var = "Total.time"), Algorithm = "SDDX"),
                   cbind(melt(ddnnf[, relevant_columns], id.var = "Total.time"), Algorithm = "d-DNNF"),
                   cbind(melt(bdd[, relevant_columns], id.var = "Total.time"), Algorithm = "BDD"))
+
 summarised <- combined %>% group_by(variable, value, Algorithm) %>%
   summarize(mean.time = mean(Total.time), sd.time = sd(Total.time))
 
@@ -82,13 +99,12 @@ plot <- function(var.name, c, s, scale = F, dots = T, legend = F, smooth = F,
     y <- data$mean.time
   }
 
-  p <- ggplot(data = data,
-              aes(x = value, y = y, color = Algorithm, fill = Algorithm, shape = Algorithm)) +
+  p <- ggplot(data = data, aes(x = value, y = y, color = Algorithm, fill = Algorithm, linetype = Algorithm)) +
     xlab(pretty_names[relevant_columns == var.name]) +
     ylab("Total time (s)") +
-    theme_minimal() +
-    scale_colour_brewer(palette = "Set2") +
-    scale_fill_brewer(palette = "Set2")
+    theme_bw() +
+    scale_colour_brewer(palette = "Dark2") +
+    scale_fill_brewer(palette = "Dark2")
 
   if (disable.y.axis) {
     p <- p + theme(axis.title.y = element_blank())
@@ -113,6 +129,8 @@ plot <- function(var.name, c, s, scale = F, dots = T, legend = F, smooth = F,
   }
   if (!legend) {
     p <- p + theme(legend.position = "none")
+  } else {
+    p <- p + guides(col = guide_legend(ncol = 2))
   }
   if (!is.null(ylims)) {
     p <- p + ylim(ylims[1], ylims[2])
@@ -120,6 +138,8 @@ plot <- function(var.name, c, s, scale = F, dots = T, legend = F, smooth = F,
   p
 }
 
+# This might cause more questions than answer
+tikz(file = "../text/paper2/algorithms.tex", width = 4.8, height = 4.8, standAlone = T)
 p1 <- plot("number.of.predicates", combined, summarised, legend = T)
 legend <- get_legend(p1)
 grid.arrange(plot("number.of.predicates", combined, summarised),
@@ -127,25 +147,17 @@ grid.arrange(plot("number.of.predicates", combined, summarised),
              plot("maximum.number.of.nodes", combined, summarised),
              plot("maximum.arity", combined, summarised, breaks = c(1, 2, 3), labels = c(1, 2, 3)),
              plot("domain.size", combined, summarised),
-             plot("proportion.probabilistic", combined, summarised),
-             plot("number.of.facts", combined, summarised, separated = T),
-             plot("number.of.independent.pairs", combined, summarised),
-             plot("proportion.independent.pairs", combined, summarised),
+             plot("proportion.probabilistic", combined, summarised, breaks = c(0.3, 0.4, 0.5, 0.6, 0.7), labels = c(30, 40, 50, 60, 70)),
+             plot("number.of.facts", combined, summarised, separated = T, breaks = c(0, 25000, 50000, 75000, 100000), labels = c(0, 25, 50, 75, 100), dots = F),
+             plot("number.of.independent.pairs", combined, summarised, dots = F),
+             plot("proportion.independent.pairs", combined, summarised, dots = F, breaks = c(0, 0.25, 0.5, 0.75, 1), labels = c(0, 25, 50, 75, 100)),
              plot("proportion.listed", combined, summarised, F, F, smooth = T),
              plot("universe.size", combined, summarised, T, F, smooth = T, breaks = c(1e3, 1e4, 1e5, 1e6, 1e7, 1e8),
                   labels = c(expression(10^3), expression(10^4), expression(10^5),
                              expression(10^6), expression(10^7), expression(10^8))),
              legend,
-             left = textGrob("Total time (s)", rot = 90, vjust = 1))
-
-# ======================= 1v1 comparison scatter plots ======================
-
-merged <- merge(sdd, sddx, by = 'ID')
-ggplot(merged, aes(x = Total.time.x, y = Total.time.y)) +
-  geom_point() +
-  scale_x_continuous(trans = log2_trans()) +
-  scale_y_continuous(trans = log2_trans()) +
-  geom_abline(colour = "blue", slope = 1, intercept = 0)
+             left = textGrob("Mean inference time (s)", rot = 90, vjust = 1))
+dev.off()
 
 # ========================== Selecting a subset of data ======================
 
@@ -199,6 +211,41 @@ ggplot(data = summary, aes(x = value, y = mean.time, color = Algorithm, shape = 
   scale_colour_brewer(palette = "Dark2") +
   theme_bw()
 dev.off()
+
+merged <- merge(sdd, kbest, by = 'ID')
+merged$proportion.independent.pairs.y <- merged$proportion.independent.pairs.y * 100
+tikz(file = "../text/paper2/scatterplot.tex", width = 4.8, height = 2.7)
+ggplot(merged, aes(x = Total.time.x, y = Total.time.y, color = proportion.independent.pairs.y)) +
+  geom_point(alpha = 0.5, size = 1) +
+  scale_x_continuous(limits = c(0.0164, 60), trans = log2_trans(), breaks = trans_breaks("log2", function(x) 2^x),
+                     labels = trans_format("log2", math_format(2^.x))) +
+  scale_y_continuous(limits = c(0.0164, 60), trans = log2_trans(), breaks = trans_breaks("log2", function(x) 2^x),
+                     labels = trans_format("log2", math_format(2^.x))) +
+  geom_abline(slope = 1, intercept = 0) +
+  xlab("SDD inference time (s)") +
+  ylab("SDDX inference time (s)") +
+  theme_bw() +
+  scale_colour_distiller(palette = "BuPu") +
+  labs(color = "Independent (\\%)") +
+  coord_fixed()
+dev.off()
+
+tikz(file = "../text/paper2/cumulative.tex", width = 4.8, height = 1.8, standAlone = TRUE)
+ggplot(data = combined.pure, aes(x = Total.time, y = count, color =  Algorithm, linetype = Algorithm)) +
+  geom_line() +
+  scale_x_continuous(trans = log2_trans(), breaks = c(0.0625, 0.25, 1, 4, 16), labels = c("0.0625", "0.25", "1", "4", "16")) +
+  theme_bw() +
+  xlab("Inference time (s)") +
+  ylab("Instances solved") +
+  scale_colour_brewer(palette = "Dark2")
+dev.off()
+
+# ================================ Misc ===========================================
+
+summary(merged$Total.time.x - merged$Total.time.y)
+different <- merged[merged$answer.x != merged$answer.y, ]
+different2 <- different[, c("answer.x", "answer.y")]
+differences <- as.numeric(different$answer.x) - as.numeric(different$answer.y)
 
 cor(sdd[, -1])
 model <- lm(Total.time ~ number.of.facts, data = sdd)
