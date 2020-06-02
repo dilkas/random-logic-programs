@@ -1,7 +1,9 @@
+%\pdfoutput=1
 \documentclass[runningheads]{llncs}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{amssymb}
 \usepackage{mathtools}
+%\usepackage{hyperref}
 \usepackage[capitalise]{cleveref}
 \usepackage{tikz}
 \usepackage{mathrsfs}
@@ -34,13 +36,6 @@
 \newcommand{\maxNumNodes}{\mathcal{M}_{\mathcal{N}}}
 \newcommand{\maxNumClauses}{\mathcal{M}_{\mathcal{C}}}
 
-\makeatletter
-\newcommand{\nosemic}{\renewcommand{\@endalgocfline}{\relax}}% Drop semi-colon ;
-\newcommand{\dosemic}{\renewcommand{\@endalgocfline}{\algocf@endline}}% Reinstate semi-colon ;
-\newcommand{\pushline}{\Indp}% Indent
-\newcommand{\popline}{\Indm\dosemic}% Undent
-\makeatother
-
 \spnewtheorem{constraint}{Constraint}{\bfseries}{\itshape}
 
 \DeclareMathOperator{\Determined}{\Delta}
@@ -58,8 +53,7 @@
 \begin{document}
 
 \title{Generating Random Logic Programs Using Constraint Programming}
-\author{Paulius Dilkas\inst{1} \and
-Vaishak Belle\inst{1,2}}
+\author{Paulius Dilkas\inst{1} \and Vaishak Belle\inst{1,2}}
 \authorrunning{P. Dilkas and V. Belle}
 \institute{University of Edinburgh, Edinburgh, UK \email{\{p.dilkas@sms.,vaishak@\}ed.ac.uk} \and Alan Turing Institute, London, UK}
 
@@ -82,8 +76,7 @@ Vaishak Belle\inst{1,2}}
   compare the algorithms across a wide range of instances, providing a detailed
   picture of their (comparative) strengths and weaknesses.
 
-  \keywords{Constraint programming \and Probabilistic logic programming \and
-    Statistical relational learning.}
+%  \keywords{Constraint programming \and Probabilistic logic programming \and Statistical relational learning.}
 \end{abstract}
 
 \section{Introduction}
@@ -612,8 +605,8 @@ $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
       \draw[-{Stealth[scale=1.5]}] (mother) edge node[below] {$-$} (father);
     \end{tikzpicture}%
     \captionof{figure}{The predicate dependency graph of the program from
-      \cref{ex:program}. Positive edges are labelled with `$+$', and negative
-      edges with `$-$'.}
+      \protect{\cref{ex:program}}. Positive edges are labelled with `$+$', and
+      negative edges with `$-$'.}
     \label{fig:predicate_dependencies}
   \end{minipage}
   \begin{minipage}{.49\textwidth}
@@ -826,7 +819,7 @@ as intended.
         }
       }
     \end{minipage}
-    \caption{The predicate dependency graph of \cref{example:independence}}
+    \caption{The predicate dependency graph of \protect{\cref{example:independence}}}
     \label{fig:example}
   \end{figure}
 
@@ -1023,61 +1016,11 @@ Research Council (grant EP/S023208/1).
 \bibliographystyle{splncs04}
 \bibliography{paper}
 
+\newpage
 \appendix
-
-% \section{Entailment Checking of Negative Cycles}
-
-% Ideally, we would like to design a constraint for negative cycles similar to the
-% constraint for independence in the previous section. However, the difficulty
-% with creating a propagation algorithm for negative cycles is that there seems to
-% be no good way to extend \cref{def:adjacency_matrix} so that the adjacency
-% matrix captures positivity/negativity. Thus, we settle for an entailment
-% algorithm with no propagation.
-
-% \begin{algorithm}
-%  \KwData{a program $\mathscr{P}$}
-%  \SetKwFunction{hasNegativeCycles}{hasNegativeCycles}
-%  Let $\mathscr{R} \subseteq \mathscr{P}$ be the largest subprogram of
-%  $\mathscr{P}$ with its $\variable{structure}$ and predicates in both body
-%  and head fully determined\footnotemark\;
-%  \lIf{\hasNegativeCycles($G_{\mathscr{R}}$)}{\Return{\textsc{false}}}
-%  \leIf{$\mathscr{R} = \mathscr{P}$}{\Return{\textsc{true}}}{\Return{\textsc{undefined}}}
-%  \caption{Entailment for negative cycles}
-%  \label{alg:negative_cycles}
-% \end{algorithm}
-% \footnotetext{Variables and constants are irrelevant to our definition of
-%  independence.}
-
-% The algorithm takes all clauses whose structure and predicates have been fully
-% determined and uses them to construct a full dependency graph. In our
-% implementation, \texttt{hasNegativeCycles} function is just a simple extension
-% of the backtracking cycle detection algorithm that `travels' around the graph
-% following edges and checking if each vertex has already been visited or not.
-% Alternatively, one could assign weights to the edges (e.g., $1$ for positive
-% and $-\infty$ for negative edges), thus reducing our negative cycle detection
-% problem to what is typically known as the negative cycle detection problem in
-% the literature, and use an algorithm such as Bellman-Ford.
-
-% If the algorithm finds a negative cycle in this fully-determined part of the
-% program, then we must return \textsc{false}. If there was no negative cycle and
-% the entire program is (sufficiently) determined, then there cannot be any
-% negative cycles. In all other cases, it is too early to tell.
-
-%    \begin{tikzpicture}
-%      \node[draw,circle,gray,text=black] (and) at (0, 0) {$\land$};
-%      \node[draw,circle,gray,text=black] (not) at (1.5, -1) {$\neg$};
-%      \node[draw,gray,text=black] (parent) at (-1.5, -1) {$\mathsf{parent}(X, Y)$};
-%      \node[draw,gray,text=black] (mother) at (1.5, -2) {$\mathsf{mother}(X, Y)$};
-%      \draw[gray] (and) -- (parent);
-%      \draw[gray] (and) -- (not);
-%      \draw[gray] (not) -- (mother);
-%    \end{tikzpicture}%
-%    \captionof{figure}{A tree representation of the body of \eqref{eq:example_clause}}
-%    \label{fig:example_tree2}
-
 \section{Additional Plots}
 
-\begin{figure*}
+\begin{figure}[h]
  \centering
  \input{phase_transition.tex}
  \caption{The distribution of the number of nodes in the search tree of the
@@ -1087,9 +1030,9 @@ Research Council (grant EP/S023208/1).
    suggests that exceptional runs when the constraint solver takes much longer
    than usual are most likely to occur with average levels of independence.}
  \label{fig:phase_transition}
-\end{figure*}
+\end{figure}
 
-\begin{figure}
+\begin{figure}[h]
   \centering
   \input{scatterplot.tex}
   \caption{An instance-by-instance comparison of the inference times of SDD and
@@ -1098,18 +1041,6 @@ Research Council (grant EP/S023208/1).
     mostly-independent programs, one would expect SDD to outperform SDDX,
     however, the data shows no significant difference.}
 \end{figure}
-
-%\begin{figure}
-%  \centering
-%  \includegraphics{algorithms.pdf}
-%\end{figure}
-
-%\begin{figure}
-%  \centering
-%  \includegraphics{cumulative.pdf}
-%  \caption{The cumulative number of instances solved by inference algorithms for
-%    increasing time limits}
-%\end{figure}
 
 \section{Example Programs}
 
@@ -1276,87 +1207,5 @@ p(a) :- (p(a)); (p(a)).
 0.7 :: r(a) :- \+(q(a)).
 \end{verbatim}
 \end{itemize}
-
-% ==============================================================================
-%                                   NOTES
-% ==============================================================================
-
-% Empirical tasks:
-% 1) make the CP model faster: apply the redundant constraints to predicates
-% (not just variables). Check if everything works out.
-% 2) compare to parameter learning with ProbFOIL
-% 3) create a constraint for groundedness (see the ProbLog FAQ)
-% New things I could talk about:
-% 1) entailment for conditional independence
-% 2) the 'required formula' part of the model
-% 3) how linear models can predict inference time
-
-% Notes on papers that test ProbLog inference algorithms:
-% - On the Implementation: published, one biological network
-% -(removed) Nesting Probabilistic Inference: NOT published, one Alzheimer
-% network
-% -(removed) DNF Sampling: NOT published, two networks: a family tree and the
-% Alzheimer network
-% -ProbLog Technology: published, two networks: a custom theory with randomly
-% generated data, and citation data
-% -Anytime Inference: published, four networks: the Smokers social network,
-% Alzheimer data, biological network of genetic data, data about the world wide
-% web
-
-%Interestingly, in the [???] of
-%probabilistic logic programming, random logic program generators can be useful
-%in combination with methods that generate random data with probabilistic logic
-%programs \cite{DBLP:conf/soict/Dries15} and can be used as a component of
-%learning.
-
-%\cref{fig:phase_transition} takes the data for $|\predicates{}| = 8$ (almost
-%\num{300000} observations) and shows how the number of nodes in the search tree
-%varies with the number of independent pairs of predicates. The box plots show
-%that the median number of nodes stays about the same while the dots
-%(representing the means) draw an arc. This suggests a type of phase transition,
-%but only in mean rather than median, i.e., most problems remain easy, but with
-%some parameter values hard problems become more likely. On the one hand, with
-%few pairs of independent predicates, one can easily find the right combination
-%of predicates to use in each clause. On the other hand, if most predicates must
-%be independent, this leaves fewer predicates that can be used in the body of
-%each clause (since all of them have to be independent with the head predicate),
-%and we can either quickly find a solution or identify that there is none.
-
-%\begin{figure}[t]
-%  \centering
-%  \begin{tikzpicture}
-%    \node[draw,circle,gray,text=black] (or) at (-0.375, 0) {$\lor$};
-%    \node[draw,circle,gray,text=black] (not) at (-1.5, -1) {$\neg$};
-%    \node[draw,circle,gray,text=black] (and) at (0.75, -1) {$\land$};
-%    \node[draw,gray,text=black] (P) at (-1.5, -2) {$\mathsf{P}(X)$};
-%    \node[draw,gray,text=black] (Q) at (0, -2) {$\mathsf{Q}(X)$};
-%    \node[draw,gray,text=black] (R) at (1.5, -2) {$\mathsf{P}(X)$};
-%    \draw[gray] (or) -- (not);
-%    \draw[gray] (or) -- (and);
-%    \draw[gray] (not) -- (P);
-%    \draw[gray] (and) -- (Q);
-%    \draw[gray] (and) -- (R);
-%  \end{tikzpicture}
-%  \caption{A tree representation of the formula from \cref{example:formula}}
-%  \label{fig:example_tree}
-%\end{figure}
-
-% Extra notes.
-% 1. Randomness. The value heuristic is random because we want randomness. After
-% finding one solution, one can continue the search for more, but they will be
-% similar (acceptable if the search space is small and we want to find all
-% solutions).
-% 2. Logic programs don't have disjunctions and parentheses. Is there an easy
-% way to eliminate them?
-% 3. We can do the same thing for predicates within the body of a clause that we
-% do with variables, i.e., predicates within a clause are permutable (except for
-% the head predicate), so we can have a set of 'allowed' predicates.
-% 4. One example of a clear bias exhibited by our model is that of complexity
-% over simplicity, i.e., if a tree that represents the body of a clause can have
-% up to $\maxNumNodes{}$ nodes---because the number of possible trees with $n$
-% nodes grows with $n$---it is much more likely to have $\maxNumNodes{}$ or
-% $\maxNumNodes{} - 1$ nodes than, e.g., one or two.
-% 5. It can easily be shown that all generated logic programs are satisfiable
-
 
 \end{document}
