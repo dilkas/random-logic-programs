@@ -28,6 +28,7 @@ pretty_names <- c("Predicates", "Variables",
 
 prepare.csv <- function(filename) {
   df <- read.csv(filename, header = TRUE, sep = ",")
+  print(nrow(df))
   print(mean(is.na(df$answer)))
   df <- df[!is.na(df$answer),]
   df$proportion.listed <- df$number.of.facts / df$universe.size

@@ -1,9 +1,7 @@
-%\pdfoutput=1
 \documentclass[runningheads]{llncs}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{amssymb}
 \usepackage{mathtools}
-%\usepackage{hyperref}
 \usepackage[capitalise]{cleveref}
 \usepackage{tikz}
 \usepackage{mathrsfs}
@@ -14,12 +12,14 @@
 \usepackage{capt-of}
 \usepackage[caption=false]{subfig}
 \usepackage{booktabs}
+\usepackage[misc,geometry]{ifsym}
 
+\usetikzlibrary{arrows.meta}
 \captionsetup[subfigure]{width=\linewidth}
+\spnewtheorem{constraint}{Constraint}{\bfseries}{\itshape}
 
 \renewcommand\fbox{\fcolorbox{red}{white}}
 \newcommand{\hilight}[1]{\setlength{\fboxsep}{1pt}\colorbox{lightgray}{#1}}
-\newcommand{\hlitem}{\stepcounter{enumi}\item[\hilight{\theenumi}]}
 
 \newcommand{\logical}[1]{{\normalfont \texttt{#1}}}
 \newcommand{\variable}[1]{\texttt{\textup{#1}}}
@@ -36,8 +36,6 @@
 \newcommand{\maxNumNodes}{\mathcal{M}_{\mathcal{N}}}
 \newcommand{\maxNumClauses}{\mathcal{M}_{\mathcal{C}}}
 
-\spnewtheorem{constraint}{Constraint}{\bfseries}{\itshape}
-
 \DeclareMathOperator{\Determined}{\Delta}
 \DeclareMathOperator{\Undetermined}{\Upsilon}
 \DeclareMathOperator{\AlmostDetermined}{\Gamma}
@@ -46,16 +44,14 @@
 \Crefname{constraint}{Constraint}{Constraints}
 \crefname{section}{Sect.}{Sects.}
 
-\usetikzlibrary{arrows.meta}
-%\relpenalty=10000
-%\binoppenalty=10000
-
 \begin{document}
 
 \title{Generating Random Logic Programs Using Constraint Programming}
-\author{Paulius Dilkas\inst{1} \and Vaishak Belle\inst{1,2}}
+\author{Paulius Dilkas\inst{1} \and Vaishak Belle\inst{1,2}$^{(\textrm{\Letter})}$}
 \authorrunning{P. Dilkas and V. Belle}
-\institute{University of Edinburgh, Edinburgh, UK \email{\{p.dilkas@sms.,vaishak@\}ed.ac.uk} \and Alan Turing Institute, London, UK}
+\institute{University of Edinburgh, Edinburgh, UK
+  \email{\{p.dilkas@sms.,vaishak@\}ed.ac.uk} \and Alan Turing Institute, London,
+  UK}
 
 \maketitle
 
@@ -76,7 +72,8 @@
   compare the algorithms across a wide range of instances, providing a detailed
   picture of their (comparative) strengths and weaknesses.
 
-%  \keywords{Constraint programming \and Probabilistic logic programming \and Statistical relational learning.}
+  \keywords{Constraint programming \and Probabilistic logic programming \and
+    Statistical relational learning}
 \end{abstract}
 
 \section{Introduction}
@@ -176,43 +173,41 @@ In the world of CSPs, we also have \emph{(constraint) variables}, each with a
 \emph{domain}, whose values are restricted using \emph{constraints}. All
 constraint variables in the model are integer or set variables, however, if an
 integer refers to a logical construct (e.g., a logical variable or a constant),
-we will make no distinction between the two and often use names of logical
-constructs to refer to the underlying integers. We say that a constraint
-variable is \emph{(fully) determined} if its domain (at the given moment in the
-execution) has exactly one value. We will often use $\Box$ as a special domain
-value to indicate a `disabled' (i.e., fixed and ignored) part of the model. We
-write $\arrayd{a}{b}{c}$ to mean that $\variable{a}$ is an array of variables of
-length $b$ such that each element of $\variable{a}$ has domain $c$. Similarly,
-we write $\arrayt{a}{b}{c}$ to denote an array $\variable{a}$ of length $b$ such
-that each element of $\variable{a}$ has type $\variable{c}$. Finally, we assume
-that all arrays start with index zero.
+we will make no distinction between the two. We say that a constraint variable
+is \emph{(fully) determined} if its domain (at the time) has exactly one value.
+We let $\Box$ denote the absent/disabled value of an optional variable
+\cite{DBLP:conf/cpaior/MearsSSTMW14}. We write $\arrayd{a}{b}{c}$ to mean that
+$\variable{a}$ is an array of variables of length $b$ such that each element of
+$\variable{a}$ has domain $c$. Similarly, we write $\arrayt{a}{b}{c}$ to denote
+an array $\variable{a}$ of length $b$ such that each element of $\variable{a}$
+has type $\variable{c}$. Finally, we assume that all arrays start with index
+zero.
 
-\paragraph{Parameters of the model.} We begin defining the parameters of our
-model by initialising sets and lists of the primitives used in constructing
-logic programs: a list of predicates $\predicates{}$, a list of their
-corresponding arities $\arities{}$ (so $|\arities{}|$ = $|\predicates{}|$), a
-set of variables $\variables{}$, and a set of constants $\constants{}$. Either
-$\variables{}$ or $\constants{}$ can be empty, but we assume that
-$|\constants{}| + |\variables{}| > 0$. Similarly, the model supports zero-arity
-predicates but requires at least one predicate to have non-zero arity. For
-notational convenience, we also set $\maxArity{} = \max \arities{}$. Next, we
-need a measure of how complex a body of a clause can be. As we represent each
-body by a tree (see \cref{sec:bodies}), we set $\maxNumNodes{} \ge 1$ to
-be the maximum number of nodes in the tree representation of any clause. We also
-set $\maxNumClauses{}$ to be the maximum number of clauses in a program. We must
-have that $\maxNumClauses{} \ge |\predicates{}|$ because we require each
-predicate to have at least one clause that defines it. The model supports
-enforcing predicate independence (see \cref{sec:independence}), so a set of
-independent pairs of predicates is another parameter. Since this model can
-generate probabilistic as well as non-probabilistic programs, each clause is
-paired with a probability which is randomly selected from a given list---our
-last parameter. For generating non-probabilistic programs, one can set this list
-to $[1]$. Finally, we define $\tokens{} = \{ \neg, \land, \lor, \top \}$ as the
-set of tokens that (together with atoms) form a clause. All decision variables
-of the model can now be divided into $2 \times \maxNumClauses{}$ separate
-groups, treating the body and the head of each clause separately. We say that
-the variables are contained in two arrays:
-$\arrayt{bodies}{\maxNumClauses{}}{Body}$ and
+\paragraph{Parameters of the model.} We begin by defining sets and lists of the
+primitives used in constructing logic programs: a list of predicates
+$\predicates{}$, a list of their corresponding arities $\arities{}$ (so
+$|\arities{}|$ = $|\predicates{}|$), a set of variables $\variables{}$, and a
+set of constants $\constants{}$. Either $\variables{}$ or $\constants{}$ can be
+empty, but we assume that $|\constants{}| + |\variables{}| > 0$. Similarly, the
+model supports zero-arity predicates but requires at least one predicate to have
+non-zero arity. For notational convenience, we also set $\maxArity{} = \max
+\arities{}$. Next, we need a measure of how complex a body of a clause can be.
+As we represent each body by a tree (see \cref{sec:bodies}), we set
+$\maxNumNodes{} \ge 1$ to be the maximum number of nodes in the tree
+representation of any clause. We also set $\maxNumClauses{}$ to be the maximum
+number of clauses in a program. We must have that $\maxNumClauses{} \ge
+|\predicates{}|$ because we require each predicate to have at least one clause
+that defines it. The model supports enforcing predicate independence (see
+\cref{sec:independence}), so a set of independent pairs of predicates is another
+parameter. Since this model can generate probabilistic as well as
+non-probabilistic programs, each clause is paired with a probability which is
+randomly selected from a given list---our last parameter. For generating
+non-probabilistic programs, one can set this list to $[1]$. Finally, we define
+$\tokens{} = \{ \neg, \land, \lor, \top \}$ as the set of tokens that (together
+with atoms) form a clause. All decision variables of the model can now be
+divided into $2 \times \maxNumClauses{}$ separate groups, treating the body and
+the head of each clause separately. We say that the variables are contained in
+two arrays: $\arrayt{bodies}{\maxNumClauses{}}{Body}$ and
 $\arrayt{heads}{\maxNumClauses{}}{Head}$.
 
 \section{Heads of Clauses} \label{sec:heads}
@@ -237,8 +232,7 @@ arguments.
   For $i = 0, \dots, \maxArity{} - 1$, $\variable{arguments}[i] = \Box \iff i
   \ge \variable{arity}$.
 \end{constraint}
-We can also add a constraint that each predicate $\mathsf{P} \in \predicates{}$
-should have at least one clause with $\mathsf{P}$ at its head.
+We also add a constraint that each predicate should get at least one clause.
 \begin{constraint}
   Let $P = \{ h.\variable{predicate} \mid h \in \variable{heads} \}$ be a
   multiset. Then
@@ -251,12 +245,12 @@ should have at least one clause with $\mathsf{P}$ at its head.
   where $\variable{nValues}(P)$ counts the number of unique values in $P$, and
   $\variable{count}(\Box, P)$ counts how many times $\Box$ appears in $P$.
 \end{constraint}
-Finally, clauses are supposed to constitute a set but with one important
-exception: there may be more than one disabled clause, i.e., a clause with head
-$\variable{predicate} = \Box$. Assuming a lexicographic order over entire
-clauses such that $\Box > \mathsf{P}$ for all $\mathsf{P} \in \predicates{}$ and
-the head predicate is the `first digit' of this representation, we get the
-following constraint.
+Finally, we want to disable duplicate clauses but with one exception: there may
+be more than one disabled clause, i.e., a clause with head $\variable{predicate}
+= \Box$. Assuming a lexicographic order over entire clauses such that $\Box >
+\mathsf{P}$ for all $\mathsf{P} \in \predicates{}$ and the head predicate is the
+`first digit' of this representation, the following constraint disables
+duplicates as well as orders the clauses.
 \begin{constraint}
   For $i = 1, \dots, \maxNumClauses{} - 1$, if $\variable{heads}[i].\variable{predicate}
   \ne \Box$, then
@@ -461,15 +455,15 @@ variables as arguments.
 
 \section{Counting Programs} \label{sec:counting}
 
-To demonstrate the correctness of the model, in this section we are going to
-derive combinatorial expressions for counting the number of programs with up to
-$\maxNumClauses{}$ clauses and up to $\maxNumNodes{}$ nodes per clause, and
-arbitrary $\predicates{}$, $\arities{}$, $\variables{}$, and $\constants{}$.
-Being able to establish two ways to generate the same sequence of numbers (i.e.,
-numbers of programs with certain properties and parameters) allows us to gain
-confidence that the constraint model accurately matches our intentions. For this
-section, we introduce the term \emph{total arity} of a body of a clause to refer
-to the sum total of arities of all predicates in the body.
+To demonstrate the correctness of the model, this section derives combinatorial
+expressions for counting the number of programs with up to $\maxNumClauses{}$
+clauses and up to $\maxNumNodes{}$ nodes per clause, and arbitrary
+$\predicates{}$, $\arities{}$, $\variables{}$, and $\constants{}$. Being able to
+establish two ways to generate the same sequence of numbers (i.e., numbers of
+programs with certain properties and parameters) allows us to gain confidence
+that the constraint model accurately matches our intentions. For this section,
+we introduce the term \emph{total arity} of a body of a clause to refer to the
+sum total of arities of all predicates in the body.
 
 We will first consider clauses with \emph{gaps}, i.e., without taking variables
 and constants into account. Let $T(n, a)$ denote the number of possible clause
@@ -513,56 +507,64 @@ or any of the $i$ already-introduced variables.
 
 Let us order the elements of $\predicates{}$, and let $a_i$ be the arity of the
 $i$th predicate. The number of programs is then:
-\[
+\begin{equation} \label{eq:counting}
   \sum_{\substack{ \sum_{i=1}^{|\predicates{}|} h_i = n,\\
       |\predicates{}| \le n \le \maxNumClauses{},\\
       h_i \ge 1 \text{ for all } i}} \prod_{i=1}^{|\predicates{}|}
   \binom{\sum_{a=0}^{\maxArity{} \times \maxNumNodes{}} C(a) P(a+a_i)}{h_i},
-\]
-Here, we sum over all possible ways to distribute $|\predicates{}| \le n \le
+\end{equation}
+Here, we sum over all ways to distribute $|\predicates{}| \le n \le
 \maxNumClauses{}$ clauses among $|\predicates{}|$ predicates so that each
 predicate gets at least one clause. For each predicate, we can then count the
 number of ways to select its clauses out of all possible clauses. The number of
 possible clauses can be computed by considering each possible arity $a$, and
 multiplying the number of `unfinished' clauses $C(a)$ by the number of ways to
 select the required $a+a_i$ terms in the body and the head of the clause.
+Finally, we compare the numbers produced by \eqref{eq:counting} with the numbers
+of programs generated by our model in \num{1032} different scenarios, thus
+showing that the combinatorial description developed in this section matches the
+model's behaviour.
 
 \section{Stratification and Independence} \label{sec:independence}
 
-In this section, we present custom constraints for stratification and
-independence. Stratification is a condition necessary for probabilistic logic
-programs \cite{DBLP:conf/padl/MantadelisR17} and often enforced on logic
-programs \cite{DBLP:journals/tcs/Bidoit91} that helps to ensure a unique answer
-to every query, while independence is a fundamental concept in probability
-theory that imposes structure on the probability distribution and simplifies
-inference. In the context of probabilistic logic programming languages, these
-two seemingly disparate concepts can be defined using the same building block,
-i.e., a predicate dependency graph. Constraints are usually presented with two
-algorithms: one for \emph{entailment} checking, i.e., checking if the (partially
-solved) constraint model satisfies the constraint or not, and one for
-\emph{propagation}, i.e., removing values from domains that are incompatible
-with the current state of the model. We present both algorithms for independence
-while settling for a short description of entailment for stratification.
+\emph{Stratification} is a condition necessary for probabilistic logic programs
+\cite{DBLP:conf/padl/MantadelisR17} and often enforced on logic programs
+\cite{DBLP:journals/tcs/Bidoit91} that helps to ensure a unique answer to every
+query. This is achieved by restricting the use of negation so that any program
+$\mathscr{P}$ can be partitioned into a sequence of programs $\mathscr{P} =
+\bigsqcup_{i=1}^n \mathscr{P}_i$ such that, for all $i$, the negative literals
+in $\mathscr{P}_i$ can only refer to predicates defined in $\mathscr{P}_j$ for
+$j \le i$ \cite{DBLP:journals/tcs/Bidoit91}.
 
-Let $\mathscr{P}$ be a probabilistic logic program with its set of predicates
-$\predicates{}$. Its \emph{(predicate) dependency graph} is a directed graph
-$G_{\mathscr{P}}$ with elements of $\predicates{}$ as nodes and an edge between
-$\mathsf{P}, \mathsf{Q} \in \predicates{}$ if there is a clause in $\mathscr{P}$
-with $\mathsf{Q}$ as the head and $\mathsf{P}$ mentioned in the body. We say
-that the edge is \emph{negative} if there exists a clause with $\mathsf{Q}$ as
-the head and at least one instance of $\mathsf{P}$ at the body such that the
-path from the root to the $\mathsf{P}$ node in the tree representation of the
-clause passes through at least one negation node; otherwise, it is
-\emph{positive}. We say that $\mathscr{P}$ (or $G_{\mathscr{P}}$) has a
-\emph{negative cycle} if $G_{\mathscr{P}}$ has a cycle with at least one
-negative edge. A program $\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$
-has no negative cycles.\footnote{This definition is an extension of a well-known
-  result for logic programs \cite{DBLP:journals/jlp/BalbinPRM91} to
-  probabilistic logic programs with arbitrary complex clause bodies.} Thus a
-simple entailment algorithm for stratification can be constructed by selecting
-all clauses, all predicates of which are fully determined, and looking for
-negative cycles in the dependency graph constructed based on those clauses using
-an algorithm such as Bellman-Ford.
+\emph{Independence}, on the other hand, is defined on a pair of predicates (say,
+$\mathsf{P}, \mathsf{Q} \in \mathcal{P}$) and can be interpreted in two ways.
+First, if $\mathsf{P}$ and $\mathsf{Q}$ are independent, then any ground atom of
+$\mathsf{P}$ is independent of any ground atom of $\mathsf{Q}$ in the underlying
+probability distribution of the probabilistic program. Second, the part of the
+program needed to fully define $\mathsf{P}$ is disjoint from the part of the
+program needed to define $\mathsf{Q}$.
+
+These two seemingly disparate concepts can be defined using the same building
+block, i.e., a predicate dependency graph. Let $\mathscr{P}$ be a probabilistic
+logic program with its set of predicates $\predicates{}$. Its \emph{(predicate)
+  dependency graph} is a directed graph $G_{\mathscr{P}}$ with elements of
+$\predicates{}$ as nodes and an edge between $\mathsf{P}, \mathsf{Q} \in
+\predicates{}$ if there is a clause in $\mathscr{P}$ with $\mathsf{Q}$ as the
+head and $\mathsf{P}$ mentioned in the body. We say that the edge is
+\emph{negative} if there exists a clause with $\mathsf{Q}$ as the head and at
+least one instance of $\mathsf{P}$ at the body such that the path from the root
+to the $\mathsf{P}$ node in the tree representation of the clause passes through
+at least one negation node; otherwise, it is \emph{positive}. We say that
+$\mathscr{P}$ (or $G_{\mathscr{P}}$) has a \emph{negative cycle} if
+$G_{\mathscr{P}}$ has a cycle with at least one negative edge. A program
+$\mathscr{P}$ is \emph{stratified} if $G_{\mathscr{P}}$ has no negative
+cycles.\footnote{This definition is an extension of a well-known result for
+  logic programs \cite{DBLP:journals/jlp/BalbinPRM91} to probabilistic logic
+  programs with arbitrary complex clause bodies.} Thus a simple entailment
+algorithm for stratification can be constructed by selecting all clauses, all
+predicates of which are fully determined, and looking for negative cycles in the
+dependency graph constructed based on those clauses using an algorithm such as
+Bellman-Ford.
 
 For any predicate $\mathsf{P} \in \predicates{}$, the set of \emph{dependencies}
 of $\mathsf{P}$ is the smallest set $D_{\mathsf{P}}$ such that $\mathsf{P} \in
@@ -830,11 +832,10 @@ examine the scalability of our constraint model with respect to its parameters
 and in \cref{sec:experiment2} we demonstrate how the model can be used to
 compare inference algorithms and describe their behaviour across a wide range of
 programs. The experiments were run on a system with Intel Core i5-8250U
-processor, \SI{8}{\giga\byte} RAM, and Arch Linux~5.6.11-arch1-1 operating
-system. The constraint model was implemented in Java~8 with
-Choco~4.10.2 \cite{choco}. All inference algorithms are implemented in
-\textsc{ProbLog}~2.1.0.39 and were run using Python~3.8.2 with PySDD~0.2.10 and
-PyEDA~0.28.0. For both sets of experiments, we generate programs without
+processor and \SI{8}{\giga\byte} of RAM. The constraint model was implemented in
+Java~8 with Choco~4.10.2 \cite{choco}. All inference algorithms are implemented
+in \textsc{ProbLog}~2.1.0.39 and were run using Python~3.8.2 with PySDD~0.2.10
+and PyEDA~0.28.0. For both sets of experiments, we generate programs without
 negative cycles and use a \SI{60}{\second} timeout.
 
 \subsection{Empirical Performance of the Model} \label{sec:experiment1}
@@ -869,18 +870,17 @@ We also employ a geometric restart policy, restarting after $10, 10 \times 1.1,
 10 \times 1.1^2, \dots$ contradictions.\footnote{Restarts help overcome early
   mistakes in the search process but can be disabled if one wants to find all
   solutions, in which case search is complete regardless of the variable
-  ordering heuristic.} We ran close to \num{400000} experiments, investigating
-whether the model is efficient enough to generate reasonably-sized programs and
-gaining insight into what parameter values make the CSP harder. For
-$|\predicates{}|$, $|\variables{}|$, $|\constants{}|$, $\maxNumNodes{}$, and
-$\maxNumClauses{} - |\predicates{}|$ (i.e., the number of clauses in addition to
-the mandatory $|\predicates{}|$ clauses), we assign all combinations of 1, 2, 4,
-8. $\maxArity{}$ is assigned to values 1--4. For each $|\predicates{}|$, we also
-iterate over all possible numbers of independent pairs of predicates, ranging
-from 0 up to $\binom{|\predicates{}|}{2}$. For each combination of the
-above-mentioned parameters, we pick ten random ways to assign arities to
-predicates (such that $\maxArity{}$ occurs at least once) and ten random
-combinations of independent pairs.
+  ordering heuristic.} We ran \num{399360} experiments, investigating the
+model's efficiency and gaining insight into what parameter values make the CSP
+harder. For $|\predicates{}|$, $|\variables{}|$, $|\constants{}|$,
+$\maxNumNodes{}$, and $\maxNumClauses{} - |\predicates{}|$ (i.e., the number of
+clauses in addition to the mandatory $|\predicates{}|$ clauses), we assign all
+combinations of 1, 2, 4, 8. $\maxArity{}$ is assigned to values 1--4. For each
+$|\predicates{}|$, we also iterate over all possible numbers of independent
+pairs of predicates, ranging from 0 up to $\binom{|\predicates{}|}{2}$. For each
+combination of the above-mentioned parameters, we pick ten random ways to assign
+arities to predicates (such that $\maxArity{}$ occurs at least once) and ten
+random combinations of independent pairs.
 
 The majority (\SI{97.7}{\percent}) of runs finished in under \SI{1}{\second},
 while four instances timed out: all with $|\predicates{}| = \maxNumClauses{} -
@@ -914,8 +914,8 @@ Likewise, a higher number of predicates complicates the situation as well.
     \centering
     \input{bars.tex}%
     \captionof{figure}{Inference time for different values of $\maxArity{}$ and
-      proportions of facts that are probabilistic. The total number of facts is
-      fixed at $10^5$.}
+      proportions of probabilistic facts that are probabilistic. The total
+      number of facts is fixed at $10^5$.}
     \label{fig:bars}
   \end{minipage}
 \end{figure}
@@ -927,7 +927,10 @@ such that the head atom has at least one variable, and \emph{facts} are clauses
 with empty bodies and no variables. We use our constraint model to generate the
 rules according to the following parameter values: $|\predicates{}|,
 |\variables{}|, \maxNumNodes{} \in \{ 2, 4, 8 \}$, $\maxArity{} \in \{ 1, 2, 3
-\}$, $\maxNumClauses{} = |\predicates{}|$, $\constants{} = \emptyset$. Just like
+\}$, $\maxNumClauses{} = |\predicates{}|$, $\constants{} = \emptyset$. These
+values are (approximately) representative of many standard benchmarking
+instances which often have 2--8 predicates of arity one or two, 0--8 rules, and
+a larger database of facts \cite{DBLP:journals/tplp/FierensBRSGTJR15}. Just like
 before, we explore all possible numbers of independent predicate pairs. We also
 add a constraint that forbids empty bodies. For both rules and facts,
 probabilities are uniformly sampled from $\{ 0.1, 0.2, \dots, 0.9 \}$.
@@ -948,16 +951,15 @@ not explicitly included in the program and consider six natively supported
 algorithms and knowledge compilation techniques: binary decision diagrams (BDDs)
 \cite{DBLP:journals/tc/Bryant86}, negation normal form (NNF), deterministic
 decomposable NNF (d-DNNF) \cite{DBLP:journals/jair/DarwicheM02}, K-Best
-\cite{DBLP:conf/ijcai/RaedtKT07}, and two encodings based on sentential
-decision diagrams \cite{DBLP:conf/ijcai/Darwiche11}, one of which encodes the
-entire program (SDDX), while the other one encodes only the part of the program
+\cite{DBLP:conf/ijcai/RaedtKT07}, and two encodings based on sentential decision
+diagrams \cite{DBLP:conf/ijcai/Darwiche11}, one of which encodes the entire
+program (SDDX), while the other one encodes only the part of the program
 relevant to the query (SDD).\footnote{Forward SDDs (FSDDs) and forward BDDs
-  (FBDDs)
-  \cite{DBLP:journals/corr/abs-1911-07750,DBLP:conf/ijcai/VlasselaerBKMR15} are
-  omitted because the former uses too much memory and the implementation of the
-  latter seems to be broken at the time of writing.}
+  (FBDDs) \cite{DBLP:conf/aaai/TsamouraGK20,DBLP:conf/ijcai/VlasselaerBKMR15}
+  are omitted because the former uses too much memory and the implementation of
+  the latter seems to be broken at the time of writing.}
 
-Out of over \num{11000} generated problem instances, about \SI{35}{\percent} were
+Out of \num{11310} generated problem instances, about \SI{35}{\percent} were
 discarded because one or more algorithms were not able to ground the instance
 unambiguously. The first observation (pictured in \cref{fig:line_plots}) is that
 the algorithms are remarkably similar, i.e., the differences in performance are
@@ -987,26 +989,22 @@ parts of a program can be handled independently.
 We described a constraint model for generating both logic programs and
 probabilistic logic programs. The model avoids unnecessary symmetries, is
 reasonably efficient and supports additional constraints such as predicate
-independence. The advantages of this approach lie in customisability and speed,
-although the main disadvantage is that there are no guarantees about the
-underlying probability distribution from which programs are sampled.
-
-As a side note, our model treats logically equivalent but syntactically
-different formulas as different. This is so in part because designing a
-constraint for logical equivalence fell outside the scope of this work and in
-part because in some situations one might want to enumerate all ways to express
-the same probability distribution or knowledge base, e.g., to investigate
-whether inference algorithms are robust to changes in representation.
-
-Finally, our experimental results provide the first comparison of inference
+independence. Our experimental results provide the first comparison of inference
 algorithms for probabilistic logic programming languages that generalises over
 programs, i.e., is not restricted to just a few programs and data sets. While
 the results did not reveal any significant differences among the algorithms,
 they did reveal a shared weakness, i.e., the inability to ignore the part of a
-program that is easily seen to be irrelevant to the given query. We hope that
-our work can facilitate the development of inference (as well as learning)
-algorithms and provide a better understanding of the strengths and weaknesses of
-current approaches.
+program that is easily seen to be irrelevant to the given query.
+
+Nonetheless, we would like to outline two directions for future work. First, the
+experimental evaluation in \cref{sec:experiment1} revealed scalability issues,
+particularly concerning the length/complexity of clauses. However, this
+particular issue is likely to resolve itself if the format of a clause is
+restricted to a conjunction of literals. Second, random instance generation
+typically focuses on either realistic instances or sampling from a simple and
+well-defined probability distribution. Our approach can be used to achieve the
+former, but the latter remains an open problem (at least in its full
+generality).
 
 \subsubsection*{Acknowledgments.}
 This work was supported by the EPSRC Centre for Doctoral Training in Robotics
@@ -1015,197 +1013,5 @@ Research Council (grant EP/S023208/1).
 
 \bibliographystyle{splncs04}
 \bibliography{paper}
-
-\newpage
-\appendix
-\section{Additional Plots}
-
-\begin{figure}[h]
- \centering
- \input{phase_transition.tex}
- \caption{The distribution of the number of nodes in the search tree of the
-   constraint solver as a function of the number of independent pairs of
-   predicates for $|\predicates{}| = 8$. Outliers are hidden, the dots denote
-   mean values, and the vertical axis is on a $\log_{10}$ scale. This plot
-   suggests that exceptional runs when the constraint solver takes much longer
-   than usual are most likely to occur with average levels of independence.}
- \label{fig:phase_transition}
-\end{figure}
-
-\begin{figure}[h]
-  \centering
-  \input{scatterplot.tex}
-  \caption{An instance-by-instance comparison of the inference times of SDD and
-    SDDX knowledge compilation techniques. The colours show the percentage of
-    predicate pairs that were constrained to be independent. With
-    mostly-independent programs, one would expect SDD to outperform SDDX,
-    however, the data shows no significant difference.}
-\end{figure}
-
-\section{Example Programs}
-
-In this appendix, we provide examples of probabilistic logic programs generated
-by various combinations of parameters. In all cases, we use
-\[
-  [0.1, 0.2, \dots, 0.9, 1, 1, 1, 1, 1]
-\]
-as the list of probabilities. Each clause is written on a separate line and ends
-with a full stop. The head and the body of each clause are separated with
-\texttt{:-} (instead of $\gets$). The probability of each clause is prepended to
-the clause, using \texttt{::} as a separator. Probabilities equal to one and
-empty bodies of clauses can be omitted. Conjunction, disjunction, and negation
-are denoted by commas, semicolons, and `\texttt{\textbackslash+}', respectively.
-Parentheses are used to demonstrate precedence, although many of them are
-redundant.
-
-By setting $\predicates{} = [\texttt{p}]$, $\arities{} = [1]$, $\variables{} =
-\{ \texttt{X} \}$, $\constants{} = \emptyset$, $\maxNumNodes{} = 4$, and
-$\maxNumClauses{} = 1$, we get fifteen one-line programs, six of which are
-without negative cycles (as highlighted below). Only the last program has no
-cycles at all.
-
-\begin{enumerate}[label=\arabic*.]
-\item
-\begin{verbatim}
-0.5 :: p(X) :- (\+(p(X))), (p(X)).
-\end{verbatim}
-\item
-\begin{verbatim}
-0.8 :: p(X) :- (\+(p(X))); (p(X)).
-\end{verbatim}
-\hlitem
-\begin{verbatim}
-0.8 :: p(X) :- (p(X)); (p(X)).
-\end{verbatim}
-\hlitem
-\begin{verbatim}
-0.7 :: p(X) :- (p(X)), (p(X)).
-\end{verbatim}
-\item
-\begin{verbatim}
-0.6 :: p(X) :- (p(X)), (\+(p(X))).
-\end{verbatim}
-\item
-\begin{verbatim}
-p(X) :- (p(X)); (\+(p(X))).
-\end{verbatim}
-\hlitem
-\begin{verbatim}
-0.1 :: p(X) :- (p(X)); (p(X)); (p(X)).
-\end{verbatim}
-\hlitem
-\begin{verbatim}
-0.8 :: p(X) :- (p(X)), (p(X)), (p(X)).
-\end{verbatim}
-\item
-\begin{verbatim}
-p(X) :- \+(p(X)).
-\end{verbatim}
-\item
-\begin{verbatim}
-0.1 :: p(X) :- \+(\+(p(X))).
-\end{verbatim}
-\item
-\begin{verbatim}
-p(X) :- \+((p(X)); (p(X))).
-\end{verbatim}
-\item
-\begin{verbatim}
-0.4 :: p(X) :- \+((p(X)), (p(X))).
-\end{verbatim}
-\item
-\begin{verbatim}
-0.4 :: p(X) :- \+(\+(\+(p(X)))).
-\end{verbatim}
-\hlitem
-\begin{verbatim}
-0.7 :: p(X) :- p(X).
-\end{verbatim}
-\hlitem
-\begin{verbatim}
-p(X).
-\end{verbatim}
-\end{enumerate}
-
-Note that:
-\begin{itemize}
-\item A program such as Program~14, because of its cyclic definition, defines a
-  predicate that has probability zero across all constants. This can more easily
-  be seen as solving the equation $0.7x = x$.
-\item Programs 10 and 14 are not equivalent (i.e., double negation does not
-  cancel out) because Program 10 has a negative cycle and is thus considered to
-  be ill-defined.
-\end{itemize}
-
-To demonstrate variable symmetry reduction in action, we set $\predicates{} =
-[\texttt{p}]$, $\arities{} = [3]$, $\variables{} = \{\texttt{X}, \texttt{Y},
-\texttt{Z} \}$, $\constants{} = \emptyset$, $\maxNumNodes{} = 1$,
-$\maxNumClauses{} = 1$, and forbid all cycles. This gives us the following five
-programs:
-
-\begin{itemize}
-\item
-\begin{verbatim}
-0.8 :: p(Z, Z, Z).
-\end{verbatim}
-\item
-\begin{verbatim}
-p(Y, Y, Z).
-\end{verbatim}
-\item
-\begin{verbatim}
-p(Y, Z, Z).
-\end{verbatim}
-\item
-\begin{verbatim}
-p(Y, Z, Y).
-\end{verbatim}
-\item
-\begin{verbatim}
-0.1 :: p(X, Y, Z).
-\end{verbatim}
-\end{itemize}
-
-This is one of many possible programs with $\predicates{} = [\texttt{p},
-\texttt{q}, \texttt{r}]$, $\arities{} = [1, 2, 3]$, $\variables{} =
-\{\texttt{X}, \texttt{Y}, \texttt{Z} \}$, $\constants{} = \{ \texttt{a},
-\texttt{b}, \texttt{c} \}$, $\maxNumNodes{} = 5$, $\maxNumClauses{} = 5$, and
-without negative cycles:
-
-\begin{verbatim}
-p(b) :- \+((q(a, b)), (q(X, Y)), (q(Z, X))).
-0.4 :: q(X, X) :- \+(r(Y, Z, a)).
-q(X, a) :- r(Y, Y, Z).
-q(X, a) :- r(Y, b, Z).
-r(Y, b, Z).
-\end{verbatim}
-
-Finally, we set
-$\predicates{} = [\texttt{p}, \texttt{q}, \texttt{r}]$, $\arities{} = [1, 1,
-1]$, $\variables{} = \emptyset$, $\constants{} = \{ \texttt{a} \}$,
-$\maxNumNodes{} = 3$, $\maxNumClauses{} = 3$, forbid negative cycles, and
-constrain predicates \texttt{p} and \texttt{q} to be independent. The resulting
-search space contains thousands of programs such as:
-
-\begin{itemize}
-\item
-\begin{verbatim}
-0.5 :: p(a) :- (p(a)); (p(a)).
-0.2 :: q(a) :- (q(a)), (q(a)).
-0.4 :: r(a) :- \+(q(a)).
-\end{verbatim}
-\item
-\begin{verbatim}
-p(a) :- p(a).
-0.5 :: q(a) :- (r(a)); (q(a)).
-r(a) :- (r(a)); (r(a)).
-\end{verbatim}
-\item
-\begin{verbatim}
-p(a) :- (p(a)); (p(a)).
-0.6 :: q(a) :- q(a).
-0.7 :: r(a) :- \+(q(a)).
-\end{verbatim}
-\end{itemize}
 
 \end{document}
