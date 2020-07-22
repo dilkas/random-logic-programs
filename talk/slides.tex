@@ -1,10 +1,48 @@
 \documentclass{beamer}
-\usepackage[UKenglish]{babel}
-\usepackage[UKenglish]{isodate}
+\usepackage{tikz}
 
+\usetheme{Singapore}
+\usecolortheme{lily}
 \beamertemplatenavigationsymbolsempty
 
+\author{\textbf{Paulius Dilkas}\inst{1} \and Vaishak Belle\inst{1,2}}
+\title{Generating Random Logic Programs Using Constraint Programming}
+\date{CP 2020}
+\institute{\inst{1} University of Edinburgh, Edinburgh, UK \and \inst{2} Alan
+  Turing Institute, London, UK}
+
 \begin{document}
+
+\begin{frame}[noframenumbering,plain]
+  \tikz[remember picture,overlay]{
+    \node at ([yshift=25pt,xshift=30pt]current page.south)
+    {\includegraphics[height=40pt]{inf.png}};
+    \node at ([yshift=25pt,xshift=75pt]current page.south)
+    {\includegraphics[height=40pt]{ecr.jpg}};
+    \node at ([yshift=20pt,xshift=140pt]current page.south)
+    {\includegraphics[height=20pt]{epsrc.png}};
+  }
+  \titlepage
+\end{frame}
+
+% TODO: examples of programs
+
+% TODO: clauses as trees
+
+\begin{frame}{}
+  \centering
+  \input{../paper2/impact.tex}
+\end{frame}
+
+\begin{frame}{}
+  \centering
+  \input{../paper2/bars.tex}
+\end{frame}
+
+\begin{frame}{}
+  \centering
+  \input{../paper2/line_plots.tex}%
+\end{frame}
 
 \begin{frame}{Overview}
   \begin{block}{General parameters}
