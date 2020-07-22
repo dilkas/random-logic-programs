@@ -5,7 +5,6 @@ library(ggrepel)
 library(RColorBrewer)
 
 # This is all for the runtime data of the CP model
-
 df <- read.csv("../data/runtime.csv", header = FALSE, sep = ";", skip = 1)
 df <- df[, colSums(is.na(df)) < nrow(df)]
 names(df) <- c("numPredicates", "maxArity", "numVariables", "numConstants", "numAdditionalClauses", "numIndependentPairs", "maxNumNodes",
@@ -26,7 +25,7 @@ big <- df[df$numPredicates == 8, ]
 #colourCount = length(unique(big$numIndependentPairs))
 #getPalette = colorRampPalette(brewer.pal(9, "BuPu"))
 # fill = getPalette(colourCount)
-tikz(file = "../text/paper2/phase_transition.tex", width = 4.8, height = 1.8)
+tikz(file = "../paper/phase_transition.tex", width = 4.8, height = 1.8)
 ggplot(big, aes(factor(numIndependentPairs), nodes, group = numIndependentPairs)) +
   geom_boxplot(outlier.shape = NA, fill = "#e0ecf4") +
   coord_trans(y = "log10", limy = c(100, quantile(big$nodes, 0.91))) +
@@ -121,17 +120,32 @@ for (Variable in factors) {
 effects$label <- ifelse(effects$Value == 8, sapply(as.character(effects$Variable), mytolatex), "")
 effects$aritylabel[effects$Variable == "maxArity" & effects$Value == 4] <- "$\\mathcal{M}_{\\mathcal{A}}$"
 
-tikz(file = "../text/paper2/impact.tex", width = 2.4, height = 1.8)
+# Paper version
+tikz(file = "../paper/impact.tex", width = 2.4, height = 1.8)
 ggplot(effects, aes(Value, mean, color = factor(Variable))) +
   geom_line(aes(linetype = factor(Variable))) +
   scale_x_continuous(trans = "log2", limits = c(1, 10)) +
   ylab("Mean number of nodes") +
   geom_label_repel(aes(label = label, size = 1), nudge_x = 1, segment.color = "transparent", box.padding = 0.1) +
   geom_label_repel(aes(label = aritylabel, size = 1), segment.color = "transparent", nudge_y = 300) +
-#  theme_set(theme_minimal(base_size = 7)) +
   xlab("The value of each parameter") +
   scale_color_brewer(palette = "Dark2") +
   scale_size_area(max_size = 2) +
   theme_bw() +
   theme(legend.position = "none")
+dev.off()
+
+# Talk version
+effects$Variable <- revalue(effects$Variable, c("numPredicates" = "The number of predicates", "maxArity" = "Maximum arity",
+                            "numVariables" = "The number of variables", "numConstants" = "The number of constants",
+                            "numAdditionalClauses" = "The number of additional clauses", "maxNumNodes" = "The maximum number of nodes"))
+tikz(file = "../talk/impact.tex", width = 4.2, height = 1.8)
+ggplot(effects, aes(Value, mean, color = Variable)) +
+  geom_line() +
+  scale_x_continuous(trans = "log2", limits = c(1, 10)) +
+  ylab("Mean number of nodes") +
+  xlab("Value") +
+  scale_color_brewer(palette = "Dark2") +
+  scale_size_area(max_size = 2) +
+  theme_bw()
 dev.off()

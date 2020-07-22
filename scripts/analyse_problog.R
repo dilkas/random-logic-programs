@@ -1,13 +1,14 @@
 require(reshape2)
 require(ggplot2)
-require(dplyr)
 require(gridExtra)
 require(scales)
 require(grid)
-require(tidyr)
 require(tikzDevice)
-require(tidyverse)
+
 require(plyr)
+require(tidyr)
+require(tidyverse)
+require(dplyr)
 
 only_relevant_columns <- c("number.of.predicates", "number.of.variables",
                            "maximum.number.of.nodes", "maximum.arity",
@@ -140,7 +141,7 @@ plot <- function(var.name, c, s, scale = F, dots = T, legend = F, smooth = F,
 }
 
 # This might cause more questions than answer
-tikz(file = "../text/paper2/algorithms.tex", width = 4.8, height = 4.8, standAlone = T)
+tikz(file = "../paper/algorithms.tex", width = 4.8, height = 4.8, standAlone = T)
 p1 <- plot("number.of.predicates", combined, summarised, legend = T)
 legend <- get_legend(p1)
 grid.arrange(plot("number.of.predicates", combined, summarised),
@@ -180,8 +181,7 @@ summarised2 <- combined2 %>% group_by(variable, value, Algorithm) %>%
   summarize(mean.time = mean(Total.time), sd.time = sd(Total.time))
 summary <- rbind(summarised2[summarised2$variable %in% c("proportion.independent.pairs", "Total.time"),],
                  summarised[summarised$variable %in% c("number.of.facts", "Total.time"),])
-summary$variable <- factor(summary$variable, levels = c("number.of.facts", "proportion.independent.pairs"),
-                           labels = c("The number of facts ($\\times 10^3$)", "Proportion of independent pairs"))
+
 
 # ===================== Camera-ready ================================
 
@@ -198,11 +198,28 @@ plot2 <- function(df, column.names, df2 = NULL, column.names2 = NULL, factors = 
     theme_bw()
 }
 
-tikz(file = "../text/paper2/bars.tex", width = 2.4, height = 1.8)
+tikz(file = "../paper/bars.tex", width = 2.4, height = 1.8)
 plot2(combined2, c("maximum.arity", "proportion.probabilistic", "Total.time"))
 dev.off()
 
-tikz(file = "../text/paper2/line_plots.tex", width = 4.8, height = 1.8)
+# Paper version
+summary$variable <- factor(summary$variable, levels = c("number.of.facts", "proportion.independent.pairs"),
+                           labels = c("The number of facts ($\\times 10^3$)", "Proportion of independent pairs"))
+tikz(file = "../paper/line_plots.tex", width = 4.8, height = 1.8)
+ggplot(data = summary, aes(x = value, y = mean.time, color = Algorithm, shape = Algorithm)) +
+  geom_line(aes(linetype = Algorithm)) +
+  facet_wrap(~ variable, scales = "free_x") +
+  xlab("") +
+  ylab("Mean inference time (s)") +
+  scale_x_continuous(labels = function(x) ifelse(x > 1e3, x / 1e3, x)) +
+  scale_colour_brewer(palette = "Dark2") +
+  theme_bw()
+dev.off()
+
+# Talk version
+summary$variable <- factor(summary$variable, levels = c("number.of.facts", "proportion.independent.pairs"),
+                           labels = c("Facts ($\\times 10^3$)", "Prop. independent"))
+tikz(file = "../talk/line_plots.tex", width = 4.2, height = 1.8)
 ggplot(data = summary, aes(x = value, y = mean.time, color = Algorithm, shape = Algorithm)) +
   geom_line(aes(linetype = Algorithm)) +
   facet_wrap(~ variable, scales = "free_x") +
@@ -215,7 +232,7 @@ dev.off()
 
 merged <- merge(sdd, kbest, by = 'ID')
 merged$proportion.independent.pairs.y <- merged$proportion.independent.pairs.y * 100
-tikz(file = "../text/paper2/scatterplot.tex", width = 4.8, height = 2.7)
+tikz(file = "../paper/scatterplot.tex", width = 4.8, height = 2.7)
 ggplot(merged, aes(x = Total.time.x, y = Total.time.y, color = proportion.independent.pairs.y)) +
   geom_point(alpha = 0.5, size = 1) +
   scale_x_continuous(limits = c(0.0164, 60), trans = log2_trans(), breaks = trans_breaks("log2", function(x) 2^x),
@@ -231,7 +248,7 @@ ggplot(merged, aes(x = Total.time.x, y = Total.time.y, color = proportion.indepe
   coord_fixed()
 dev.off()
 
-tikz(file = "../text/paper2/cumulative.tex", width = 4.8, height = 1.8, standAlone = TRUE)
+tikz(file = "../paper/cumulative.tex", width = 4.8, height = 1.8, standAlone = TRUE)
 ggplot(data = combined.pure, aes(x = Total.time, y = count, color =  Algorithm, linetype = Algorithm)) +
   geom_line() +
   scale_x_continuous(trans = log2_trans(), breaks = c(0.0625, 0.25, 1, 4, 16), labels = c("0.0625", "0.25", "1", "4", "16")) +
