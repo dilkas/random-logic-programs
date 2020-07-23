@@ -1,9 +1,26 @@
 \documentclass{beamer}
 \usepackage{tikz}
+\usepackage[style=authoryear]{biblatex}
+\usepackage{empheq}
+
+\usetikzlibrary{decorations.pathreplacing}
+\tikzstyle{every picture}+=[remember picture]
 
 \usetheme{Singapore}
 \usecolortheme{lily}
 \beamertemplatenavigationsymbolsempty
+
+\DeclareMathOperator{\ifff}{:-}
+\DeclareMathOperator{\prob}{::}
+
+\definecolor{predicate}{HTML}{1b9e77}
+\definecolor{probability}{HTML}{e7298a}
+\definecolor{variable}{HTML}{d95f02}
+\definecolor{constant}{HTML}{7570b3}
+\definecolor{color5}{HTML}{66a61e}
+\definecolor{color6}{HTML}{e6ab02}
+
+\addbibresource{talk.bib}
 
 \author{\textbf{Paulius Dilkas}\inst{1} \and Vaishak Belle\inst{1,2}}
 \title{Generating Random Logic Programs Using Constraint Programming}
@@ -25,9 +42,124 @@
   \titlepage
 \end{frame}
 
-% TODO: examples of programs (actually introduce what they are about)
+% width: 4.2679148611112
+% height: 3.5575922222223
 
-% TODO: clauses as trees
+\begin{frame}{Probabilistic Logic Programs (\textsc{ProbLog})}
+  \begin{block}{Smokers (\cite{DBLP:conf/ilp/DomingosKLPRS08,DBLP:journals/tplp/FierensBRSGTJR15})}
+    \vspace*{-\baselineskip}\setlength\belowdisplayshortskip{0pt}
+    \begin{align*}
+      \textcolor{probability}{0.2} \prob &\textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
+      \textcolor{probability}{0.3} \prob &\textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}) \ifff \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}). \\
+      \textcolor{probability}{0.1} \prob &\textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
+      \textcolor{probability}{0.3} \prob &\textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
+                                         &\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{X}}). \\
+                                         &\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}), \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{X}}). \\
+                                         &\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}). \\
+                                         &\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{P}}), \textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}). \\
+                                         &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{michelle}}). \\
+                                         &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{timothy}}). \\
+                                         &\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}}, \textcolor{constant}{\mathit{michelle}}).
+    \end{align*}
+  \end{block}
+\end{frame}
+
+\begin{frame}{How Many Programs Are Used to Test Algorithms?}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference3.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{4}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference8.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{3}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference7.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference6.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference2.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference1.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{2}};
+        \end{tikzpicture}
+      }
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% TODO: real-world applications of problog or other PLP languages (maybe tease
+% people with DeepProbLog?)
+% TODO: overview inference algorithms
+% TODO: have a slide with all the inference papers and numbers of programs
+
+\begin{frame}{What Characterises a (Probabilistic) Logic Program?}
+  \begin{columns}
+    \hspace*{-0.7cm}\begin{column}{0.75\textwidth}
+      \begin{empheq}[left =\onslide<6->{\color{color5}\empheqlbrace}]{equation}
+        \begin{align*}
+      \textcolor<5->{probability}{0.2} \prob &\textcolor<2->{predicate}{\mathtt{stress}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{person}}(\textcolor<3->{variable}{\mathsf{P}}). \\
+      \textcolor<5->{probability}{0.3} \prob &\textcolor<2->{predicate}{\mathtt{influences}}(\textcolor<3->{variable}{\mathsf{P}_1}, \textcolor<3->{variable}{\mathsf{P}_2}) \ifff \textcolor<2->{predicate}{\mathtt{friend}}(\textcolor<3->{variable}{\mathsf{P}_1}, \textcolor<3->{variable}{\mathsf{P}_2}). \\
+      \textcolor<5->{probability}{0.1} \prob &\textcolor<2->{predicate}{\mathtt{cancer\_spont}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{person}}(\textcolor<3->{variable}{\mathsf{P}}). \\
+      \textcolor<5->{probability}{0.3} \prob &\textcolor<2->{predicate}{\mathtt{cancer\_smoke}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{person}}(\textcolor<3->{variable}{\mathsf{P}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{X}}) \ifff \textcolor<2->{predicate}{\mathtt{stress}}(\textcolor<3->{variable}{\mathsf{X}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{X}}) \ifff \textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{Y}}), \textcolor<2->{predicate}{\mathtt{influences}}(\textcolor<3->{variable}{\mathsf{Y}}, \textcolor<3->{variable}{\mathsf{X}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{cancer}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{cancer\_spont}}(\textcolor<3->{variable}{\mathsf{P}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{cancer}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \tikz \coordinate (start);\textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{P}}), \textcolor<2->{predicate}{\mathtt{cancer\_smoke}}(\textcolor<3->{variable}{\mathsf{P}})\tikz \coordinate (end);. \\
+                                         &\textcolor<2->{predicate}{\mathtt{person}}(\textcolor<4->{constant}{\mathit{michelle}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{person}}(\textcolor<4->{constant}{\mathit{timothy}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{friend}}(\textcolor<4->{constant}{\mathit{timothy}}, \textcolor<4->{constant}{\mathit{michelle}}).
+        \end{align*}
+      \end{empheq}
+    \end{column}
+    \begin{column}{0.25\textwidth}
+      \begin{itemize}
+      \item[\textcolor{predicate}{\textbullet}]<2-> predicates, arities
+      \item[\textcolor{variable}{\textbullet}]<3-> variables
+      \item[\textcolor{constant}{\textbullet}]<4-> constants
+      \item[\textcolor{probability}{\textbullet}]<5-> probabilities
+      \item[\textcolor{color5}{\textbullet}]<6-> length
+      \item[\textcolor{color6}{\textbullet}]<7-> complexity
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \onslide<7->{
+    \begin{tikzpicture}[overlay]
+      \draw [decorate,decoration={brace,amplitude=10pt,mirror},color=color6] (start) -- (end);
+    \end{tikzpicture}
+  }
+\end{frame}
+
+% TODO: describe clauses as trees (showing an example of a clause)
+% TODO: describe the rest of the model
+% TODO: add a link to GitHub at the end
 
 \begin{frame}{Scalability}
   \centering
@@ -44,8 +176,7 @@
   \input{../paper/bars.tex}
 \end{frame}
 
-% width: 4.2679148611112
-% height: 3.5575922222223
+% ===============================================================
 
 \begin{frame}{Overview}
   \begin{block}{General parameters}
