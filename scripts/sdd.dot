@@ -1,0 +1,62 @@
+
+digraph sdd {
+
+overlap=false
+
+{rank=same; n10 }
+{rank=same; n11 }
+
+n10 [label= "3",style=filled,fillcolor=gray95,shape=circle,height=.25,width=.25]; 
+n10e0
+      [label= "<L>&not;B|<R>C",
+      shape=record,
+      fontsize=20,
+      fontname="Times-Italic",
+      fillcolor=white,
+      style=filled,
+      fixedsize=true,
+      height=.30, 
+      width=.65];
+
+n10->n10e0 [arrowsize=.50];
+n10e1
+      [label= "<L>B|<R>&#8869;",
+      shape=record,
+      fontsize=20,
+      fontname="Times-Italic",
+      fillcolor=white,
+      style=filled,
+      fixedsize=true,
+      height=.30, 
+      width=.65];
+
+n10->n10e1 [arrowsize=.50];
+n11 [label= "1",style=filled,fillcolor=gray95,shape=circle,height=.25,width=.25]; 
+n11e0
+      [label= "<L>&not;A|<R>",
+      shape=record,
+      fontsize=20,
+      fontname="Times-Italic",
+      fillcolor=white,
+      style=filled,
+      fixedsize=true,
+      height=.30, 
+      width=.65];
+
+n11->n11e0 [arrowsize=.50];
+n11e0:R:c->n10 [arrowsize=.50,tailclip=false,arrowtail=dot,dir=both];
+n11e1
+      [label= "<L>A|<R>C",
+      shape=record,
+      fontsize=20,
+      fontname="Times-Italic",
+      fillcolor=white,
+      style=filled,
+      fixedsize=true,
+      height=.30, 
+      width=.65];
+
+n11->n11e1 [arrowsize=.50];
+
+
+}

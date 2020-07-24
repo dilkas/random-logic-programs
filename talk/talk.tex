@@ -3,8 +3,13 @@
 \usepackage[style=authoryear]{biblatex}
 \usepackage{empheq}
 
+\usetikzlibrary{arrows}
+\usetikzlibrary{calc}
 \usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes}
 \tikzstyle{every picture}+=[remember picture]
+
 
 \usetheme{Singapore}
 \usecolortheme{lily}
@@ -46,7 +51,7 @@
 % height: 3.5575922222223
 
 \begin{frame}{Probabilistic Logic Programs (\textsc{ProbLog})}
-  \begin{block}{Smokers (\cite{DBLP:conf/ilp/DomingosKLPRS08,DBLP:journals/tplp/FierensBRSGTJR15})}
+  \begin{block}{The Smokers Network (\cite{DBLP:conf/ilp/DomingosKLPRS08})}
     \vspace*{-\baselineskip}\setlength\belowdisplayshortskip{0pt}
     \begin{align*}
       \textcolor{probability}{0.2} \prob &\textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
@@ -64,8 +69,6 @@
   \end{block}
 \end{frame}
 
-% TODO: real-world applications of problog or other PLP languages (maybe tease
-% people with DeepProbLog and DT-ProbLog?)
 \begin{frame}{Applications}
   \begin{columns}[b]
     \begin{column}{0.5\textwidth}
@@ -86,6 +89,112 @@
     \begin{column}{0.5\textwidth}
       \includegraphics[width=\textwidth]{application4.png}
       {\small \cite{de2013phenetic}}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% TODO: finish the explanation
+\begin{frame}{Inference Algorithms and Knowledge Compilation Maps}
+  \begin{description}
+  \item[NNF] negation normal form
+  \item[d-DNNF] deterministic decomposable negation normal form
+  \item[BDD] binary decision diagrams
+  \item[SDD] sentential decision diagrams
+  \item[$k$-Best] ???
+  \end{description}
+\end{frame}
+
+\begin{frame}{Example Diagrams for $C \land (A \lor \neg B)$}
+  \vspace{-1em}
+  % \begin{tikzpicture}
+  %   \node[draw,circle] {$\land$}
+  %   child {node[draw,rectangle] {$C$}}
+  %   child {node[draw,circle] {$\lor$}
+  %     child {node[draw,rectangle] {$A$}}
+  %     child {node[draw,rectangle] {$\neg B$}
+  %     }
+  %   };
+  % \end{tikzpicture}
+  \begin{columns}[b]
+    \begin{column}{0.33\textwidth}
+      \begin{figure}
+        \begin{tikzpicture}
+          \node[draw,circle] (A) {$A$}
+          child {edge from parent[draw=none]}
+          child {node[draw,circle] (B) {$B$} edge from parent[dashed]
+            child {node[draw,circle,solid] (C) {$C$} edge from parent[dashed]
+              child {node[draw,rectangle,solid] {$1$} edge from parent[solid]}
+              child {node[draw,rectangle,solid] (0) {$0$}}
+            }
+            child {edge from parent[draw=none]}
+          };
+          \draw (A) -- (C);
+          \draw (B) -- (0);
+        \end{tikzpicture}
+        \caption{BDD}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.34\textwidth}
+      \begin{figure}
+        \begin{tikzpicture}
+          \node[draw,circle] {$\land$}
+          child {node[draw,circle] {$\lor$}
+            child {node[draw,circle] (parent) {$\land$}
+              child {node[draw,rectangle] {$B$}}
+              child {edge from parent[draw=none]}
+            }
+            child {node[draw,circle] {$\land$}
+              child {node[draw,circle] {$\lor$}
+                child {node[draw,rectangle] (A) {$A$}}
+                child {node[draw,rectangle] {$\neg A$}}
+              }
+              child {node[draw,rectangle] {$\neg B$}}
+            }
+          }
+          child {node[draw,rectangle] {$C$}};
+          \draw (parent) -- (A);
+        \end{tikzpicture}
+        \caption{d-DNNF}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \begin{figure}
+        \begin{tikzpicture}
+          \tikzset{
+            mysplit/.style={
+              draw,
+              rectangle,
+              rectangle split,
+              rectangle split horizontal,
+              rectangle split parts=2
+            }
+          }
+          \node[draw,circle] {$1$}
+          child {node[mysplit] (bullet) {
+              \nodepart{one} $\neg A$
+              \nodepart{two}
+            }
+            child {node[draw,circle] (3) {$3$} edge from parent[draw=none]
+              child {node[mysplit] {
+                  \nodepart{one} $\neg B$
+                  \nodepart{two} $C$
+                }
+              }
+              child {node[mysplit] {
+                  \nodepart{one} $B$
+                  \nodepart{two} $0$
+                }
+              }
+            }
+          }
+          child {node[mysplit] {
+              \nodepart{one} $A$
+              \nodepart{two} $C$
+            }};
+          \draw[*-] let \p1 = (bullet.two), \p2 = (bullet.center) in ({\x1 + 2.5},{\y2 + 2}) -- (3);
+        \end{tikzpicture}
+        \caption{SDD}
+      \end{figure}
     \end{column}
   \end{columns}
 \end{frame}
@@ -140,9 +249,6 @@
     \end{column}
   \end{columns}
 \end{frame}
-
-% TODO: overview inference algorithms
-% TODO: have a slide with all the inference papers and numbers of programs
 
 \begin{frame}{What Characterises a (Probabilistic) Logic Program?}
   \begin{columns}
