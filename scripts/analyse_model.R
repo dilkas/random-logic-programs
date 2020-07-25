@@ -1,5 +1,6 @@
 library(ggplot2)
 library(tikzDevice)
+library(plyr)
 library(dplyr)
 library(ggrepel)
 library(RColorBrewer)
@@ -143,7 +144,7 @@ tikz(file = "../talk/impact.tex", width = 4.2, height = 1.8)
 ggplot(effects, aes(Value, mean, color = Variable)) +
   geom_line() +
   scale_x_continuous(trans = "log2", limits = c(1, 10)) +
-  ylab("Mean number of nodes") +
+  ylab("Search Nodes") +
   xlab("Value") +
   scale_color_brewer(palette = "Dark2") +
   scale_size_area(max_size = 2) +

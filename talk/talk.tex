@@ -4,19 +4,23 @@
 \usepackage{empheq}
 
 \usetikzlibrary{arrows}
+\usetikzlibrary{arrows.meta}
 \usetikzlibrary{calc}
 \usetikzlibrary{decorations.pathreplacing}
 \usetikzlibrary{positioning}
 \usetikzlibrary{shapes}
 \tikzstyle{every picture}+=[remember picture]
 
-
 \usetheme{Singapore}
 \usecolortheme{lily}
 \beamertemplatenavigationsymbolsempty
 
+\newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+
 \DeclareMathOperator{\ifff}{:-}
 \DeclareMathOperator{\prob}{::}
+\DeclareMathOperator{\negg}{\backslash+}
 
 \definecolor{predicate}{HTML}{1b9e77}
 \definecolor{probability}{HTML}{e7298a}
@@ -51,7 +55,7 @@
 % height: 3.5575922222223
 
 \begin{frame}{Probabilistic Logic Programs (\textsc{ProbLog})}
-  \begin{block}{The Smokers Network (\cite{DBLP:conf/ilp/DomingosKLPRS08})}
+  \begin{block}{``Smokers'' (\cite{DBLP:conf/ilp/DomingosKLPRS08,DBLP:journals/tplp/FierensBRSGTJR15})}
     \vspace*{-\baselineskip}\setlength\belowdisplayshortskip{0pt}
     \begin{align*}
       \textcolor{probability}{0.2} \prob &\textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
@@ -72,10 +76,12 @@
 \begin{frame}{Applications}
   \begin{columns}[b]
     \begin{column}{0.5\textwidth}
+      \centering
       \includegraphics[width=\textwidth]{application1.png}
       {\small \cite{DBLP:conf/icra/MoldovanMOSR12}}
     \end{column}
     \begin{column}{0.5\textwidth}
+      \centering
       \includegraphics[width=\textwidth]{application3.png}
       {\small \cite{DBLP:conf/ijcai/DriesKDBR17}}
     \end{column}
@@ -83,24 +89,25 @@
   \vfill
   \begin{columns}[b]
     \begin{column}{0.5\textwidth}
+      \centering
       \includegraphics[width=\textwidth]{application2.png}
       {\small \cite{DBLP:conf/ilp/Corte-RealD017}}
     \end{column}
     \begin{column}{0.5\textwidth}
+      \centering
       \includegraphics[width=\textwidth]{application4.png}
       {\small \cite{de2013phenetic}}
     \end{column}
   \end{columns}
 \end{frame}
 
-% TODO: finish the explanation
 \begin{frame}{Inference Algorithms and Knowledge Compilation Maps}
   \begin{description}
   \item[NNF] negation normal form
   \item[d-DNNF] deterministic decomposable negation normal form
   \item[BDD] binary decision diagrams
   \item[SDD] sentential decision diagrams
-  \item[$k$-Best] ???
+  \item[$k$-Best] only use the $k$ most probable proofs
   \end{description}
 \end{frame}
 
@@ -118,6 +125,7 @@
   \begin{columns}[b]
     \begin{column}{0.33\textwidth}
       \begin{figure}
+      \centering
         \begin{tikzpicture}
           \node[draw,circle] (A) {$A$}
           child {edge from parent[draw=none]}
@@ -136,6 +144,7 @@
     \end{column}
     \begin{column}{0.34\textwidth}
       \begin{figure}
+        \centering
         \begin{tikzpicture}
           \node[draw,circle] {$\land$}
           child {node[draw,circle] {$\lor$}
@@ -159,6 +168,7 @@
     \end{column}
     \begin{column}{0.33\textwidth}
       \begin{figure}
+        \centering
         \begin{tikzpicture}
           \tikzset{
             mysplit/.style={
@@ -250,7 +260,7 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{What Characterises a (Probabilistic) Logic Program?}
+\begin{frame}{What Characterizes a (Probabilistic) Logic Program?}
   \begin{columns}
     \hspace*{-0.7cm}\begin{column}{0.75\textwidth}
       \begin{empheq}[left =\onslide<6->{\color{color5}\empheqlbrace}]{equation}
@@ -287,9 +297,122 @@
   }
 \end{frame}
 
-% TODO: describe clauses as trees (showing an example of a clause)
-% TODO: describe the rest of the model
-% TODO: add a link to GitHub at the end
+\begin{frame}{Clauses As Trees}
+  \[
+    \neg \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
+    \lor (\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})
+    \land \textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}}))
+  \]
+  \vfill
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \centering
+      \begin{tikzpicture}[level 1/.style={sibling distance=30mm},level 2/.style={sibling distance=15mm}]
+        \node[draw,circle] {$\lor$}
+        child {node[draw,circle] {$\neg$}
+          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$}}
+        }
+        child {node[draw,circle] {$\land$}
+          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$}}
+          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$}}
+        };
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \centering
+      \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+        0 & 0 & 0 & 1 & 2 & 2 \\
+        \hline
+        $\lor$ & $\neg$ & $\land$ & $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$ \\
+        \hline
+      \end{tabular}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Predicate Dependency Graph}
+  \centering
+  \begin{tikzpicture}
+    \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
+    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+    \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
+    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+    \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
+    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
+    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (person) -- (stress);
+    \draw[-{Latex[length=2mm]}] (person) -- (spont);
+    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Independence: $\textcolor{predicate}{\mathrm{influences}}
+    \independent \textcolor{predicate}{\mathrm{stress}}$}
+  \centering
+  \begin{tikzpicture}
+    \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
+    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+    \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
+    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+    \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
+    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
+    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (person) -- (stress);
+    \draw[-{Latex[length=2mm]}] (person) -- (spont);
+    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+    \draw<2->[-{Latex[length=2mm]}] (influences) edge[draw=red,bend left=15] (stress);
+    \draw<2->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (influences);
+    \draw<2->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
+    \draw<2->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Stratification and Negative Cycles}
+  \centering
+  \begin{tikzpicture}
+    \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
+    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+    \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
+    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+    \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
+    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
+    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (person) -- (stress);
+    \draw[-{Latex[length=2mm]}] (person) -- (spont);
+    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+    \draw<2->[-{Latex[length=2mm]},draw=red] (smokes) -- (friend);
+  \end{tikzpicture}
+  \[
+    \textcolor{probability}{0.1} \prob
+    \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{X}},
+    \textcolor{variable}{\mathsf{Y}}) \ifff
+    \negg\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}).
+  \]
+\end{frame}
 
 \begin{frame}{Scalability}
   \centering
@@ -304,6 +427,12 @@
 \begin{frame}{Properties of Programs vs. Inference Algorithms}
   \centering
   \input{../paper/bars.tex}
+\end{frame}
+
+% TODO: add a link to GitHub at the end
+\begin{frame}{Summary}
+%  \begin{itemize}
+%  \end{itemize}
 \end{frame}
 
 % ===============================================================
