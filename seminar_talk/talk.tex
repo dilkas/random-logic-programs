@@ -31,11 +31,9 @@
 
 \addbibresource{talk.bib}
 
-\author{\textbf{Paulius Dilkas}\inst{1} \and Vaishak Belle\inst{1,2}}
+\author{Paulius Dilkas}
 \title{Generating Random Logic Programs Using Constraint Programming}
-\date{CP 2020}
-\institute{\inst{1} University of Edinburgh, Edinburgh, UK \and \inst{2} Alan
-  Turing Institute, London, UK}
+\date{AIAI Seminar}
 
 \begin{document}
 
@@ -73,6 +71,112 @@
   \end{block}
 \end{frame}
 
+\begin{frame}{Inference}
+  \begin{minipage}[t][0.5\textheight]{\textwidth}
+    Let $a \oplus b = a + b - ab$.
+
+    \only<1>{
+      $\begin{aligned}[t]
+        \Pr[\textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{michelle}})]
+        &=
+        \Pr[\textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{constant}{\mathit{michelle}})]
+        \\
+        &\oplus
+        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{michelle}})]
+        \\
+        &\times
+        \Pr[\textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{constant}{\mathit{michelle}})]
+      \end{aligned}$
+    }
+    \only<2->{
+      $\Pr[\textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{michelle}})]
+      = \textcolor{probability}{0.1} \oplus \textcolor{probability}{0.3} \times
+      \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{michelle}})]$
+    }
+
+    \only<3>{
+      $\begin{aligned}[t]
+        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{michelle}})]
+        &=
+        \Pr[\textcolor{predicate}{\mathtt{stress}}(\textcolor{constant}{\mathit{michelle}})]
+        \\
+        &\oplus
+        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{timothy}})]
+        \\
+        &\times
+        \Pr[\textcolor{predicate}{\mathtt{influences}}(\textcolor{constant}{\mathit{timothy}},
+        \textcolor{constant}{\mathit{michelle}})]
+      \end{aligned}$
+    }
+    \only<4->{
+      $\Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{michelle}})]
+      = \textcolor{probability}{0.2} \oplus \textcolor{probability}{0.3} \times
+      \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{timothy}})]$
+    }
+
+    \only<5->{
+      $\Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{timothy}})]
+      =
+      \Pr[\textcolor{predicate}{\mathtt{stress}}(\textcolor{constant}{\mathit{timothy}})]
+      = \textcolor{probability}{0.2}$
+    }
+  \end{minipage}
+  \vfill
+  \begin{overprint}
+    \begin{onlyenv}<1>
+      \begin{empheq}[box=\fbox]{align*}
+        \textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}})
+        &\ifff
+        \textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}).
+        \\
+        \textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}})
+        &\ifff
+        \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{P}}),
+        \textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}).
+      \end{empheq}
+    \end{onlyenv}
+    \begin{onlyenv}<2>
+      \begin{empheq}[box=\fbox]{align*}
+        \textcolor{probability}{0.1} \prob
+        &\textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}})
+        \ifff
+        \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).
+        \\
+        \textcolor{probability}{0.3} \prob
+        &\textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}})
+        \ifff
+        \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).
+      \end{empheq}
+    \end{onlyenv}
+    \begin{onlyenv}<3>
+      \begin{empheq}[box=\fbox]{align*}
+        \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}})
+        &\ifff
+        \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{X}}).
+        \\
+        \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}})
+        &\ifff
+        \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}),
+        \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}},
+        \textcolor{variable}{\mathsf{X}}).
+      \end{empheq}
+    \end{onlyenv}
+    \begin{onlyenv}<4>
+      \begin{empheq}[box=\fbox]{align*}
+        \textcolor{probability}{0.2} \prob &\textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
+        \textcolor{probability}{0.3} \prob &\textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}) \ifff \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}).
+      \end{empheq}
+    \end{onlyenv}
+    \begin{onlyenv}<5>
+      \begin{empheq}[box=\fbox]{align*}
+        \textcolor{probability}{0.2} \prob &\textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
+        &\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{X}}).
+      \end{empheq}
+    \end{onlyenv}
+  \end{overprint}
+\end{frame}
+% TODO: colours for numbers/probabilities
+
 \begin{frame}{Applications}
   \begin{columns}[b]
     \begin{column}{0.5\textwidth}
@@ -101,6 +205,9 @@
   \end{columns}
 \end{frame}
 
+% TODO: what properties does d-DNNF ensure?
+% TODO: what about SDD?
+% TODO: explain how each of them works
 \begin{frame}{Inference Algorithms and Knowledge Compilation Maps}
   \begin{description}
   \item[NNF] negation normal form
@@ -112,21 +219,25 @@
 \end{frame}
 
 \begin{frame}{Example Diagrams for $C \land (A \lor \neg B)$}
-  \vspace{-1em}
-  % \begin{tikzpicture}
-  %   \node[draw,circle] {$\land$}
-  %   child {node[draw,rectangle] {$C$}}
-  %   child {node[draw,circle] {$\lor$}
-  %     child {node[draw,rectangle] {$A$}}
-  %     child {node[draw,rectangle] {$\neg B$}
-  %     }
-  %   };
-  % \end{tikzpicture}
   \begin{columns}[b]
     \begin{column}{0.33\textwidth}
       \begin{figure}
+        \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \node[draw,circle] {$\land$}
+          child {node[draw,rectangle] {$C$}}
+          child {node[draw,circle] {$\lor$}
+            child {node[draw,rectangle] {$A$}}
+            child {node[draw,rectangle] {$\neg B$}
+            }
+          };
+        \end{tikzpicture}
+        \caption{NNF}
+      \end{figure}
+      \vspace{-1em}
+      \begin{figure}
       \centering
-        \begin{tikzpicture}
+        \begin{tikzpicture}[level distance=0.8cm]
           \node[draw,circle] (A) {$A$}
           child {edge from parent[draw=none]}
           child {node[draw,circle] (B) {$B$} edge from parent[dashed]
@@ -142,10 +253,10 @@
         \caption{BDD}
       \end{figure}
     \end{column}
-    \begin{column}{0.34\textwidth}
+    \begin{column}{0.33\textwidth}
       \begin{figure}
         \centering
-        \begin{tikzpicture}
+        \begin{tikzpicture}[level distance=0.8cm]
           \node[draw,circle] {$\land$}
           child {node[draw,circle] {$\lor$}
             child {node[draw,circle] (parent) {$\land$}
@@ -169,7 +280,7 @@
     \begin{column}{0.33\textwidth}
       \begin{figure}
         \centering
-        \begin{tikzpicture}
+        \begin{tikzpicture}[level distance=0.8cm]
           \tikzset{
             mysplit/.style={
               draw,
@@ -204,6 +315,25 @@
           \draw[*-] let \p1 = (bullet.two), \p2 = (bullet.center) in ({\x1 + 2.5},{\y2 + 2}) -- (3);
         \end{tikzpicture}
         \caption{SDD}
+      \end{figure}
+      \vspace{-2em}
+      \begin{figure}
+      \centering
+      \begin{tikzpicture}[level distance=0.8cm]
+        \node[draw,circle] {$1$}
+        child {node[draw,circle] {$0$}
+          child {node[draw,rectangle] {$A$}}
+        }
+        child {node[draw,circle] {$3$}
+          child {node[draw,circle] {$2$}
+            child {node[draw,rectangle] {$B$}}
+          }
+          child {node[draw,circle] {$4$}
+            child {node[draw,rectangle] {$C$}}
+          }
+        };
+      \end{tikzpicture}
+      \caption{vtree}
       \end{figure}
     \end{column}
   \end{columns}
@@ -305,7 +435,7 @@
   \]
   \vfill
   \begin{columns}
-    \begin{column}{0.5\textwidth}
+    \begin{column}{0.4\textwidth}
       \pause
       \centering
       \begin{tikzpicture}[level 1/.style={sibling distance=30mm},level 2/.style={sibling distance=15mm}]
@@ -319,14 +449,14 @@
         };
       \end{tikzpicture}
     \end{column}
-    \begin{column}{0.5\textwidth}
+    \begin{column}{0.6\textwidth}
       \pause
       \centering
-      \begin{tabular}{|c|c|c|c|c|c|}
+      \begin{tabular}{|c|c|c|c|c|c|c|}
         \hline
-        0 & 0 & 0 & 1 & 2 & 2 \\
+        0 & 0 & 0 & 1 & 2 & 2 & 6 \\
         \hline
-        $\lor$ & $\neg$ & $\land$ & $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$ \\
+        $\lor$ & $\neg$ & $\land$ & $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$ & $\top$ \\
         \hline
       \end{tabular}
     \end{column}
@@ -429,76 +559,19 @@
   \input{../paper/bars.tex}
 \end{frame}
 
-% TODO: add a link to GitHub at the end
+% TODO: finish the slide
 \begin{frame}{Summary}
-%  \begin{itemize}
-%  \end{itemize}
+  \begin{itemize}
+  \item foo
+  \item bar
+  \item baz
+  \end{itemize}
+  \begin{block}{The implementation of the model is available at}
+    \url{https://github.com/dilkas/random-logic-programs}
+  \end{block}
 \end{frame}
 
 % ===============================================================
-
-\begin{frame}{Overview}
-  \begin{block}{General parameters}
-    \begin{itemize}
-    \item maximum number of solutions
-    \item \texttt{maxNumNodes} (in the tree representation of a clause)
-    \item list of predicates with their variables
-    \item maximum number of clauses
-    \item option to forbid all cycles or just negative cycles
-    \item list of probabilities that are randomly assigned to clauses: $\{ 0.1,
-      0.2, \dots, 0.9, 1, 1, 1, 1, 1, 1 \}$
-    \end{itemize}
-  \end{block}
-  \begin{block}{Decision variables}
-    \begin{itemize}
-    \item \texttt{IntVar[] clauseAssignments}: a predicate or disabled
-    \item \texttt{Clause[] clauses}
-    \end{itemize}
-  \end{block}
-\end{frame}
-
-\begin{frame}{Constraints}
-  \begin{block}{Each predicate should get at least one constraint}
-    \begin{itemize}
-    \item \texttt{numDisabledClauses}: defined by a \texttt{count} constraint
-    \item $\texttt{numDistinctValues} = \begin{cases}
-        \texttt{numPredicates} + 1 & \text{if } \texttt{numDisabledValues} > 0 \\
-        \texttt{numPredicates} & \text{otherwise.}
-      \end{cases}$
-      \begin{itemize}
-      \item also constrained using the \texttt{nValues} constraint
-      \end{itemize}
-    \end{itemize}
-  \end{block}
-  \begin{block}{Miscellaneous}
-    \begin{itemize}
-    \item \texttt{clauseAssignments} are sorted.
-    \item If $\texttt{clauseAssignments}[i-1] = \texttt{clauseAssignments}[i]$,
-      \begin{itemize}
-      \item then $\texttt{clause}[i-1] \preceq \texttt{clause}[i]$.
-      \end{itemize}
-    \end{itemize}
-  \end{block}
-\end{frame}
-
-\begin{frame}{Clauses}
-  \begin{block}{A clause is defined by...}
-    \begin{itemize}
-    \item \texttt{IntVar[] treeStructure}
-      \begin{itemize}
-      \item $\texttt{treeStructure}[i] = i$: the $i$-th node is a root.
-      \item $\texttt{treeStructure}[i] = j$: the $i$-th node's parent is node $j$.
-      \end{itemize}
-    \item \texttt{IntVar[] treeValues}: $\neg$, $\land$, $\lor$, $\top$, and any
-      predefined predicates with variables.
-    \end{itemize}
-  \end{block}
-  \begin{block}{Auxiliary variables}
-    \begin{itemize}
-    \item $\texttt{numNodes}, \texttt{numTrees} \in \{ 1, \dots, \texttt{maxNumNodes} \}$
-    \end{itemize}
-  \end{block}
-\end{frame}
 
 \begin{frame}{Clause constraints}
   \begin{itemize}
@@ -543,11 +616,6 @@
         \item If one is determined, the selected edge of the other must not
           exist.
         \end{itemize}
-      \end{itemize}
-    \item Conditional independence
-      \begin{itemize}
-      \item Same propagation, but with a `filter' that masks out the expression
-        that the independence is conditioned on.
       \end{itemize}
     \end{itemize}
   \end{block}
