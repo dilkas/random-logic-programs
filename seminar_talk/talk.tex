@@ -2,6 +2,11 @@
 \usepackage{tikz}
 \usepackage[style=authoryear]{biblatex}
 \usepackage{empheq}
+\usepackage{pifont}
+
+\usetheme{Singapore}
+\usecolortheme{lily}
+\beamertemplatenavigationsymbolsempty
 
 \usetikzlibrary{arrows}
 \usetikzlibrary{arrows.meta}
@@ -10,10 +15,9 @@
 \usetikzlibrary{positioning}
 \usetikzlibrary{shapes}
 \tikzstyle{every picture}+=[remember picture]
-
-\usetheme{Singapore}
-\usecolortheme{lily}
-\beamertemplatenavigationsymbolsempty
+\tikzset{onslide/.code args={<#1>#2}{%
+  \only<#1>{\pgfkeysalso{#2}}
+}}
 
 \newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}
 \def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
@@ -21,6 +25,9 @@
 \DeclareMathOperator{\ifff}{:-}
 \DeclareMathOperator{\prob}{::}
 \DeclareMathOperator{\negg}{\backslash+}
+
+\newcommand{\cmark}{\textcolor{green!50!black}{\ding{51}}}%
+\newcommand{\xmark}{\textcolor{red}{\ding{55}}}%
 
 \definecolor{predicate}{HTML}{1b9e77}
 \definecolor{probability}{HTML}{e7298a}
@@ -49,8 +56,63 @@
   \titlepage
 \end{frame}
 
-% width: 4.2679148611112
-% height: 3.5575922222223
+\begin{frame}{How Many Programs Are Used to Test Algorithms?}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference3.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{4}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference8.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{3}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference7.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference6.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference2.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference1.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{2}};
+        \end{tikzpicture}
+      }
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents
+\end{frame}
+
+\section{Probabilistic Logic Programming}
 
 \begin{frame}{Probabilistic Logic Programs (\textsc{ProbLog})}
   \begin{block}{``Smokers'' (\cite{DBLP:conf/ilp/DomingosKLPRS08,DBLP:journals/tplp/FierensBRSGTJR15})}
@@ -71,9 +133,37 @@
   \end{block}
 \end{frame}
 
-\begin{frame}{Inference}
+\begin{frame}{Applications}
+  \begin{columns}[b]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{application1.png}
+      {\small \cite{DBLP:conf/icra/MoldovanMOSR12}}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{application3.png}
+      {\small \cite{DBLP:conf/ijcai/DriesKDBR17}}
+    \end{column}
+  \end{columns}
+  \vfill
+  \begin{columns}[b]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{application2.png}
+      {\small \cite{DBLP:conf/ilp/Corte-RealD017}}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{application4.png}
+      {\small \cite{de2013phenetic}}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Probabilistic Inference}
   \begin{minipage}[t][0.5\textheight]{\textwidth}
-    Let $a \oplus b = a + b - ab$.
+    Let \alert{$a \oplus b = a + b - ab$}.
 
     \only<1>{
       $\begin{aligned}[t]
@@ -175,50 +265,28 @@
     \end{onlyenv}
   \end{overprint}
 \end{frame}
-% TODO: colours for numbers/probabilities
 
-\begin{frame}{Applications}
-  \begin{columns}[b]
-    \begin{column}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{application1.png}
-      {\small \cite{DBLP:conf/icra/MoldovanMOSR12}}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{application3.png}
-      {\small \cite{DBLP:conf/ijcai/DriesKDBR17}}
-    \end{column}
-  \end{columns}
-  \vfill
-  \begin{columns}[b]
-    \begin{column}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{application2.png}
-      {\small \cite{DBLP:conf/ilp/Corte-RealD017}}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \centering
-      \includegraphics[width=\textwidth]{application4.png}
-      {\small \cite{de2013phenetic}}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-% TODO: what properties does d-DNNF ensure?
-% TODO: what about SDD?
-% TODO: explain how each of them works
 \begin{frame}{Inference Algorithms and Knowledge Compilation Maps}
   \begin{description}
   \item[NNF] negation normal form
-  \item[d-DNNF] deterministic decomposable negation normal form
   \item[BDD] binary decision diagrams
   \item[SDD] sentential decision diagrams
-  \item[$k$-Best] only use the $k$ most probable proofs
+  \item[$k$-Best] only use the \alert{$k$} most probable proofs
+  \item[d-DNNF] deterministic decomposable negation normal form
+    \begin{itemize}
+    \item<2-> for every pair \alert{$\alpha \lor \beta$}, we have \alert{$\alpha
+        \land \beta = \bot$}
+    \item<2-> for every pair \alert{$\alpha \land \beta$}, no atoms are shared
+      between \alert{$\alpha$} and \alert{$\beta$}
+    \item[\xmark\xmark]<3> $(A \lor C) \land (A \lor \neg B)$
+    \item[\xmark\cmark]<3> $C \land (A \lor \neg B)$
+    \item[\cmark\xmark]<3> $B \land C \land [(B \land A) \lor \neg B]$
+    \item[\cmark\cmark]<3> $C \land [(B \land A) \lor \neg B]$
+    \end{itemize}
   \end{description}
 \end{frame}
 
-\begin{frame}{Example Diagrams for $C \land (A \lor \neg B)$}
+\begin{frame}{Example Diagrams for \alert{$C \land (A \lor \neg B)$}}
   \begin{columns}[b]
     \begin{column}{0.33\textwidth}
       \begin{figure}
@@ -303,7 +371,7 @@
               }
               child {node[mysplit] {
                   \nodepart{one} $B$
-                  \nodepart{two} $0$
+                  \nodepart{two} $\bot$
                 }
               }
             }
@@ -339,58 +407,9 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{How Many Programs Are Used to Test Algorithms?}
-  \begin{columns}
-    \begin{column}{0.5\textwidth}
-      \pause
-      \fbox{
-        \begin{tikzpicture}
-          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference3.png}};
-          \node[anchor=center] at (a.center) {\Huge\alert{4}};
-        \end{tikzpicture}
-      }
-      \pause
-      \fbox{
-        \begin{tikzpicture}
-          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference8.png}};
-          \node[anchor=center] at (a.center) {\Huge\alert{3}};
-        \end{tikzpicture}
-      }
-      \pause
-      \fbox{
-        \begin{tikzpicture}
-          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference7.png}};
-          \node[anchor=center] at (a.center) {\Huge\alert{1}};
-        \end{tikzpicture}
-      }
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \pause
-      \fbox{
-        \begin{tikzpicture}
-          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference6.png}};
-          \node[anchor=center] at (a.center) {\Huge\alert{1}};
-        \end{tikzpicture}
-      }
-      \pause
-      \fbox{
-        \begin{tikzpicture}
-          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference2.png}};
-          \node[anchor=center] at (a.center) {\Huge\alert{1}};
-        \end{tikzpicture}
-      }
-      \pause
-      \fbox{
-        \begin{tikzpicture}
-          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference1.png}};
-          \node[anchor=center] at (a.center) {\Huge\alert{2}};
-        \end{tikzpicture}
-      }
-    \end{column}
-  \end{columns}
-\end{frame}
+\section{The Constraint Model}
 
-\begin{frame}{What Characterizes a (Probabilistic) Logic Program?}
+\begin{frame}{What Characterises a (Probabilistic) Logic Program?}
   \begin{columns}
     \hspace*{-0.7cm}\begin{column}{0.75\textwidth}
       \begin{empheq}[left =\onslide<6->{\color{color5}\empheqlbrace}]{equation}
@@ -427,6 +446,7 @@
   }
 \end{frame}
 
+% TODO: I could talk about the constraints behind this
 \begin{frame}{Clauses As Trees}
   \[
     \neg \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
@@ -463,6 +483,121 @@
   \end{columns}
 \end{frame}
 
+% TODO: and how is a predicate with its arguments represented?
+\begin{frame}{Variable Symmetry Breaking}
+  \begin{block}{The Problem}
+    Let $\{ \textcolor{variable}{\mathsf{W}}, \textcolor{variable}{\mathsf{X}},
+    \textcolor{variable}{\mathsf{Y}} \}$ be the set of variables. Then
+    \[
+      \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}})
+      \ifff
+      \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}),
+      \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}},
+      \textcolor{variable}{\mathsf{X}})
+    \]
+    is equivalent to
+    \[
+      \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}})
+      \ifff
+      \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}),
+      \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{X}},
+      \textcolor{variable}{\mathsf{Y}})
+    \]
+    and to
+    \[
+      \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{W}})
+      \ifff
+      \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}),
+      \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{X}},
+      \textcolor{variable}{\mathsf{W}})
+    \]
+  \end{block}
+\end{frame}
+
+\begin{frame}{Variable Symmetry Breaking}
+  \begin{overprint}
+    \onslide<1>
+    \centering
+    \begin{tabular}{|c|c|c|c|}
+      \hline
+      $\textcolor{variable}{\mathsf{X}}$ & $\textcolor{variable}{\mathsf{Y}}$ & $\textcolor{variable}{\mathsf{Y}}$ & $\textcolor{variable}{\mathsf{X}}$ \\
+      \hline
+    \end{tabular}
+    \onslide<2>
+    \centering
+    \begin{tabular}{|c|c|c|c|}
+      \hline
+      $\textcolor{variable}{\mathsf{Y}}$ & $\textcolor{variable}{\mathsf{X}}$ & $\textcolor{variable}{\mathsf{X}}$ & $\textcolor{variable}{\mathsf{Y}}$ \\
+      \hline
+    \end{tabular}
+    \onslide<3>
+    \centering
+    \begin{tabular}{|c|c|c|c|}
+      \hline
+      $\textcolor{variable}{\mathsf{W}}$ & $\textcolor{variable}{\mathsf{X}}$ & $\textcolor{variable}{\mathsf{X}}$ & $\textcolor{variable}{\mathsf{W}}$ \\
+      \hline
+    \end{tabular}
+  \end{overprint}
+  \vfill
+  \begin{columns}[t]
+    \begin{column}{0.5\textwidth}
+      \begin{block}{\centering Occurrences}
+        \centering
+        (channeling)
+        \begin{overprint}
+          \onslide<1>
+          \begin{align*}
+            \textcolor{variable}{\mathsf{W}} &\mapsto \emptyset \\
+            \textcolor{variable}{\mathsf{X}} &\mapsto \{ 0, 3 \} \\
+            \textcolor{variable}{\mathsf{Y}} &\mapsto \{ 1, 2 \}
+          \end{align*}
+          \onslide<2>
+          \begin{align*}
+            \textcolor{variable}{\mathsf{W}} &\mapsto \emptyset \\
+            \textcolor{variable}{\mathsf{X}} &\mapsto \alert{\{ 1, 2 \}} \\
+            \textcolor{variable}{\mathsf{Y}} &\mapsto \alert{\{ 0, 3 \}}
+          \end{align*}
+          \onslide<3>
+          \begin{align*}
+            \textcolor{variable}{\mathsf{W}} &\mapsto \alert{\{ 0, 3 \}} \\
+            \textcolor{variable}{\mathsf{X}} &\mapsto \{ 1, 2 \} \\
+            \textcolor{variable}{\mathsf{Y}} &\mapsto \alert{\emptyset}
+          \end{align*}
+        \end{overprint}
+      \end{block}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{block}{\centering Introductions}
+        \centering
+        $1 + \min \mathsf{occurrences}(v)$ or $0$
+        \begin{overprint}
+          \onslide<1>
+          \begin{align*}
+            \textcolor{variable}{\mathsf{W}} &\mapsto 0 \\
+            \textcolor{variable}{\mathsf{X}} &\mapsto 1 \\
+            \textcolor{variable}{\mathsf{Y}} &\mapsto 2
+          \end{align*}
+          \smallskip
+          \onslide<2>
+          \begin{align*}
+            \textcolor{variable}{\mathsf{W}} &\mapsto 0 \\
+            \textcolor{variable}{\mathsf{X}} &\mapsto \alert{2} \\
+            \textcolor{variable}{\mathsf{Y}} &\mapsto \alert{1}
+          \end{align*}
+          \onslide<3>
+          \begin{align*}
+            \textcolor{variable}{\mathsf{W}} &\mapsto \alert{1} \\
+            \textcolor{variable}{\mathsf{X}} &\mapsto 2 \\
+            \textcolor{variable}{\mathsf{Y}} &\mapsto \alert{0}
+          \end{align*}
+        \end{overprint}
+        \only<1>{\textcolor{green!50!black}{sorted!}}
+        \only<2-3>{\alert{not sorted!}}
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
 \begin{frame}{Predicate Dependency Graph}
   \centering
   \begin{tikzpicture}
@@ -490,9 +625,9 @@
     \independent \textcolor{predicate}{\mathrm{stress}}$}
   \centering
   \begin{tikzpicture}
-    \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
-    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
-    \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+    \node[draw,ellipse,onslide=<2->{fill=constant!25}] (friend) {\textcolor{predicate}{friend}};
+    \node[draw,ellipse,onslide=<2->{fill=constant!25},right=of friend] (influences) {\textcolor{predicate}{influences}};
+    \node[draw,ellipse,onslide=<2->{fill=variable!25},below=of influences] (stress) {\textcolor{predicate}{stress}};
     \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
     \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
     \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
@@ -507,10 +642,10 @@
     \draw[-{Latex[length=2mm]}] (person) -- (stress);
     \draw[-{Latex[length=2mm]}] (person) -- (spont);
     \draw[-{Latex[length=2mm]}] (person) -- (smoke);
-    \draw<2->[-{Latex[length=2mm]}] (influences) edge[draw=red,bend left=15] (stress);
-    \draw<2->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (influences);
-    \draw<2->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
-    \draw<2->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
+    \draw<3->[-{Latex[length=2mm]}] (influences) edge[draw=red,bend left=15] (stress);
+    \draw<3->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (influences);
+    \draw<3->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
+    \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
   \end{tikzpicture}
 \end{frame}
 
@@ -544,6 +679,8 @@
   \]
 \end{frame}
 
+\section{Experimental Results}
+
 \begin{frame}{Scalability}
   \centering
   \input{impact.tex}
@@ -559,6 +696,10 @@
   \input{../paper/bars.tex}
 \end{frame}
 
+\section{Summary}
+
+% * a full example for independence propagation (with an adjacency matrix)
+% * specific constraints
 % TODO: finish the slide
 \begin{frame}{Summary}
   \begin{itemize}
