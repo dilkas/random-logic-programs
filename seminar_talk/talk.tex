@@ -3,6 +3,12 @@
 \usepackage[style=authoryear]{biblatex}
 \usepackage{empheq}
 \usepackage{pifont}
+\usepackage{colortbl}
+\usepackage{enumitem}
+
+\setitemize{label=\usebeamerfont*{itemize item}%
+  \usebeamercolor[fg]{itemize item}
+  \usebeamertemplate{itemize item}}
 
 \usetheme{Singapore}
 \usecolortheme{lily}
@@ -163,7 +169,7 @@
 
 \begin{frame}{Probabilistic Inference}
   \begin{minipage}[t][0.5\textheight]{\textwidth}
-    Let \alert{$a \oplus b = a + b - ab$}.
+    Let \alert{$a \oplus b \coloneqq a + b - ab$}. Then
 
     \only<1>{
       $\begin{aligned}[t]
@@ -446,44 +452,81 @@
   }
 \end{frame}
 
-% TODO: I could talk about the constraints behind this
-\begin{frame}{Clauses As Trees}
-  \[
-    \neg \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
-    \lor (\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})
-    \land \textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}}))
-  \]
-  \vfill
+% 1. Formula
+% 2. Tree
+% 3. First two rows
+% 4. s is a forest
+% 5. first digit
+% 6. sorted, implication
+% 7. length, number of nodes, for
+% 8. third row, last 3 constraints
+
+\begin{frame}{Formulas As Trees}
   \begin{columns}
-    \begin{column}{0.4\textwidth}
-      \pause
-      \centering
-      \begin{tikzpicture}[level 1/.style={sibling distance=30mm},level 2/.style={sibling distance=15mm}]
-        \node[draw,circle] {$\lor$}
-        child {node[draw,circle] {$\neg$}
-          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$}}
-        }
-        child {node[draw,circle] {$\land$}
-          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$}}
-          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$}}
-        };
-      \end{tikzpicture}
+    \begin{column}{0.37\textwidth}
+      \[
+        \neg \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
+        \lor (\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})
+        \land \textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}}))
+      \]
+      \onslide<2->{
+        \begin{tikzpicture}[level 1/.style={sibling distance=30mm},level 2/.style={sibling distance=15mm}]
+          \node[draw,circle] {$\lor$}
+          child {node[draw,circle] {$\neg$}
+            child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$}}
+          }
+          child {node[draw,circle] {$\land$}
+            child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$}}
+            child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$}}
+          };
+        \end{tikzpicture}
+      }
+      \begin{itemize}
+      \item<6-> $\alert{\mathbf{s}}$ is sorted
+      \item<6-> $\alert{\mathbf{s}_i \ne i} \implies \alert{\mathbf{v}_i \ne \top}$
+      \end{itemize}
     \end{column}
-    \begin{column}{0.6\textwidth}
-      \pause
+    \begin{column}{0.63\textwidth}
+      \alt<7>{\newcolumntype{C}{>{\columncolor{constant!25}}c}}{\newcolumntype{C}{c}}
+      \alt<7>{\newcolumntype{D}{>{\columncolor{probability!25}}c}}{\newcolumntype{D}{c}}
       \centering
-      \begin{tabular}{|c|c|c|c|c|c|c|}
-        \hline
-        0 & 0 & 0 & 1 & 2 & 2 & 6 \\
-        \hline
-        $\lor$ & $\neg$ & $\land$ & $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$ & $\top$ \\
-        \hline
-      \end{tabular}
+      \onslide<3->{
+        \begin{tabular}{c c|C|C|C|C|C|D}
+          \cline{2-8}
+          $\alert{\mathbf{s}}\colon$ & \alert<5->{0} & 0 & 0 & 1 & 2 & 2 & 6 \\
+          \cline{2-8}
+          $\alert{\mathbf{v}}\colon$ & $\lor$ & $\neg$ & $\land$ & $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$ & $\top$ \\
+          \cline{2-8}
+          \onslide<8->{$\alert{\mathbf{c}}\colon$ & 2 & 1 & 2 & 0 & 0 & 0 & 0 \\ \cline{2-8}}
+        \end{tabular}
+      }
+      \begin{itemize}
+      \item<4-> $\alert{\mathbf{s}}$ is a forest with $\alert{T = 2}$ trees
+      \item<7-> length \alert{$L = 7$}
+      \item<7-> number of nodes \alert{$N \coloneqq L - T + 1 = 6$}
+      \item<7-> for \alert{$i = 1, \dots, L - 1$},
+        \begin{itemize}
+        \item if \alert{$i < N$}, then \alert{$\mathbf{s}_i < i$}
+        \item else \alert{$\mathbf{s}_i = i$} and \alert{$\mathbf{v}_i = \top$}
+        \end{itemize}
+      \item<8-> $\alert{\mathbf{c}_i = 0} \iff \alert{\mathbf{v}_i = \top}$ or is a predicate
+      \item<8-> $\alert{\mathbf{c}_i = 1} \iff \alert{\mathbf{v}_i = \neg}$
+      \item<8-> $\alert{\mathbf{c}_i > 1} \iff \alert{\mathbf{v}_i \in \{ \land, \lor \}}$
+      \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
+% TODO: a longer intro to experiments (the setup)
+% TODO: conditional independence?
 % TODO: and how is a predicate with its arguments represented?
+% TODO: could add more experimental graphs
+% TODO: a full(er) example of independence propagation
+% TODO: could talk about what algorithms are behind the negative cycle detection
+% TODO: for the bigraph talk, I had 28 slides full info and it still wasn't
+% enough. Maybe I should aim for at least 30.
+% TODO: more constraints
+% TODO: more motivation and related work
 \begin{frame}{Variable Symmetry Breaking}
   \begin{block}{The Problem}
     Let $\{ \textcolor{variable}{\mathsf{W}}, \textcolor{variable}{\mathsf{X}},
@@ -621,62 +664,77 @@
   \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{Independence: $\textcolor{predicate}{\mathrm{influences}}
-    \independent \textcolor{predicate}{\mathrm{stress}}$}
-  \centering
-  \begin{tikzpicture}
-    \node[draw,ellipse,onslide=<2->{fill=constant!25}] (friend) {\textcolor{predicate}{friend}};
-    \node[draw,ellipse,onslide=<2->{fill=constant!25},right=of friend] (influences) {\textcolor{predicate}{influences}};
-    \node[draw,ellipse,onslide=<2->{fill=variable!25},below=of influences] (stress) {\textcolor{predicate}{stress}};
-    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
-    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
-    \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
-    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
-    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
-    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
-    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
-    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
-    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (person) -- (stress);
-    \draw[-{Latex[length=2mm]}] (person) -- (spont);
-    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
-    \draw<3->[-{Latex[length=2mm]}] (influences) edge[draw=red,bend left=15] (stress);
-    \draw<3->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (influences);
-    \draw<3->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
-    \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
-  \end{tikzpicture}
-\end{frame}
-
+% TODO: all the extra plots and example I had in the appendix
 \begin{frame}{Stratification and Negative Cycles}
-  \centering
-  \begin{tikzpicture}
-    \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
-    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
-    \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
-    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
-    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
-    \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
-    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
-    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
-    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
-    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
-    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
-    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (person) -- (stress);
-    \draw[-{Latex[length=2mm]}] (person) -- (spont);
-    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
-    \draw<2->[-{Latex[length=2mm]},draw=red] (smokes) -- (friend);
-  \end{tikzpicture}
   \[
     \textcolor{probability}{0.1} \prob
     \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{X}},
     \textcolor{variable}{\mathsf{Y}}) \ifff
     \negg\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}).
   \]
+  \vfill
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+      \begin{itemize}[leftmargin=0pt]
+      \item<3-> \alert{Stratum 1}: predicates with no negation
+      \item<3-> \alert{Stratum 2}: new predicates s.t. negative literals refer to
+        predicates in \alert{Stratum~1}
+      \end{itemize}
+      \vspace{5em}
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \hspace{-6.92em}
+      \begin{tikzpicture}
+        \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
+        \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+        \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+        \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
+        \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+        \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
+        \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
+        \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+        \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+        \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+        \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+        \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (person) -- (stress);
+        \draw[-{Latex[length=2mm]}] (person) -- (spont);
+        \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+        \draw<2->[-{Latex[length=2mm]},draw=red] (smokes) -- (friend);
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Independence: $\textcolor{predicate}{\mathrm{friend}} \independent \textcolor{predicate}{\mathrm{stress}}$}
+  \centering
+  \begin{tikzpicture}
+    \node[draw,ellipse,onslide=<2->{fill=constant!25}] (friend) {\textcolor{predicate}{friend}};
+    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+    \node[draw,ellipse,onslide=<2->{fill=variable!25},below=of influences] (stress) {\textcolor{predicate}{stress}};
+    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
+    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+    \node[draw,ellipse,onslide=<2->{fill=variable!25},left=of spont] (person) {\textcolor{predicate}{person}};
+    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
+    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (person) -- (stress);
+    \draw[-{Latex[length=2mm]}] (person) -- (spont);
+    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+
+    \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (person);
+    \draw<3->[-{Latex[length=2mm]}] (person) edge[draw=red,bend left=15] (friend);
+
+    \draw<3->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
+    \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
+  \end{tikzpicture}
 \end{frame}
 
 \section{Experimental Results}
@@ -713,27 +771,6 @@
 \end{frame}
 
 % ===============================================================
-
-\begin{frame}{Clause constraints}
-  \begin{itemize}
-  \item \texttt{treeStructure} represents \texttt{numTrees} trees.
-  \item $\texttt{treeStructure}[0] = 0$
-  \item $\texttt{numTrees} + \texttt{numNodes} = \texttt{maxNumNodes} + 1$
-  \item \texttt{treeStructure} is sorted
-  \item For $i = 0, \dots, \texttt{maxNumNodes} - 1$,
-    \begin{itemize}
-    \item If $\texttt{numNodes} \le i$,
-    \item then $\texttt{treeStructure}[i] = i$ and $\texttt{treeValues}[i] = \top$,
-    \item else $\texttt{treeStructure}[i] < \texttt{numNodes}$.
-    \item has 0 children $\iff$ $\texttt{treeValues}[i]$ is a predicate
-    \item has 1 child $\iff$ $\texttt{treeValues}[i] = \neg$
-    \item has $>1$ child $\iff$ $\texttt{treeValues}[i] \in \{ \land, \lor \}$
-    \item $\texttt{treeStructure}[i] \ne i \implies \texttt{treeValues}[i] \ne \top$
-    \end{itemize}
-  \item If the clause should be disabled, $\texttt{numNodes} = 1$ and
-    $\texttt{treeValues}[0] = \top$.
-  \end{itemize}
-\end{frame}
 
 \begin{frame}
   \begin{block}{Adjacency matrix representation}
