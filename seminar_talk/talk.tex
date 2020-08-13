@@ -4,11 +4,7 @@
 \usepackage{empheq}
 \usepackage{pifont}
 \usepackage{colortbl}
-\usepackage{enumitem}
-
-\setitemize{label=\usebeamerfont*{itemize item}%
-  \usebeamercolor[fg]{itemize item}
-  \usebeamertemplate{itemize item}}
+\usepackage{soul}
 
 \usetheme{Singapore}
 \usecolortheme{lily}
@@ -167,7 +163,7 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Probabilistic Inference}
+\begin{frame}{Probabilistic Inference: Reasoning by Hand}
   \begin{minipage}[t][0.5\textheight]{\textwidth}
     Let \alert{$a \oplus b \coloneqq a + b - ab$}. Then
 
@@ -272,6 +268,51 @@
   \end{overprint}
 \end{frame}
 
+\begin{frame}{Probabilistic Inference: Probabilities of Worlds}
+  \vspace{-0.5em}
+  \onslide<2->{
+    \[
+      \textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{michelle}})
+      = \alt<5>{\alert{\bot}}{\top}
+    \]
+    \[
+      \Pr(\mathit{world}) =
+      \only<2>{
+        \textcolor{probability}{0.2} \times (1 - \textcolor{probability}{0.3})
+        \times \textcolor{probability}{0.1} \times \textcolor{probability}{0.3}
+      }
+      \only<3>{
+        \textcolor{probability}{0.2} \times \textcolor{probability}{0.3} \times
+        \textcolor{probability}{0.1} \times (1 - \textcolor{probability}{0.3})
+      }
+      \only<4>{
+        (1 - \textcolor{probability}{0.2}) \times (1 -
+        \textcolor{probability}{0.3}) \times \textcolor{probability}{0.1} \times
+        \textcolor{probability}{0.3}
+      }
+      \only<5>{
+        (1 - \textcolor{probability}{0.2}) \times (1 -
+        \textcolor{probability}{0.3}) \times (1 - \textcolor{probability}{0.1})
+        \times (1 - \textcolor{probability}{0.3})
+      }
+    \]
+  }
+  \vspace{-1.5em}
+  \begin{align*}
+    \alt<2->{\hbox{\st{$\textcolor{probability}{0.2} \prob$}}}{\textcolor{probability}{0.2} \prob} &\alt<4,5>{\hbox{\st{$\textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).$}}}{\textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).} \\
+    \alt<2->{\hbox{\st{$\textcolor{probability}{0.3} \prob$}}}{\textcolor{probability}{0.3} \prob} &\alt<2,4,5>{\hbox{\st{$\textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}) \ifff \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}).$}}}{\textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}) \ifff \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}).} \\
+    \alt<2->{\hbox{\st{$\textcolor{probability}{0.1} \prob$}}}{\textcolor{probability}{0.1} \prob} &\alt<5>{\hbox{\st{$\textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).$}}}{\textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).} \\
+    \alt<2->{\hbox{\st{$\textcolor{probability}{0.3} \prob$}}}{\textcolor{probability}{0.3} \prob} &\alt<3,5>{\hbox{\st{$\textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).$}}}{\textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).} \\
+                                                                                                   &\alt<4,5>{\hbox{\st{$\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{X}}).$}}}{\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{X}}).} \\
+                                                                                                   &\alt<2,4,5>{\hbox{\st{$\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}), \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{X}}).$}}}{\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}), \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{X}}).} \\
+                                                                                                   &\alt<5>{\hbox{\st{$\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}).$}}}{\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}).} \\
+                                                                                                   &\alt<3-5>{\hbox{\st{$\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{P}}), \textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}).$}}}{\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{P}}), \textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}).} \\
+                                                                                                   &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{michelle}}). \\
+                                                                                                   &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{timothy}}). \\
+                                                                                                   &\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}}, \textcolor{constant}{\mathit{michelle}}).
+  \end{align*}
+\end{frame}
+
 \begin{frame}{Inference Algorithms and Knowledge Compilation Maps}
   \begin{description}
   \item[NNF] negation normal form
@@ -284,10 +325,13 @@
         \land \beta = \bot$}
     \item<2-> for every pair \alert{$\alpha \land \beta$}, no atoms are shared
       between \alert{$\alpha$} and \alert{$\beta$}
-    \item[\xmark\xmark]<3> $(A \lor C) \land (A \lor \neg B)$
-    \item[\xmark\cmark]<3> $C \land (A \lor \neg B)$
-    \item[\cmark\xmark]<3> $B \land C \land [(B \land A) \lor \neg B]$
-    \item[\cmark\cmark]<3> $C \land [(B \land A) \lor \neg B]$
+    \item<3-> examples:
+      \begin{itemize}
+      \item[\visible<4->{\xmark}\visible<5->{\xmark}]<3-> $(A \lor C) \land (A \lor \neg B)$
+      \item[\visible<7->{\xmark}\visible<8->{\cmark}]<6-> $C \land (A \lor \neg B)$
+      \item[\visible<10->{\cmark}\visible<11->{\xmark}]<9-> $B \land C \land [(B \land A) \lor \neg B]$
+      \item[\visible<13->{\cmark}\visible<14->{\cmark}]<12-> $C \land [(B \land A) \lor \neg B]$
+      \end{itemize}
     \end{itemize}
   \end{description}
 \end{frame}
@@ -517,14 +561,12 @@
   \end{columns}
 \end{frame}
 
-% TODO: a longer intro to experiments (the setup)
 % TODO: conditional independence?
-% TODO: and how is a predicate with its arguments represented?
-% TODO: could add more experimental graphs
+% TODO: how is a predicate with its arguments represented?
 % TODO: a full(er) example of independence propagation
 % TODO: could talk about what algorithms are behind the negative cycle detection
 % TODO: for the bigraph talk, I had 28 slides full info and it still wasn't
-% enough. Maybe I should aim for at least 30.
+% enough. Maybe I should aim for at least 30. Right now I have 26.
 % TODO: more constraints
 % TODO: more motivation and related work
 \begin{frame}{Variable Symmetry Breaking}
@@ -675,7 +717,8 @@
   \vfill
   \begin{columns}
     \begin{column}{0.4\textwidth}
-      \begin{itemize}[leftmargin=0pt]
+      \setlength{\leftmargini}{0pt}
+      \begin{itemize}
       \item<3-> \alert{Stratum 1}: predicates with no negation
       \item<3-> \alert{Stratum 2}: new predicates s.t. negative literals refer to
         predicates in \alert{Stratum~1}
@@ -744,6 +787,72 @@
   \input{impact.tex}
 \end{frame}
 
+\begin{frame}{How Predicate Independence Affects Search Complexity}
+  \centering
+  \includegraphics{phase_transition.pdf}
+\end{frame}
+
+\begin{frame}{What Programs Should We Generate?}
+  \begin{itemize}
+  \item each program is divided into:
+    \begin{itemize}
+    \item rules
+      \begin{itemize}
+      \item e.g., $\textcolor{probability}{0.2} \prob
+        \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}})
+        \ifff
+        \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).$
+      \end{itemize}
+    \item facts
+      \begin{itemize}
+      \item e.g.,
+        $\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}},
+        \textcolor{constant}{\mathit{michelle}}).$
+      \end{itemize}
+    \end{itemize}
+  \item predicates, variables, nodes: 2, 4, 8
+  \item maximum arity: 1, 2, 3
+  \item all possible numbers of pairs of independent predicates
+  \item 10 programs per configuration
+    \begin{itemize}
+    \item fully restarting the constraint solver
+    \end{itemize}
+  \item probabilities sampled from $\{ 0.1, 0.2, \dots, 0.9 \}$
+  \item query: random unlisted fact
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Rules}
+  \[
+    \textcolor{probability}{0.2} \prob
+    \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}})
+    \ifff
+    \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).
+  \]
+  \bigskip
+  \begin{itemize}
+  \item no constants, no empty bodies
+  \item one rule per predicate
+  \item all rules are probabilistic
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Facts}
+  \[
+    \textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}},
+    \textcolor{constant}{\mathit{michelle}}).
+  \]
+  \bigskip
+  \begin{itemize}
+  \item proportion probabilistic: 25\%, 50\%, 75\%
+  \item constants: 100, 200, 400
+  \item number of facts: $10^3$, $10^4$, $10^5$
+    \begin{itemize}
+    \item but only up to 75\% of all possible facts
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+
 \begin{frame}{Properties of Programs vs. Inference Algorithms}
   \centering
   \input{line_plots.tex}
@@ -754,10 +863,16 @@
   \input{../paper/bars.tex}
 \end{frame}
 
+\begin{frame}{How Encodings Compare Across Instances}
+  \includegraphics{scatterplot.pdf}
+\end{frame}
+
+\begin{frame}{The Ratio of Listed Facts to Possible Facts}
+  \includegraphics{proportion.pdf}
+\end{frame}
+
 \section{Summary}
 
-% * a full example for independence propagation (with an adjacency matrix)
-% * specific constraints
 % TODO: finish the slide
 \begin{frame}{Summary}
   \begin{itemize}

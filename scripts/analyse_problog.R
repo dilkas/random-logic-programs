@@ -161,6 +161,23 @@ grid.arrange(plot("number.of.predicates", combined, summarised),
              left = textGrob("Mean inference time (s)", rot = 90, vjust = 1))
 dev.off()
 
+# Extra plots for the talk
+
+tikz(file = "../seminar_talk/proportion.tex", width = 4.2, height = 1.8, standAlone = T)
+ggplot(data = combined[combined$variable == "proportion.listed",], aes(x = value, y = Total.time, color = Algorithm,
+                                                                       fill = Algorithm, linetype = Algorithm)) +
+  xlab("Proportion of listed facts") +
+  ylab("Inference time (s)") +
+  theme_bw() +
+  scale_colour_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+  geom_smooth(se = F)
+dev.off()
+
+plot("universe.size", combined, summarised, T, F, T, smooth = T, breaks = c(1e3, 1e4, 1e5, 1e6, 1e7, 1e8),
+     labels = c(expression(10^3), expression(10^4), expression(10^5),
+                expression(10^6), expression(10^7), expression(10^8)))
+
 # ========================== Selecting a subset of data ======================
 
 num_facts = 1e5
@@ -232,7 +249,7 @@ dev.off()
 
 merged <- merge(sdd, kbest, by = 'ID')
 merged$proportion.independent.pairs.y <- merged$proportion.independent.pairs.y * 100
-tikz(file = "../paper/scatterplot.tex", width = 4.8, height = 2.7)
+tikz(file = "../seminar_talk/scatterplot.tex", width = 4.8, height = 2.7, standAlone = T)
 ggplot(merged, aes(x = Total.time.x, y = Total.time.y, color = proportion.independent.pairs.y)) +
   geom_point(alpha = 0.5, size = 1) +
   scale_x_continuous(limits = c(0.0164, 60), trans = log2_trans(), breaks = trans_breaks("log2", function(x) 2^x),
@@ -248,7 +265,7 @@ ggplot(merged, aes(x = Total.time.x, y = Total.time.y, color = proportion.indepe
   coord_fixed()
 dev.off()
 
-tikz(file = "../paper/cumulative.tex", width = 4.8, height = 1.8, standAlone = TRUE)
+tikz(file = "../seminar_talk/cumulative.tex", width = 4.8, height = 1.8, standAlone = TRUE)
 ggplot(data = combined.pure, aes(x = Total.time, y = count, color =  Algorithm, linetype = Algorithm)) +
   geom_line() +
   scale_x_continuous(trans = log2_trans(), breaks = c(0.0625, 0.25, 1, 4, 16), labels = c("0.0625", "0.25", "1", "4", "16")) +
