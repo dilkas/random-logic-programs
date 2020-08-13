@@ -561,6 +561,7 @@
   \end{columns}
 \end{frame}
 
+% TODO: say something about heuristics
 % TODO: conditional independence?
 % TODO: how is a predicate with its arguments represented?
 % TODO: a full(er) example of independence propagation
@@ -706,7 +707,6 @@
   \end{tikzpicture}
 \end{frame}
 
-% TODO: all the extra plots and example I had in the appendix
 \begin{frame}{Stratification and Negative Cycles}
   \[
     \textcolor{probability}{0.1} \prob
@@ -778,6 +778,206 @@
     \draw<3->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
     \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
   \end{tikzpicture}
+\end{frame}
+
+\section{Example Programs}
+
+\begin{frame}{One-Liners}
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+      \begin{block}{Setup}
+        \setlength{\leftmargini}{7pt}
+        \begin{itemize}
+        \item predicate $\textcolor{predicate}{\mathtt{p}}/1$
+        \item variable $\textcolor{variable}{\mathsf{X}}$
+        \item no constants
+        \item \alert{1} clause
+        \item \alert{4} nodes
+        \item no negative cycles
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \begin{block}{(All) Programs}
+        \begin{itemize}
+        \item
+          $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}).$
+        \item $\textcolor{probability}{0.7} \prob
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
+          \ifff
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}).$
+        \item $\textcolor{probability}{0.8} \prob
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
+          \ifff
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}});
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}).$
+        \item $\textcolor{probability}{0.7} \prob
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
+          \ifff
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}),
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}).$
+        \item $\textcolor{probability}{0.1} \prob
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
+          \ifff
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}});
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}});
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}).$
+        \item $\textcolor{probability}{0.8} \prob
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
+          \ifff
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}),
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}),
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}}).$
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Symmetry Breaking in Action}
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+      \begin{block}{Setup}
+        \setlength{\leftmargini}{7pt}
+        \begin{itemize}
+        \item predicate $\textcolor{predicate}{\mathtt{p}}/3$
+        \item variables: $\textcolor{variable}{\mathsf{X}}$,
+          $\textcolor{variable}{\mathsf{Y}}$, $\textcolor{variable}{\mathsf{Z}}$
+        \item no constants
+        \item \alert{1} clause
+        \item \alert{1} node
+        \item no cycles at all
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \begin{block}{(All) Programs}
+        \begin{itemize}
+        \item $\textcolor{probability}{0.8} \prob
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{Z}},
+          \textcolor{variable}{\mathsf{Z}}, \textcolor{variable}{\mathsf{Z}}).$
+        \item
+          $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{Y}},
+          \textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{Z}}).$
+        \item
+          $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{Y}},
+          \textcolor{variable}{\mathsf{Z}}, \textcolor{variable}{\mathsf{Y}}).$
+        \item $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{Y}},
+          \textcolor{variable}{\mathsf{Z}}, \textcolor{variable}{\mathsf{Z}}).$
+        \item $\textcolor{probability}{0.1} \prob
+          \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}},
+          \textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{Z}}).$
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{A Larger Example}
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+      \begin{block}{Setup}
+        \setlength{\leftmargini}{7pt}
+        \begin{itemize}
+        \item predicates: $\textcolor{predicate}{\mathtt{p}}/1$,
+          $\textcolor{predicate}{\mathtt{q}}/2$,
+          $\textcolor{predicate}{\mathtt{r}}/3$
+        \item variables: $\textcolor{variable}{\mathsf{X}}$,
+          $\textcolor{variable}{\mathsf{Y}}$, $\textcolor{variable}{\mathsf{Z}}$
+        \item constants: $\textcolor{constant}{\mathit{a}}$,
+          $\textcolor{constant}{\mathit{b}}$, $\textcolor{constant}{\mathit{c}}$
+        \item \alert{5} clauses
+        \item \alert{5} nodes
+        \item no negative cycles
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \begin{block}{A Random Program}
+        \begin{align*}
+          &\textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{b}}) \ifff \negg(\textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}}, \textcolor{constant}{\mathit{b}}), \textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}}, \textcolor{variable}{\mathsf{Y}}), \textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{Z}}, \textcolor{variable}{\mathsf{X}})). \\
+          \textcolor{probability}{0.4} \prob &\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}}, \textcolor{variable}{\mathsf{X}}) \ifff \negg \textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{Z}}, \textcolor{constant}{\mathit{a}}). \\
+          &\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}}, \textcolor{constant}{\mathit{a}}) \ifff \textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{Z}}). \\
+          &\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}}, \textcolor{constant}{\mathit{a}}) \ifff \textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{constant}{\mathit{b}}, \textcolor{variable}{\mathsf{Z}}). \\
+          &\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{constant}{\mathit{b}}, \textcolor{variable}{\mathsf{Z}}).
+        \end{align*}
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Examples of Predicate Independence}
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+      \begin{block}{Setup}
+        \setlength{\leftmargini}{7pt}
+        \begin{itemize}
+        \item predicates: $\textcolor{predicate}{\mathtt{p}}/1$,
+          $\textcolor{predicate}{\mathtt{q}}/1$,
+          $\textcolor{predicate}{\mathtt{r}}/1$
+        \item no variables
+        \item constant $\textcolor{constant}{\mathit{a}}$
+        \item \alert{3} clauses
+        \item \alert{3} nodes
+        \item no negative cycles
+        \item $\textcolor{predicate}{\mathtt{p}} \independent
+          \textcolor{predicate}{\mathtt{q}}$
+        \end{itemize}
+      \end{block}
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \begin{block}{A Few Random Programs}
+        \begin{itemize}
+          \setlength\itemsep{1em}
+        \item $\begin{aligned}[t]
+            \textcolor{probability}{0.5} \prob
+            &\textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{a}})
+            \ifff
+            \textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{a}});
+            \textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{a}}).
+            \\ \textcolor{probability}{0.2} \prob
+            &\textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}})
+            \ifff
+            \textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}}),
+            \textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}}).
+            \\ \textcolor{probability}{0.4} \prob
+            &\textcolor{predicate}{\mathtt{r}}(\textcolor{constant}{\mathit{a}})
+            \ifff \negg
+            \textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}}).
+          \end{aligned}$
+        \item $\begin{aligned}[t]
+            &\textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{a}})
+            \ifff
+            \textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{a}}).
+            \\ \textcolor{probability}{0.5} \prob
+            &\textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}})
+            \ifff
+            \textcolor{predicate}{\mathtt{r}}(\textcolor{constant}{\mathit{a}});
+            \textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}}).
+            \\
+            &\textcolor{predicate}{\mathtt{r}}(\textcolor{constant}{\mathit{a}})
+            \ifff
+            \textcolor{predicate}{\mathtt{r}}(\textcolor{constant}{\mathit{a}});
+            \textcolor{predicate}{\mathtt{r}}(\textcolor{constant}{\mathit{a}}).
+          \end{aligned}$
+        \item $\begin{aligned}[t]
+            &\textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{a}})
+            \ifff
+            \textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{a}});
+            \textcolor{predicate}{\mathtt{p}}(\textcolor{constant}{\mathit{a}}).
+            \\ \textcolor{probability}{0.6} \prob
+            &\textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}})
+            \ifff
+            \textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}}).
+            \\ \textcolor{probability}{0.7} \prob
+            &\textcolor{predicate}{\mathtt{r}}(\textcolor{constant}{\mathit{a}})
+            \ifff \negg
+            \textcolor{predicate}{\mathtt{q}}(\textcolor{constant}{\mathit{a}}).
+          \end{aligned}$
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 \section{Experimental Results}
