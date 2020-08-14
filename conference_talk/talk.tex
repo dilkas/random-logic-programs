@@ -1,6 +1,6 @@
 \documentclass{beamer}
 \usepackage{tikz}
-\usepackage[style=authoryear]{biblatex}
+\usepackage[style=authoryear,backend=bibtex]{biblatex}
 \usepackage{empheq}
 
 \usetikzlibrary{arrows}
@@ -10,6 +10,9 @@
 \usetikzlibrary{positioning}
 \usetikzlibrary{shapes}
 \tikzstyle{every picture}+=[remember picture]
+\tikzset{onslide/.code args={<#1>#2}{%
+  \only<#1>{\pgfkeysalso{#2}}
+}}
 
 \usetheme{Singapore}
 \usecolortheme{lily}
@@ -50,6 +53,8 @@
   }
   \titlepage
 \end{frame}
+
+\section{Introduction}
 
 \begin{frame}{Probabilistic Logic Programs (\textsc{ProbLog})}
   \begin{block}{``Smokers'' (\cite{DBLP:conf/ilp/DomingosKLPRS08,DBLP:journals/tplp/FierensBRSGTJR15})}
@@ -94,114 +99,6 @@
       \centering
       \includegraphics[width=\textwidth]{application4.png}
       {\small \cite{de2013phenetic}}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Inference Algorithms and Knowledge Compilation Maps}
-  \begin{description}
-  \item[NNF] negation normal form
-  \item[d-DNNF] deterministic decomposable negation normal form
-  \item[BDD] binary decision diagrams
-  \item[SDD] sentential decision diagrams
-  \item[$k$-Best] only use the $k$ most probable proofs
-  \end{description}
-\end{frame}
-
-\begin{frame}{Example Diagrams for $C \land (A \lor \neg B)$}
-  \vspace{-1em}
-  % \begin{tikzpicture}
-  %   \node[draw,circle] {$\land$}
-  %   child {node[draw,rectangle] {$C$}}
-  %   child {node[draw,circle] {$\lor$}
-  %     child {node[draw,rectangle] {$A$}}
-  %     child {node[draw,rectangle] {$\neg B$}
-  %     }
-  %   };
-  % \end{tikzpicture}
-  \begin{columns}[b]
-    \begin{column}{0.33\textwidth}
-      \begin{figure}
-      \centering
-        \begin{tikzpicture}
-          \node[draw,circle] (A) {$A$}
-          child {edge from parent[draw=none]}
-          child {node[draw,circle] (B) {$B$} edge from parent[dashed]
-            child {node[draw,circle,solid] (C) {$C$} edge from parent[dashed]
-              child {node[draw,rectangle,solid] {$1$} edge from parent[solid]}
-              child {node[draw,rectangle,solid] (0) {$0$}}
-            }
-            child {edge from parent[draw=none]}
-          };
-          \draw (A) -- (C);
-          \draw (B) -- (0);
-        \end{tikzpicture}
-        \caption{BDD}
-      \end{figure}
-    \end{column}
-    \begin{column}{0.34\textwidth}
-      \begin{figure}
-        \centering
-        \begin{tikzpicture}
-          \node[draw,circle] {$\land$}
-          child {node[draw,circle] {$\lor$}
-            child {node[draw,circle] (parent) {$\land$}
-              child {node[draw,rectangle] {$B$}}
-              child {edge from parent[draw=none]}
-            }
-            child {node[draw,circle] {$\land$}
-              child {node[draw,circle] {$\lor$}
-                child {node[draw,rectangle] (A) {$A$}}
-                child {node[draw,rectangle] {$\neg A$}}
-              }
-              child {node[draw,rectangle] {$\neg B$}}
-            }
-          }
-          child {node[draw,rectangle] {$C$}};
-          \draw (parent) -- (A);
-        \end{tikzpicture}
-        \caption{d-DNNF}
-      \end{figure}
-    \end{column}
-    \begin{column}{0.33\textwidth}
-      \begin{figure}
-        \centering
-        \begin{tikzpicture}
-          \tikzset{
-            mysplit/.style={
-              draw,
-              rectangle,
-              rectangle split,
-              rectangle split horizontal,
-              rectangle split parts=2
-            }
-          }
-          \node[draw,circle] {$1$}
-          child {node[mysplit] (bullet) {
-              \nodepart{one} $\neg A$
-              \nodepart{two}
-            }
-            child {node[draw,circle] (3) {$3$} edge from parent[draw=none]
-              child {node[mysplit] {
-                  \nodepart{one} $\neg B$
-                  \nodepart{two} $C$
-                }
-              }
-              child {node[mysplit] {
-                  \nodepart{one} $B$
-                  \nodepart{two} $0$
-                }
-              }
-            }
-          }
-          child {node[mysplit] {
-              \nodepart{one} $A$
-              \nodepart{two} $C$
-            }};
-          \draw[*-] let \p1 = (bullet.two), \p2 = (bullet.center) in ({\x1 + 2.5},{\y2 + 2}) -- (3);
-        \end{tikzpicture}
-        \caption{SDD}
-      \end{figure}
     \end{column}
   \end{columns}
 \end{frame}
@@ -257,6 +154,13 @@
   \end{columns}
 \end{frame}
 
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents
+\end{frame}
+
+\section{The Constraint Model}
+
 \begin{frame}{What Characterizes a (Probabilistic) Logic Program?}
   \begin{columns}
     \hspace*{-0.7cm}\begin{column}{0.75\textwidth}
@@ -294,7 +198,7 @@
   }
 \end{frame}
 
-\begin{frame}{Clauses As Trees}
+\begin{frame}{Formulas As Trees}
   \[
     \neg \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
     \lor (\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})
@@ -353,16 +257,16 @@
   \end{tikzpicture}
 \end{frame}
 
-\begin{frame}{Independence: $\textcolor{predicate}{\mathrm{influences}}
-    \independent \textcolor{predicate}{\mathrm{stress}}$}
+\begin{frame}{Independence: $\textcolor{predicate}{\mathrm{friend}} \independent
+    \textcolor{predicate}{\mathrm{stress}}$}
   \centering
   \begin{tikzpicture}
-    \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
+    \node[draw,ellipse,onslide=<2->{fill=constant!25}] (friend) {\textcolor{predicate}{friend}};
     \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
-    \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+    \node[draw,ellipse,onslide=<2->{fill=variable!25},below=of influences] (stress) {\textcolor{predicate}{stress}};
     \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
     \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
-    \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
+    \node[draw,ellipse,onslide=<2->{fill=variable!25},left=of spont] (person) {\textcolor{predicate}{person}};
     \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
     \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
     \draw[-{Latex[length=2mm]}] (friend) -- (influences);
@@ -374,46 +278,201 @@
     \draw[-{Latex[length=2mm]}] (person) -- (stress);
     \draw[-{Latex[length=2mm]}] (person) -- (spont);
     \draw[-{Latex[length=2mm]}] (person) -- (smoke);
-    \draw<2->[-{Latex[length=2mm]}] (influences) edge[draw=red,bend left=15] (stress);
-    \draw<2->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (influences);
-    \draw<2->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
-    \draw<2->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
+
+    \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (person);
+    \draw<3->[-{Latex[length=2mm]}] (person) edge[draw=red,bend left=15] (friend);
+
+    \draw<3->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
+    \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
   \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{Stratification and Negative Cycles}
-  \centering
-  \begin{tikzpicture}
-    \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
-    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
-    \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
-    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
-    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
-    \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
-    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
-    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
-    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
-    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
-    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
-    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
-    \draw[-{Latex[length=2mm]}] (person) -- (stress);
-    \draw[-{Latex[length=2mm]}] (person) -- (spont);
-    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
-    \draw<2->[-{Latex[length=2mm]},draw=red] (smokes) -- (friend);
-  \end{tikzpicture}
   \[
     \textcolor{probability}{0.1} \prob
     \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{X}},
     \textcolor{variable}{\mathsf{Y}}) \ifff
     \negg\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}).
   \]
+  \vfill
+  \begin{columns}
+    \begin{column}{0.4\textwidth}
+      \setlength{\leftmargini}{0pt}
+      \begin{itemize}
+      \item<3-> \alert{Stratum 1}: predicates with no negation
+      \item<3-> \alert{Stratum 2}: new predicates s.t. negative literals refer to
+        predicates in \alert{Stratum~1}
+      \end{itemize}
+      \vspace{5em}
+    \end{column}
+    \begin{column}{0.6\textwidth}
+      \hspace{-6.92em}
+      \begin{tikzpicture}
+        \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
+        \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+        \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+        \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
+        \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+        \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
+        \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
+        \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+        \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+        \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+        \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+        \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (person) -- (stress);
+        \draw[-{Latex[length=2mm]}] (person) -- (spont);
+        \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+        \draw<2->[-{Latex[length=2mm]},draw=red] (smokes) -- (friend);
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 \begin{frame}{Scalability}
   \centering
   \input{impact.tex}
+\end{frame}
+
+\section{Probabilistic Inference}
+
+\begin{frame}{Inference Algorithms and Knowledge Compilation Maps}
+  \begin{description}
+  \item[NNF] negation normal form
+  \item[BDD] binary decision diagrams
+  \item[SDD] sentential decision diagrams
+  \item[$k$-Best] only use the \alert{$k$} most probable proofs
+  \item[d-DNNF] deterministic decomposable negation normal form
+    \begin{itemize}
+    \item<2-> for every pair \alert{$\alpha \lor \beta$}, we have \alert{$\alpha
+        \land \beta = \bot$}
+    \item<2-> for every pair \alert{$\alpha \land \beta$}, no atoms are shared
+      between \alert{$\alpha$} and \alert{$\beta$}
+    \end{itemize}
+  \end{description}
+\end{frame}
+
+\begin{frame}{Example Diagrams for \alert{$C \land (A \lor \neg B)$}}
+  \begin{columns}[b]
+    \begin{column}{0.33\textwidth}
+      \begin{figure}
+        \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \node[draw,circle] {$\land$}
+          child {node[draw,rectangle] {$C$}}
+          child {node[draw,circle] {$\lor$}
+            child {node[draw,rectangle] {$A$}}
+            child {node[draw,rectangle] {$\neg B$}
+            }
+          };
+        \end{tikzpicture}
+        \caption{NNF}
+      \end{figure}
+      \vspace{-1em}
+      \begin{figure}
+      \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \node[draw,circle] (A) {$A$}
+          child {edge from parent[draw=none]}
+          child {node[draw,circle] (B) {$B$} edge from parent[dashed]
+            child {node[draw,circle,solid] (C) {$C$} edge from parent[dashed]
+              child {node[draw,rectangle,solid] {$1$} edge from parent[solid]}
+              child {node[draw,rectangle,solid] (0) {$0$}}
+            }
+            child {edge from parent[draw=none]}
+          };
+          \draw (A) -- (C);
+          \draw (B) -- (0);
+        \end{tikzpicture}
+        \caption{BDD}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \begin{figure}
+        \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \node[draw,circle] {$\land$}
+          child {node[draw,circle] {$\lor$}
+            child {node[draw,circle] (parent) {$\land$}
+              child {node[draw,rectangle] {$B$}}
+              child {edge from parent[draw=none]}
+            }
+            child {node[draw,circle] {$\land$}
+              child {node[draw,circle] {$\lor$}
+                child {node[draw,rectangle] (A) {$A$}}
+                child {node[draw,rectangle] {$\neg A$}}
+              }
+              child {node[draw,rectangle] {$\neg B$}}
+            }
+          }
+          child {node[draw,rectangle] {$C$}};
+          \draw (parent) -- (A);
+        \end{tikzpicture}
+        \caption{d-DNNF}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \begin{figure}
+        \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \tikzset{
+            mysplit/.style={
+              draw,
+              rectangle,
+              rectangle split,
+              rectangle split horizontal,
+              rectangle split parts=2
+            }
+          }
+          \node[draw,circle] {$1$}
+          child {node[mysplit] (bullet) {
+              \nodepart{one} $\neg A$
+              \nodepart{two}
+            }
+            child {node[draw,circle] (3) {$3$} edge from parent[draw=none]
+              child {node[mysplit] {
+                  \nodepart{one} $\neg B$
+                  \nodepart{two} $C$
+                }
+              }
+              child {node[mysplit] {
+                  \nodepart{one} $B$
+                  \nodepart{two} $\bot$
+                }
+              }
+            }
+          }
+          child {node[mysplit] {
+              \nodepart{one} $A$
+              \nodepart{two} $C$
+            }};
+          \draw[*-] let \p1 = (bullet.two), \p2 = (bullet.center) in ({\x1 + 2.5},{\y2 + 2}) -- (3);
+        \end{tikzpicture}
+        \caption{SDD}
+      \end{figure}
+      \vspace{-2em}
+      \begin{figure}
+      \centering
+      \begin{tikzpicture}[level distance=0.8cm]
+        \node[draw,circle] {$1$}
+        child {node[draw,circle] {$0$}
+          child {node[draw,rectangle] {$A$}}
+        }
+        child {node[draw,circle] {$3$}
+          child {node[draw,circle] {$2$}
+            child {node[draw,rectangle] {$B$}}
+          }
+          child {node[draw,circle] {$4$}
+            child {node[draw,rectangle] {$C$}}
+          }
+        };
+      \end{tikzpicture}
+      \caption{vtree}
+      \end{figure}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 \begin{frame}{Properties of Programs vs. Inference Algorithms}
@@ -426,12 +485,21 @@
   \input{../paper/bars.tex}
 \end{frame}
 
-% TODO: finish the slide
+\section{Summary}
+
 \begin{frame}{Summary}
   \begin{itemize}
-  \item ...
-  \item ...
-  \item ...
+  \item The model can generate (approximately) realistic instances of reasonable
+    size
+  \item The main performance bottleneck can be addressed by generating programs
+    with a simpler structure
+  \item Open questions and future work
+    \begin{itemize}
+    \item Can the model be used to ensure uniform sampling?
+    \item What is the reason behind all algorithms behaving similarly?
+    \item Why does independence have no effect on inference time?
+    \item Can random program generation be useful in, e.g., learning?
+    \end{itemize}
   \end{itemize}
   \begin{block}{The implementation of the model is available at}
     \url{https://github.com/dilkas/random-logic-programs}
