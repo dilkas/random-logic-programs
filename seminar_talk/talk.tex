@@ -561,15 +561,6 @@
   \end{columns}
 \end{frame}
 
-% TODO: say something about heuristics
-% TODO: conditional independence?
-% TODO: how is a predicate with its arguments represented?
-% TODO: a full(er) example of independence propagation
-% TODO: could talk about what algorithms are behind the negative cycle detection
-% TODO: for the bigraph talk, I had 28 slides full info and it still wasn't
-% enough. Maybe I should aim for at least 30. Right now I have 26.
-% TODO: more constraints
-% TODO: more motivation and related work
 \begin{frame}{Variable Symmetry Breaking}
   \begin{block}{The Problem}
     Let $\{ \textcolor{variable}{\mathsf{W}}, \textcolor{variable}{\mathsf{X}},
@@ -1074,45 +1065,35 @@
 
 \section{Summary}
 
-% TODO: finish the slide
 \begin{frame}{Summary}
   \begin{itemize}
-  \item foo
-  \item bar
-  \item baz
+  \item The model can generate (approximately) realistic instances of reasonable
+    size
+  \item The main performance bottleneck can be addressed by generating programs
+    with a simpler structure
+  \item Open questions and future work
+    \begin{itemize}
+    \item Can the model be used to ensure uniform sampling?
+    \item What is the reason behind all algorithms behaving similarly?
+    \item Why does independence have no effect on inference time?
+    \item Can random program generation be useful in learning?
+    \end{itemize}
   \end{itemize}
+  \pause
   \begin{block}{The implementation of the model is available at}
     \url{https://github.com/dilkas/random-logic-programs}
   \end{block}
 \end{frame}
 
-% ===============================================================
-
-\begin{frame}
-  \begin{block}{Adjacency matrix representation}
-    $A[i][j] = 0 \iff \nexists k: \texttt{clauseAssignments}[k] = j$ and $i
-    \in \texttt{clauses}[k].\texttt{treeValues}$
-  \end{block}
-  \begin{block}{New constraints}
-    \begin{itemize}
-    \item No (negative) cycles
-      \begin{itemize}
-      \item No clever propagation, just entailment checking.
-      \end{itemize}
-    \item Independence. Propagation:
-      \begin{itemize}
-      \item Two types of dependencies: determined and
-        one-undetermined-edge-away-from-being-determined.
-      \item Look up the dependencies of both predicates. For each pair of
-        matching dependencies:
-        \begin{itemize}
-        \item If both are determined, fail.
-        \item If one is determined, the selected edge of the other must not
-          exist.
-        \end{itemize}
-      \end{itemize}
-    \end{itemize}
-  \end{block}
-\end{frame}
+% Things I could mention:
+% 1) say something about heuristics
+% 2) conditional independence?
+% 3) how is a predicate with its arguments represented?
+% 4) a full(er) example of independence propagation
+% 5) could talk about what algorithms are behind the negative cycle detection
+% 6) for the bigraph talk, I had 28 slides full info and it still wasn't
+% enough. Maybe I should aim for at least 30. Right now I have 26.
+% 7) more constraints
+% 8) more motivation and related work
 
 \end{document}
