@@ -14,6 +14,7 @@
 \usetikzlibrary{arrows.meta}
 \usetikzlibrary{calc}
 \usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{patterns}
 \usetikzlibrary{positioning}
 \usetikzlibrary{shapes}
 \tikzstyle{every picture}+=[remember picture]
@@ -742,18 +743,18 @@
   \end{columns}
 \end{frame}
 
-\begin{frame}{Independence: $\textcolor{predicate}{\mathrm{friend}} \independent
+\begin{frame}{Predicate Independence: $\textcolor{predicate}{\mathrm{friend}} \independent
     \textcolor{predicate}{\mathrm{stress}}$}
   \centering
   \begin{tikzpicture}
     \node[draw,ellipse,onslide=<2->{fill=constant!25}] (friend) {\textcolor{predicate}{friend}};
-    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+    \node[draw,ellipse,right=of friend,onslide=<5-6>{pattern=north east lines,pattern color=constant}] (influences) {\textcolor{predicate}{influences}};
     \node[draw,ellipse,onslide=<2->{fill=variable!25},below=of influences] (stress) {\textcolor{predicate}{stress}};
-    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
-    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+    \node[draw,ellipse,below=of stress,onslide=<3-4>{pattern=north west lines,pattern color=variable}] (spont) {\textcolor{predicate}{cancer\_spont}};
+    \node[draw,ellipse,below=of spont,onslide=<3-4>{pattern=north west lines,pattern color=variable}] (smoke) {\textcolor{predicate}{cancer\_smoke}};
     \node[draw,ellipse,onslide=<2->{fill=variable!25},left=of spont] (person) {\textcolor{predicate}{person}};
-    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
-    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+    \node[draw,ellipse,right=of spont,onslide=<3-4>{pattern=north west lines,pattern color=variable},onslide=<5-6>{pattern=north east lines,pattern color=constant}] (cancer) {\textcolor{predicate}{cancer}};
+    \node[draw,ellipse,above=of cancer,onslide=<3-4>{pattern=north west lines,pattern color=variable},onslide=<5-6>{pattern=north east lines,pattern color=constant}] (smokes) {\textcolor{predicate}{smokes}};
     \draw[-{Latex[length=2mm]}] (friend) -- (influences);
     \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
     \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
@@ -764,11 +765,22 @@
     \draw[-{Latex[length=2mm]}] (person) -- (spont);
     \draw[-{Latex[length=2mm]}] (person) -- (smoke);
 
-    \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (person);
-    \draw<3->[-{Latex[length=2mm]}] (person) edge[draw=red,bend left=15] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (person) edge[draw=red] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (stress) edge[draw=red] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (smokes) edge[draw=red] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (spont) edge[draw=red] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (cancer) edge[draw=red,bend left=20] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (smoke) edge[draw=red,bend left=20] (friend);
 
-    \draw<3->[-{Latex[length=2mm]}] (stress) edge[draw=red,bend left=15] (friend);
-    \draw<3->[-{Latex[length=2mm]}] (friend) edge[draw=red,bend left=15] (stress);
+    \draw<6>[-{Latex[length=2mm]}] (friend) edge[draw=red] (person);
+    \draw<6>[-{Latex[length=2mm]}] (influences) edge[draw=red] (person);
+    \draw<6>[-{Latex[length=2mm]}] (smokes) edge[draw=red] (person);
+    \draw<6>[-{Latex[length=2mm]}] (cancer) edge[draw=red,bend left=15] (person);
+
+    \draw<6>[-{Latex[length=2mm]}] (friend) edge[draw=red] (stress);
+    \draw<6>[-{Latex[length=2mm]}] (influences) edge[draw=red] (stress);
+    \draw<6>[-{Latex[length=2mm]}] (smokes) edge[draw=red,bend right=15] (stress);
+    \draw<6>[-{Latex[length=2mm]}] (cancer) edge[draw=red] (stress);
   \end{tikzpicture}
 \end{frame}
 
@@ -1063,9 +1075,9 @@
   \includegraphics{proportion.pdf}
 \end{frame}
 
-\section{Summary}
+\section{Conclusions}
 
-\begin{frame}{Summary}
+\begin{frame}{Conclusions and Future Work}
   \begin{itemize}
   \item The model can generate (approximately) realistic instances of reasonable
     size
@@ -1079,7 +1091,6 @@
     \item Can random program generation be useful in learning?
     \end{itemize}
   \end{itemize}
-  \pause
   \begin{block}{The implementation of the model is available at}
     \url{https://github.com/dilkas/random-logic-programs}
   \end{block}
