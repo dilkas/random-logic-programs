@@ -1,2 +1,1 @@
-**Generating Random Logic Programs Using Constraint Programming.** / Dilkas, Paulius; Belle, Vaishak.
-Proceedings of the 26th International Conference on Principles and Practice of Constraint Programming (CP2020). 2020.
+Dilkas P., Belle V. (2020) **Generating Random Logic Programs Using Constraint Programming**. In: Simonis H. (eds) Principles and Practice of Constraint Programming. CP 2020. Lecture Notes in Computer Science, vol 12333. Springer, Cham. https://doi.org/10.1007/978-3-030-58475-7_48
