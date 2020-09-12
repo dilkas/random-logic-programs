@@ -20,6 +20,7 @@
 
 \renewcommand\fbox{\fcolorbox{red}{white}}
 \newcommand{\hilight}[1]{\setlength{\fboxsep}{1pt}\colorbox{lightgray}{#1}}
+\newcommand{\hlitem}{\stepcounter{enumi}\item[\hilight{\theenumi}]}
 
 \newcommand{\logical}[1]{{\normalfont \texttt{#1}}}
 \newcommand{\variable}[1]{\texttt{\textup{#1}}}
@@ -49,9 +50,9 @@
 \title{Generating Random Logic Programs Using Constraint Programming}
 \author{Paulius Dilkas\inst{1} \and Vaishak Belle\inst{1,2}$^{(\textrm{\Letter})}$}
 \authorrunning{P. Dilkas and V. Belle}
-\institute{University of Edinburgh, Edinburgh, UK
-  \email{\{p.dilkas@sms.,vaishak@\}ed.ac.uk} \and Alan Turing Institute, London,
-  UK}
+\institute{University of Edinburgh, Edinburgh, UK \\
+  \email{p.dilkas@sms.ed.ac.uk, vaishak@ed.ac.uk} \and Alan Turing Institute,
+  London, UK}
 
 \maketitle
 
@@ -621,9 +622,9 @@ $D_{\mathsf{P}} \cap D_{\mathsf{Q}} = \emptyset$.
       \toprule
       Edges & Name & Notation \\
       \midrule
-      $0$ & determined & $\Determined(p)$ \\
-      $1$ & almost determined & $\AlmostDetermined(p, s, t)$ \\
-      $>1$ & undetermined & $\Undetermined(p)$ \\
+      $0$ & Determined & $\Determined(p)$ \\
+      $1$ & Almost determined & $\AlmostDetermined(p, s, t)$ \\
+      $>1$ & Undetermined & $\Undetermined(p)$ \\
       \bottomrule
     \end{tabular}
   \end{minipage}
@@ -1013,5 +1014,173 @@ University Research Fellowship.
 
 \bibliographystyle{splncs04}
 \bibliography{paper}
+
+\newpage
+\appendix
+\section{Example Programs}
+
+In this appendix, we provide examples of probabilistic logic programs generated
+by various combinations of parameters. In all cases, we use
+\[
+  \{ 0.1, 0.2, \dots, 0.9, 1, 1, 1, 1, 1\}
+\]
+as the multiset of probabilities. Each clause is written on a separate line and
+ends with a full stop. The head and the body of each clause are separated with
+\texttt{:-} (instead of $\gets$). The probability of each clause is prepended to
+the clause, using \texttt{::} as a separator. Probabilities equal to one and
+empty bodies of clauses can be omitted. Conjunction, disjunction, and negation
+are denoted by commas, semicolons, and `\texttt{\textbackslash+}', respectively.
+Parentheses are used to demonstrate precedence, although many of them are
+redundant.
+
+By setting $\predicates{} = [\texttt{p}]$, $\arities{} = [1]$, $\variables{} =
+\{ \texttt{X} \}$, $\constants{} = \emptyset$, $\maxNumNodes{} = 4$, and
+$\maxNumClauses{} = 1$, we get fifteen one-line programs, six of which are
+without negative cycles (as highlighted below). Only the last program has no
+cycles at all.
+
+\begin{enumerate}[label=\arabic*.]
+\item
+\begin{verbatim}
+0.5 :: p(X) :- (\+(p(X))), (p(X)).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.8 :: p(X) :- (\+(p(X))); (p(X)).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.8 :: p(X) :- (p(X)); (p(X)).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.7 :: p(X) :- (p(X)), (p(X)).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.6 :: p(X) :- (p(X)), (\+(p(X))).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(X) :- (p(X)); (\+(p(X))).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.1 :: p(X) :- (p(X)); (p(X)); (p(X)).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.8 :: p(X) :- (p(X)), (p(X)), (p(X)).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(X) :- \+(p(X)).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.1 :: p(X) :- \+(\+(p(X))).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(X) :- \+((p(X)); (p(X))).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.4 :: p(X) :- \+((p(X)), (p(X))).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.4 :: p(X) :- \+(\+(\+(p(X)))).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+0.7 :: p(X) :- p(X).
+\end{verbatim}
+\hlitem
+\begin{verbatim}
+p(X).
+\end{verbatim}
+\end{enumerate}
+
+Note that:
+\begin{itemize}
+\item A program such as Program~14, because of its cyclic definition, defines a
+  predicate that has probability zero across all constants. This can more easily
+  be seen as solving equation $0.7x = x$.
+\item Programs 10 and 14 are not equivalent (i.e., double negation does not
+  cancel out) because Program 10 has a negative cycle and is thus considered to
+  be ill-defined.
+\end{itemize}
+
+To demonstrate variable symmetry reduction in action, we set $\predicates{} =
+[\texttt{p}]$, $\arities{} = [3]$, $\variables{} = \{\texttt{X}, \texttt{Y},
+\texttt{Z} \}$, $\constants{} = \emptyset$, $\maxNumNodes{} = 1$,
+$\maxNumClauses{} = 1$, and forbid all cycles. This gives us the following five
+programs:
+
+\begin{itemize}
+\item
+\begin{verbatim}
+0.8 :: p(Z, Z, Z).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(Y, Y, Z).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(Y, Z, Z).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(Y, Z, Y).
+\end{verbatim}
+\item
+\begin{verbatim}
+0.1 :: p(X, Y, Z).
+\end{verbatim}
+\end{itemize}
+
+This is one of many possible programs with $\predicates{} = [\texttt{p},
+\texttt{q}, \texttt{r}]$, $\arities{} = [1, 2, 3]$, $\variables{} =
+\{\texttt{X}, \texttt{Y}, \texttt{Z} \}$, $\constants{} = \{ \texttt{a},
+\texttt{b}, \texttt{c} \}$, $\maxNumNodes{} = 5$, $\maxNumClauses{} = 5$, and
+without negative cycles:
+
+\begin{verbatim}
+p(b) :- \+((q(a, b)), (q(X, Y)), (q(Z, X))).
+0.4 :: q(X, X) :- \+(r(Y, Z, a)).
+q(X, a) :- r(Y, Y, Z).
+q(X, a) :- r(Y, b, Z).
+r(Y, b, Z).
+\end{verbatim}
+
+Finally, we set
+$\predicates{} = [\texttt{p}, \texttt{q}, \texttt{r}]$, $\arities{} = [1, 1,
+1]$, $\variables{} = \emptyset$, $\constants{} = \{ \texttt{a} \}$,
+$\maxNumNodes{} = 3$, $\maxNumClauses{} = 3$, forbid negative cycles, and
+constrain predicates \texttt{p} and \texttt{q} to be independent. The resulting
+search space contains thousands of programs such as:
+
+\begin{itemize}
+\item
+\begin{verbatim}
+0.5 :: p(a) :- (p(a)); (p(a)).
+0.2 :: q(a) :- (q(a)), (q(a)).
+0.4 :: r(a) :- \+(q(a)).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(a) :- p(a).
+0.5 :: q(a) :- (r(a)); (q(a)).
+r(a) :- (r(a)); (r(a)).
+\end{verbatim}
+\item
+\begin{verbatim}
+p(a) :- (p(a)); (p(a)).
+0.6 :: q(a) :- q(a).
+0.7 :: r(a) :- \+(q(a)).
+\end{verbatim}
+\end{itemize}
 
 \end{document}
