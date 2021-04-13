@@ -1,0 +1,518 @@
+\documentclass{beamer}
+\usepackage{tikz}
+\usepackage[style=authoryear,backend=bibtex]{biblatex}
+\usepackage{empheq}
+
+\usetikzlibrary{arrows}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{calc}
+\usetikzlibrary{decorations.pathreplacing}
+\usetikzlibrary{patterns}
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes}
+\tikzstyle{every picture}+=[remember picture]
+\tikzset{onslide/.code args={<#1>#2}{%
+  \only<#1>{\pgfkeysalso{#2}}
+}}
+
+\usetheme{Singapore}
+\usecolortheme{lily}
+\beamertemplatenavigationsymbolsempty
+
+\newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}
+\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+
+\DeclareMathOperator{\ifff}{:-}
+\DeclareMathOperator{\prob}{::}
+\DeclareMathOperator{\negg}{\backslash+}
+
+\definecolor{predicate}{HTML}{1b9e77}
+\definecolor{probability}{HTML}{e7298a}
+\definecolor{variable}{HTML}{d95f02}
+\definecolor{constant}{HTML}{7570b3}
+\definecolor{color5}{HTML}{66a61e}
+\definecolor{color6}{HTML}{e6ab02}
+
+\addbibresource{talk.bib}
+
+\author{\textbf{Paulius Dilkas}\inst{1} \and Vaishak Belle\inst{1,2}}
+\title{Generating Random Logic Programs Using Constraint Programming}
+\date{FMAI 2021}
+\institute{\inst{1} University of Edinburgh, Edinburgh, UK \and \inst{2} Alan
+  Turing Institute, London, UK}
+
+\begin{document}
+
+\begin{frame}[noframenumbering,plain]
+  \tikz[remember picture,overlay]{
+    \node at ([yshift=25pt,xshift=30pt]current page.south)
+    {\includegraphics[height=40pt]{inf.png}};
+    \node at ([yshift=25pt,xshift=75pt]current page.south)
+    {\includegraphics[height=40pt]{ecr.jpg}};
+    \node at ([yshift=20pt,xshift=140pt]current page.south)
+    {\includegraphics[height=20pt]{epsrc.png}};
+  }
+  \titlepage
+\end{frame}
+
+\section{Introduction}
+
+\begin{frame}{Probabilistic Logic Programs (\textsc{ProbLog})}
+  \begin{block}{``Smokers'' (\cite{DBLP:conf/ilp/DomingosKLPRS08,DBLP:journals/tplp/FierensBRSGTJR15})}
+    \vspace*{-\baselineskip}\setlength\belowdisplayshortskip{0pt}
+    \begin{align*}
+      \textcolor{probability}{0.2} \prob &\textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
+      \textcolor{probability}{0.3} \prob &\textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}) \ifff \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{P}_1}, \textcolor{variable}{\mathsf{P}_2}). \\
+      \textcolor{probability}{0.1} \prob &\textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
+      \textcolor{probability}{0.3} \prob &\textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}). \\
+                                         &\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{X}}). \\
+                                         &\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}), \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{X}}). \\
+                                         &\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}). \\
+                                         &\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{P}}), \textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}). \\
+                                         &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{michelle}}). \\
+                                         &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{timothy}}). \\
+                                         &\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}}, \textcolor{constant}{\mathit{michelle}}).
+    \end{align*}
+  \end{block}
+\end{frame}
+
+\begin{frame}{Applications}
+  \begin{columns}[b]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{application1.png}
+      {\small \cite{DBLP:conf/icra/MoldovanMOSR12}}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{application3.png}
+      {\small \cite{DBLP:conf/ijcai/DriesKDBR17}}
+    \end{column}
+  \end{columns}
+  \vfill
+  \begin{columns}[b]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{application2.png}
+      {\small \cite{DBLP:conf/ilp/Corte-RealD017}}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \centering
+      \includegraphics[width=\textwidth]{application4.png}
+      {\small \cite{de2013phenetic}}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{How Many Programs Are Used to Test Algorithms?}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference3.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{4}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference8.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{3}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference7.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference6.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference2.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{1}};
+        \end{tikzpicture}
+      }
+      \pause
+      \fbox{
+        \begin{tikzpicture}
+          \node[inner sep = 0pt] (a) {\includegraphics[width=\textwidth]{inference1.png}};
+          \node[anchor=center] at (a.center) {\Huge\alert{2}};
+        \end{tikzpicture}
+      }
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Outline}
+  \tableofcontents
+\end{frame}
+
+\section{The Constraint Model}
+
+\begin{frame}{What Characterises a (Probabilistic) Logic Program?}
+  \begin{columns}
+    \hspace*{-0.7cm}\begin{column}{0.75\textwidth}
+      \begin{empheq}[left =\onslide<6->{\color{color5}\empheqlbrace}]{equation}
+        \begin{align*}
+      \textcolor<5->{probability}{0.2} \prob &\textcolor<2->{predicate}{\mathtt{stress}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{person}}(\textcolor<3->{variable}{\mathsf{P}}). \\
+      \textcolor<5->{probability}{0.3} \prob &\textcolor<2->{predicate}{\mathtt{influences}}(\textcolor<3->{variable}{\mathsf{P}_1}, \textcolor<3->{variable}{\mathsf{P}_2}) \ifff \textcolor<2->{predicate}{\mathtt{friend}}(\textcolor<3->{variable}{\mathsf{P}_1}, \textcolor<3->{variable}{\mathsf{P}_2}). \\
+      \textcolor<5->{probability}{0.1} \prob &\textcolor<2->{predicate}{\mathtt{cancer\_spont}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{person}}(\textcolor<3->{variable}{\mathsf{P}}). \\
+      \textcolor<5->{probability}{0.3} \prob &\textcolor<2->{predicate}{\mathtt{cancer\_smoke}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{person}}(\textcolor<3->{variable}{\mathsf{P}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{X}}) \ifff \textcolor<2->{predicate}{\mathtt{stress}}(\textcolor<3->{variable}{\mathsf{X}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{X}}) \ifff \textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{Y}}), \textcolor<2->{predicate}{\mathtt{influences}}(\textcolor<3->{variable}{\mathsf{Y}}, \textcolor<3->{variable}{\mathsf{X}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{cancer}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{cancer\_spont}}(\textcolor<3->{variable}{\mathsf{P}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{cancer}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \tikz \coordinate (start);\textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{P}}), \textcolor<2->{predicate}{\mathtt{cancer\_smoke}}(\textcolor<3->{variable}{\mathsf{P}})\tikz \coordinate (end);. \\
+                                         &\textcolor<2->{predicate}{\mathtt{person}}(\textcolor<4->{constant}{\mathit{michelle}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{person}}(\textcolor<4->{constant}{\mathit{timothy}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{friend}}(\textcolor<4->{constant}{\mathit{timothy}}, \textcolor<4->{constant}{\mathit{michelle}}).
+        \end{align*}
+      \end{empheq}
+    \end{column}
+    \begin{column}{0.25\textwidth}
+      \begin{itemize}
+      \item[\textcolor{predicate}{\textbullet}]<2-> predicates, arities
+      \item[\textcolor{variable}{\textbullet}]<3-> variables
+      \item[\textcolor{constant}{\textbullet}]<4-> constants
+      \item[\textcolor{probability}{\textbullet}]<5-> probabilities
+      \item[\textcolor{color5}{\textbullet}]<6-> length
+      \item[\textcolor{color6}{\textbullet}]<7-> complexity
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  \onslide<7->{
+    \begin{tikzpicture}[overlay]
+      \draw [decorate,decoration={brace,amplitude=10pt,mirror},color=color6] (start) -- (end);
+    \end{tikzpicture}
+  }
+\end{frame}
+
+\begin{frame}{Formulas As Trees}
+  \[
+    \neg \textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})
+    \lor (\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})
+    \land \textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}}))
+  \]
+  \vfill
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \centering
+      \begin{tikzpicture}[level 1/.style={sibling distance=30mm},level 2/.style={sibling distance=15mm}]
+        \node[draw,circle] {$\lor$}
+        child {node[draw,circle] {$\neg$}
+          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$}}
+        }
+        child {node[draw,circle] {$\land$}
+          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$}}
+          child {node[draw,rectangle] {$\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$}}
+        };
+      \end{tikzpicture}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \pause
+      \centering
+      \begin{tabular}{|c|c|c|c|c|c|}
+        \hline
+        0\tikz \coordinate (disjunction2);&\tikz \coordinate (negation1);0\tikz \coordinate (negation2);&\tikz \coordinate (conjunction1);0\tikz \coordinate (conjunction2);&\tikz \coordinate (p);1 &\tikz \coordinate (q);2 &\tikz \coordinate (r);2 \\
+        \hline
+        $\lor$ & $\neg$ & $\land$ & $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$ \\
+        \hline
+      \end{tabular}
+      \begin{tikzpicture}[overlay]
+        \draw[->,bend right=60,draw=red] ([yshift=0.75\baselineskip]negation1) to ([yshift=0.75\baselineskip]disjunction2);
+        \draw[->,bend right=60,draw=red] ([yshift=0.75\baselineskip]conjunction1) to ([yshift=0.75\baselineskip]disjunction2);
+        \draw[->,bend right=60,draw=red] ([yshift=0.75\baselineskip]p) to ([yshift=0.75\baselineskip]negation2);
+        \draw[->,bend right=60,draw=red] ([yshift=0.75\baselineskip]q) to ([yshift=0.75\baselineskip]conjunction2);
+        \draw[->,bend right=60,draw=red] ([yshift=0.75\baselineskip]r) to ([yshift=0.75\baselineskip]conjunction2);
+      \end{tikzpicture}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Predicate Dependency Graph}
+  \centering
+  \begin{tikzpicture}
+    \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
+    \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+    \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+    \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
+    \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+    \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
+    \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
+    \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (person) -- (stress);
+    \draw[-{Latex[length=2mm]}] (person) -- (spont);
+    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}{Stratification and Negative Cycles}
+  \[
+    \textcolor{probability}{0.1} \prob
+    \textcolor{predicate}{\mathtt{friend}}(\textcolor{variable}{\mathsf{X}},
+    \textcolor{variable}{\mathsf{Y}}) \ifff
+    \negg\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}).
+  \]
+  \vfill
+%  \begin{columns}
+%    \begin{column}{0.4\textwidth}
+%      \setlength{\leftmargini}{0pt}
+%      \begin{itemize}
+%      \item<3-> \alert{Stratum 1}: predicates with no negation
+%      \item<3-> \alert{Stratum 2}: new predicates s.t. negative literals refer to
+%        predicates in \alert{Stratum~1}
+%      \end{itemize}
+%      \vspace{5em}
+%    \end{column}
+%    \begin{column}{0.6\textwidth}
+%      \hspace{-6.92em}
+  \centering
+      \begin{tikzpicture}
+        \node[draw,ellipse] (friend) {\textcolor{predicate}{friend}};
+        \node[draw,ellipse,right=of friend] (influences) {\textcolor{predicate}{influences}};
+        \node[draw,ellipse,below=of influences] (stress) {\textcolor{predicate}{stress}};
+        \node[draw,ellipse,below=of stress] (spont) {\textcolor{predicate}{cancer\_spont}};
+        \node[draw,ellipse,below=of spont] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+        \node[draw,ellipse,left=of spont] (person) {\textcolor{predicate}{person}};
+        \node[draw,ellipse,right=of spont] (cancer) {\textcolor{predicate}{cancer}};
+        \node[draw,ellipse,above=of cancer] (smokes) {\textcolor{predicate}{smokes}};
+        \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+        \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+        \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+        \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+        \draw[-{Latex[length=2mm]}] (person) -- (stress);
+        \draw[-{Latex[length=2mm]}] (person) -- (spont);
+        \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+        \draw<2->[-{Latex[length=2mm]},draw=red] (smokes) -- (friend);
+      \end{tikzpicture}
+%    \end{column}
+%  \end{columns}
+\end{frame}
+
+\begin{frame}{Predicate Independence: $\textcolor{predicate}{\mathrm{friend}}
+    \independent \textcolor{predicate}{\mathrm{stress}}$}
+  \centering
+  \begin{tikzpicture}
+    \node[draw,ellipse,onslide=<2->{fill=constant!25}] (friend) {\textcolor{predicate}{friend}};
+    \node[draw,ellipse,right=of friend,onslide=<5-6>{pattern=north east lines,pattern color=constant}] (influences) {\textcolor{predicate}{influences}};
+    \node[draw,ellipse,onslide=<2->{fill=variable!25},below=of influences] (stress) {\textcolor{predicate}{stress}};
+    \node[draw,ellipse,below=of stress,onslide=<3-4>{pattern=north west lines,pattern color=variable}] (spont) {\textcolor{predicate}{cancer\_spont}};
+    \node[draw,ellipse,below=of spont,onslide=<3-4>{pattern=north west lines,pattern color=variable}] (smoke) {\textcolor{predicate}{cancer\_smoke}};
+    \node[draw,ellipse,onslide=<2->{fill=variable!25},left=of spont] (person) {\textcolor{predicate}{person}};
+    \node[draw,ellipse,right=of spont,onslide=<3-4>{pattern=north west lines,pattern color=variable},onslide=<5-6>{pattern=north east lines,pattern color=constant}] (cancer) {\textcolor{predicate}{cancer}};
+    \node[draw,ellipse,above=of cancer,onslide=<3-4>{pattern=north west lines,pattern color=variable},onslide=<5-6>{pattern=north east lines,pattern color=constant}] (smokes) {\textcolor{predicate}{smokes}};
+    \draw[-{Latex[length=2mm]}] (friend) -- (influences);
+    \draw[-{Latex[length=2mm]}] (influences) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (smokes) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (stress) -- (smokes);
+    \draw[-{Latex[length=2mm]}] (spont) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (smoke) -- (cancer);
+    \draw[-{Latex[length=2mm]}] (person) -- (stress);
+    \draw[-{Latex[length=2mm]}] (person) -- (spont);
+    \draw[-{Latex[length=2mm]}] (person) -- (smoke);
+
+    \draw<4>[-{Latex[length=2mm]}] (person) edge[draw=red] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (stress) edge[draw=red] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (smokes) edge[draw=red] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (spont) edge[draw=red] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (cancer) edge[draw=red,bend left=20] (friend);
+    \draw<4>[-{Latex[length=2mm]}] (smoke) edge[draw=red,bend left=20] (friend);
+
+    \draw<6>[-{Latex[length=2mm]}] (friend) edge[draw=red] (person);
+    \draw<6>[-{Latex[length=2mm]}] (influences) edge[draw=red] (person);
+    \draw<6>[-{Latex[length=2mm]}] (smokes) edge[draw=red] (person);
+    \draw<6>[-{Latex[length=2mm]}] (cancer) edge[draw=red,bend left=15] (person);
+
+    \draw<6>[-{Latex[length=2mm]}] (friend) edge[draw=red] (stress);
+    \draw<6>[-{Latex[length=2mm]}] (influences) edge[draw=red] (stress);
+    \draw<6>[-{Latex[length=2mm]}] (smokes) edge[draw=red,bend right=15] (stress);
+    \draw<6>[-{Latex[length=2mm]}] (cancer) edge[draw=red] (stress);
+  \end{tikzpicture}
+\end{frame}
+
+\section{Inference}
+
+\begin{frame}{Inference and Knowledge Compilation}
+  \begin{description}
+  \item[NNF] negation normal form
+  \item[d-DNNF] deterministic decomposable negation normal form
+  \item[BDD] binary decision diagrams
+  \item[SDD] sentential decision diagrams
+  \end{description}
+\end{frame}
+
+\begin{frame}{Example Diagrams for \alert{$C \land (A \lor \neg B)$}}
+  \begin{columns}[b]
+    \begin{column}{0.33\textwidth}
+      \begin{figure}
+        \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \node[draw,circle] {$\land$}
+          child {node[draw,rectangle] {$C$}}
+          child {node[draw,circle] {$\lor$}
+            child {node[draw,rectangle] {$A$}}
+            child {node[draw,rectangle] {$\neg B$}
+            }
+          };
+        \end{tikzpicture}
+        \caption{NNF}
+      \end{figure}
+      \vspace{-1em}
+      \begin{figure}
+      \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \node[draw,circle] (A) {$A$}
+          child {edge from parent[draw=none]}
+          child {node[draw,circle] (B) {$B$} edge from parent[dashed]
+            child {node[draw,circle,solid] (C) {$C$} edge from parent[dashed]
+              child {node[draw,rectangle,solid] {$1$} edge from parent[solid]}
+              child {node[draw,rectangle,solid] (0) {$0$}}
+            }
+            child {edge from parent[draw=none]}
+          };
+          \draw (A) -- (C);
+          \draw (B) -- (0);
+        \end{tikzpicture}
+        \caption{BDD}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \begin{figure}
+        \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \node[draw,circle] {$\land$}
+          child {node[draw,circle] {$\lor$}
+            child {node[draw,circle] (parent) {$\land$}
+              child {node[draw,rectangle] {$B$}}
+              child {edge from parent[draw=none]}
+            }
+            child {node[draw,circle] {$\land$}
+              child {node[draw,circle] {$\lor$}
+                child {node[draw,rectangle] (A) {$A$}}
+                child {node[draw,rectangle] {$\neg A$}}
+              }
+              child {node[draw,rectangle] {$\neg B$}}
+            }
+          }
+          child {node[draw,rectangle] {$C$}};
+          \draw (parent) -- (A);
+        \end{tikzpicture}
+        \caption{d-DNNF}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.33\textwidth}
+      \begin{figure}
+        \centering
+        \begin{tikzpicture}[level distance=0.8cm]
+          \tikzset{
+            mysplit/.style={
+              draw,
+              rectangle,
+              rectangle split,
+              rectangle split horizontal,
+              rectangle split parts=2
+            }
+          }
+          \node[draw,circle] {$1$}
+          child {node[mysplit] (bullet) {
+              \nodepart{one} $\neg A$
+              \nodepart{two}
+            }
+            child {node[draw,circle] (3) {$3$} edge from parent[draw=none]
+              child {node[mysplit] {
+                  \nodepart{one} $\neg B$
+                  \nodepart{two} $C$
+                }
+              }
+              child {node[mysplit] {
+                  \nodepart{one} $B$
+                  \nodepart{two} $\bot$
+                }
+              }
+            }
+          }
+          child {node[mysplit] {
+              \nodepart{one} $A$
+              \nodepart{two} $C$
+            }};
+          \draw[*-] let \p1 = (bullet.two), \p2 = (bullet.center) in ({\x1 + 2.5},{\y2 + 2}) -- (3);
+        \end{tikzpicture}
+        \caption{SDD}
+      \end{figure}
+%     \vspace{-2em}
+      % \begin{figure}
+      % \centering
+      % \begin{tikzpicture}[level distance=0.8cm]
+      %   \node[draw,circle] {$1$}
+      %   child {node[draw,circle] {$0$}
+      %     child {node[draw,rectangle] {$A$}}
+      %   }
+      %   child {node[draw,circle] {$3$}
+      %     child {node[draw,circle] {$2$}
+      %       child {node[draw,rectangle] {$B$}}
+      %     }
+      %     child {node[draw,circle] {$4$}
+      %       child {node[draw,rectangle] {$C$}}
+      %     }
+      %   };
+      % \end{tikzpicture}
+      % \caption{vtree}
+      % \end{figure}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Properties of Programs vs. Inference Algorithms}
+  \begin{alignat*}{2}
+  &\text{Facts:} \quad
+  &&\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}},
+  \textcolor{constant}{\mathit{michelle}}). \\
+  &\text{Rules:} \quad &&\textcolor{probability}{0.2} \prob
+  \textcolor{predicate}{\mathtt{stress}}(\textcolor{variable}{\mathsf{P}}) \ifff
+  \textcolor{predicate}{\mathtt{person}}(\textcolor{variable}{\mathsf{P}}).
+  \end{alignat*}
+  \centering
+  \input{line_plots.tex}
+\end{frame}
+
+%\begin{frame}{Properties of Programs vs. Inference Algorithms}
+%  \centering
+%  \input{../../paper/bars.tex}
+%\end{frame}
+
+\section{Summary}
+
+\begin{frame}{Summary}
+  \begin{itemize}
+  \item The model can generate (approximately) realistic instances of reasonable
+    size.
+  \item Open questions for future work:
+    \begin{itemize}
+    \item Can we ensure uniform sampling?
+    \item Why do all of the algorithms behave so similarly?
+    \item Why does independence have no effect on inference time?
+    \end{itemize}
+  \end{itemize}
+\end{frame}
+\end{document}
