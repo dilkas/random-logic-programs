@@ -42,9 +42,11 @@
 \addbibresource{talk.bib}
 
 % TODO: maybe add a specific date
-\author{\textbf{Paulius Dilkas} \and Vaishak Belle}
+\author{\textbf{Paulius Dilkas}\inst{1} \and Vaishak Belle\inst{1,2}}
 \title{Generating Random Logic Programs Using Constraint Programming}
-\date{AIAI Seminar}
+\date{FATA Seminar}
+\institute{\inst{1} University of Edinburgh, Edinburgh, UK \and \inst{2} Alan
+  Turing Institute, London, UK}
 
 \begin{document}
 
@@ -130,9 +132,9 @@
                                          &\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}), \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{X}}). \\
                                          &\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}). \\
                                          &\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{P}}), \textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}). \\
-                                         &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{michelle}}). \\
-                                         &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{timothy}}). \\
-                                         &\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}}, \textcolor{constant}{\mathit{michelle}}).
+                                         &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{mary}}). \\
+                                         &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{albert}}). \\
+                                         &\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{albert}}, \textcolor{constant}{\mathit{mary}}).
     \end{align*}
   \end{block}
 \end{frame}
@@ -171,47 +173,47 @@
 
     \only<1>{
       $\begin{aligned}[t]
-        \Pr[\textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{michelle}})]
+        \Pr[\textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{mary}})]
         &=
-        \Pr[\textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{constant}{\mathit{michelle}})]
+        \Pr[\textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{constant}{\mathit{mary}})]
         \\
         &\oplus
-        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{michelle}})]
+        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{mary}})]
         \\
         &\times
-        \Pr[\textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{constant}{\mathit{michelle}})]
+        \Pr[\textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{constant}{\mathit{mary}})]
       \end{aligned}$
     }
     \only<2->{
-      $\Pr[\textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{michelle}})]
+      $\Pr[\textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{mary}})]
       = \textcolor{probability}{0.1} \oplus \textcolor{probability}{0.3} \times
-      \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{michelle}})]$
+      \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{mary}})]$
     }
 
     \only<3>{
       $\begin{aligned}[t]
-        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{michelle}})]
+        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{mary}})]
         &=
-        \Pr[\textcolor{predicate}{\mathtt{stress}}(\textcolor{constant}{\mathit{michelle}})]
+        \Pr[\textcolor{predicate}{\mathtt{stress}}(\textcolor{constant}{\mathit{mary}})]
         \\
         &\oplus
-        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{timothy}})]
+        \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{albert}})]
         \\
         &\times
-        \Pr[\textcolor{predicate}{\mathtt{influences}}(\textcolor{constant}{\mathit{timothy}},
-        \textcolor{constant}{\mathit{michelle}})]
+        \Pr[\textcolor{predicate}{\mathtt{influences}}(\textcolor{constant}{\mathit{albert}},
+        \textcolor{constant}{\mathit{mary}})]
       \end{aligned}$
     }
     \only<4->{
-      $\Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{michelle}})]
+      $\Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{mary}})]
       = \textcolor{probability}{0.2} \oplus \textcolor{probability}{0.3} \times
-      \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{timothy}})]$
+      \Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{albert}})]$
     }
 
     \only<5->{
-      $\Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{timothy}})]
+      $\Pr[\textcolor{predicate}{\mathtt{smokes}}(\textcolor{constant}{\mathit{albert}})]
       =
-      \Pr[\textcolor{predicate}{\mathtt{stress}}(\textcolor{constant}{\mathit{timothy}})]
+      \Pr[\textcolor{predicate}{\mathtt{stress}}(\textcolor{constant}{\mathit{albert}})]
       = \textcolor{probability}{0.2}$
     }
   \end{minipage}
@@ -274,7 +276,7 @@
   \vspace{-0.5em}
   \onslide<2->{
     \[
-      \textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{michelle}})
+      \textcolor{predicate}{\mathtt{cancer}}(\textcolor{constant}{\mathit{mary}})
       = \alt<5>{\alert{\bot}}{\top}
     \]
     \[
@@ -309,9 +311,9 @@
                                                                                                    &\alt<2,4,5>{\hbox{\st{$\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}), \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{X}}).$}}}{\textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{X}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{Y}}), \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{Y}}, \textcolor{variable}{\mathsf{X}}).} \\
                                                                                                    &\alt<5>{\hbox{\st{$\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}).$}}}{\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{cancer\_spont}}(\textcolor{variable}{\mathsf{P}}).} \\
                                                                                                    &\alt<3-5>{\hbox{\st{$\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{P}}), \textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}).$}}}{\textcolor{predicate}{\mathtt{cancer}}(\textcolor{variable}{\mathsf{P}}) \ifff \textcolor{predicate}{\mathtt{smokes}}(\textcolor{variable}{\mathsf{P}}), \textcolor{predicate}{\mathtt{cancer\_smoke}}(\textcolor{variable}{\mathsf{P}}).} \\
-                                                                                                   &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{michelle}}). \\
-                                                                                                   &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{timothy}}). \\
-                                                                                                   &\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}}, \textcolor{constant}{\mathit{michelle}}).
+                                                                                                   &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{mary}}). \\
+                                                                                                   &\textcolor{predicate}{\mathtt{person}}(\textcolor{constant}{\mathit{albert}}). \\
+                                                                                                   &\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{albert}}, \textcolor{constant}{\mathit{mary}}).
   \end{align*}
 \end{frame}
 
@@ -329,10 +331,10 @@
       between \alert{$\alpha$} and \alert{$\beta$}
     \item<3-> examples:
       \begin{itemize}
-      \item[\visible<4->{\xmark}\visible<5->{\xmark}]<3-> $(A \lor C) \land (A \lor \neg B)$
-      \item[\visible<7->{\xmark}\visible<8->{\cmark}]<6-> $C \land (A \lor \neg B)$
-      \item[\visible<10->{\cmark}\visible<11->{\xmark}]<9-> $B \land C \land [(B \land A) \lor \neg B]$
-      \item[\visible<13->{\cmark}\visible<14->{\cmark}]<12-> $C \land [(B \land A) \lor \neg B]$
+      \item[\xmark\xmark]<3-> $(A \lor C) \land (A \lor \neg B)$
+      \item[\xmark\cmark]<4-> $C \land (A \lor \neg B)$
+      \item[\cmark\xmark]<5-> $B \land C \land [(B \land A) \lor \neg B]$
+      \item[\cmark\cmark]<6-> $C \land [(B \land A) \lor \neg B]$
       \end{itemize}
     \end{itemize}
   \end{description}
@@ -474,9 +476,9 @@
                                          &\textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{X}}) \ifff \textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{Y}}), \textcolor<2->{predicate}{\mathtt{influences}}(\textcolor<3->{variable}{\mathsf{Y}}, \textcolor<3->{variable}{\mathsf{X}}). \\
                                          &\textcolor<2->{predicate}{\mathtt{cancer}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \textcolor<2->{predicate}{\mathtt{cancer\_spont}}(\textcolor<3->{variable}{\mathsf{P}}). \\
                                          &\textcolor<2->{predicate}{\mathtt{cancer}}(\textcolor<3->{variable}{\mathsf{P}}) \ifff \tikz \coordinate (start);\textcolor<2->{predicate}{\mathtt{smokes}}(\textcolor<3->{variable}{\mathsf{P}}), \textcolor<2->{predicate}{\mathtt{cancer\_smoke}}(\textcolor<3->{variable}{\mathsf{P}})\tikz \coordinate (end);. \\
-                                         &\textcolor<2->{predicate}{\mathtt{person}}(\textcolor<4->{constant}{\mathit{michelle}}). \\
-                                         &\textcolor<2->{predicate}{\mathtt{person}}(\textcolor<4->{constant}{\mathit{timothy}}). \\
-                                         &\textcolor<2->{predicate}{\mathtt{friend}}(\textcolor<4->{constant}{\mathit{timothy}}, \textcolor<4->{constant}{\mathit{michelle}}).
+                                         &\textcolor<2->{predicate}{\mathtt{person}}(\textcolor<4->{constant}{\mathit{mary}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{person}}(\textcolor<4->{constant}{\mathit{albert}}). \\
+                                         &\textcolor<2->{predicate}{\mathtt{friend}}(\textcolor<4->{constant}{\mathit{albert}}, \textcolor<4->{constant}{\mathit{mary}}).
         \end{align*}
       \end{empheq}
     \end{column}
@@ -497,15 +499,6 @@
     \end{tikzpicture}
   }
 \end{frame}
-
-% 1. Formula
-% 2. Tree
-% 3. First two rows
-% 4. s is a forest
-% 5. first digit
-% 6. sorted, implication
-% 7. length, number of nodes, for
-% 8. third row, last 3 constraints
 
 \begin{frame}{Formulas As Trees}
   \begin{columns}
@@ -528,8 +521,8 @@
         \end{tikzpicture}
       }
       \begin{itemize}
-      \item<6-> $\alert{\mathbf{s}}$ is sorted
-      \item<6-> $\alert{\mathbf{s}_i \ne i} \implies \alert{\mathbf{v}_i \ne \top}$
+      \item<6-> $\structure{\mathbf{s}}$ is sorted
+      \item<6-> $\structure{\mathbf{s}_i \ne i} \implies \structure{\mathbf{v}_i \ne \top}$
       \end{itemize}
     \end{column}
     \begin{column}{0.63\textwidth}
@@ -539,32 +532,33 @@
       \onslide<3->{
         \begin{tabular}{c c|C|C|C|C|C|D}
           \cline{2-8}
-          $\alert{\mathbf{s}}\colon$ & \alert<5->{0} & 0 & 0 & 1 & 2 & 2 & 6 \\
+          $\structure{\mathbf{s}}\colon$ & \alert<5->{0} & 0 & 0 & 1 & 2 & 2 & 6 \\
           \cline{2-8}
-          $\alert{\mathbf{v}}\colon$ & $\lor$ & $\neg$ & $\land$ & $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$ & $\top$ \\
+          $\structure{\mathbf{v}}\colon$ & $\lor$ & $\neg$ & $\land$ & $\textcolor{predicate}{\mathtt{p}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{q}}(\textcolor{variable}{\mathsf{X}})$ & $\textcolor{predicate}{\mathtt{r}}(\textcolor{variable}{\mathsf{X}})$ & $\top$ \\
           \cline{2-8}
-          \onslide<8->{$\alert{\mathbf{c}}\colon$ & 2 & 1 & 2 & 0 & 0 & 0 & 0 \\ \cline{2-8}}
+          \onslide<8->{$\structure{\mathbf{c}}\colon$ & 2 & 1 & 2 & 0 & 0 & 0 & 0 \\ \cline{2-8}}
         \end{tabular}
       }
       \begin{itemize}
-      \item<4-> $\alert{\mathbf{s}}$ is a forest with $\alert{T = 2}$ trees
-      \item<7-> length \alert{$L = 7$}
-      \item<7-> number of nodes \alert{$N \coloneqq L - T + 1 = 6$}
-      \item<7-> for \alert{$i = 1, \dots, L - 1$},
+      \item<4-> $\structure{\mathbf{s}}$ is a forest with $\structure{T = 2}$ trees
+      \item<7-> length \structure{$L = 7$}
+      \item<7-> number of nodes \structure{$N \coloneqq L - T + 1 = 6$}
+      \item<7-> for \structure{$i = 1, \dots, L - 1$},
         \begin{itemize}
-        \item if \alert{$i < N$}, then \alert{$\mathbf{s}_i < i$}
-        \item else \alert{$\mathbf{s}_i = i$} and \alert{$\mathbf{v}_i = \top$}
+        \item if \structure{$i < N$}, then \structure{$\mathbf{s}_i < i$}
+        \item else \structure{$\mathbf{s}_i = i$} and \structure{$\mathbf{v}_i = \top$}
         \end{itemize}
-      \item<8-> $\alert{\mathbf{c}_i = 0} \iff \alert{\mathbf{v}_i = \top}$ or is a predicate
-      \item<8-> $\alert{\mathbf{c}_i = 1} \iff \alert{\mathbf{v}_i = \neg}$
-      \item<8-> $\alert{\mathbf{c}_i > 1} \iff \alert{\mathbf{v}_i \in \{ \land, \lor \}}$
+      \item<8-> $\structure{\mathbf{c}_i = 0} \iff \structure{\mathbf{v}_i =
+          \top}$ or an atom
+      \item<8-> $\structure{\mathbf{c}_i = 1} \iff \structure{\mathbf{v}_i = \neg}$
+      \item<8-> $\structure{\mathbf{c}_i > 1} \iff \structure{\mathbf{v}_i \in \{ \land, \lor \}}$
       \end{itemize}
     \end{column}
   \end{columns}
 \end{frame}
 
 \begin{frame}{Variable Symmetry Breaking}
-  \begin{block}{The Problem}
+%  \begin{block}{The Problem}
     Let $\{ \textcolor{variable}{\mathsf{W}}, \textcolor{variable}{\mathsf{X}},
     \textcolor{variable}{\mathsf{Y}} \}$ be the set of variables. Then
     \[
@@ -590,7 +584,7 @@
       \textcolor{predicate}{\mathtt{influences}}(\textcolor{variable}{\mathsf{X}},
       \textcolor{variable}{\mathsf{W}})
     \]
-  \end{block}
+%  \end{block}
 \end{frame}
 
 \begin{frame}{Variable Symmetry Breaking}
@@ -712,9 +706,9 @@
     \begin{column}{0.4\textwidth}
       \setlength{\leftmargini}{0pt}
       \begin{itemize}
-      \item<3-> \alert{Stratum 1}: predicates with no negation
-      \item<3-> \alert{Stratum 2}: new predicates s.t. negative literals refer to
-        predicates in \alert{Stratum~1}
+      \item<3-> \structure{Stratum 1}: predicates with no negation
+      \item<3-> \structure{Stratum 2}: new predicates s.t. negative literals refer to
+        predicates in \structure{Stratum~1}
       \end{itemize}
       \vspace{5em}
     \end{column}
@@ -992,10 +986,10 @@
   \input{impact.tex}
 \end{frame}
 
-\begin{frame}{How Predicate Independence Affects Search Complexity}
-  \centering
-  \includegraphics{phase_transition.pdf}
-\end{frame}
+%\begin{frame}{How Predicate Independence Affects Search Complexity}
+%  \centering
+%  \includegraphics{phase_transition.pdf}
+%\end{frame}
 
 \begin{frame}{What Programs Should We Generate?}
   \begin{itemize}
@@ -1011,8 +1005,8 @@
     \item facts
       \begin{itemize}
       \item e.g.,
-        $\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}},
-        \textcolor{constant}{\mathit{michelle}}).$
+        $\textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{albert}},
+        \textcolor{constant}{\mathit{mary}}).$
       \end{itemize}
     \end{itemize}
   \item predicates, variables, nodes: 2, 4, 8
@@ -1044,8 +1038,8 @@
 
 \begin{frame}{Facts}
   \[
-    \textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{timothy}},
-    \textcolor{constant}{\mathit{michelle}}).
+    \textcolor{predicate}{\mathtt{friend}}(\textcolor{constant}{\mathit{albert}},
+    \textcolor{constant}{\mathit{mary}}).
   \]
   \bigskip
   \begin{itemize}
@@ -1065,7 +1059,7 @@
 
 \begin{frame}{Properties of Programs vs. Inference Algorithms}
   \centering
-  \input{../paper/bars.tex}
+  \input{../../paper/bars.tex}
 \end{frame}
 
 \begin{frame}{How Encodings Compare Across Instances}
@@ -1076,9 +1070,9 @@
   \includegraphics{proportion.pdf}
 \end{frame}
 
-\section{Conclusions}
+\section{Summary}
 
-\begin{frame}{Conclusions and Future Work}
+\begin{frame}{Summary}
   \begin{itemize}
   \item The model can generate (approximately) realistic instances of reasonable
     size
@@ -1086,15 +1080,15 @@
     with a simpler structure
   \item Open questions and future work
     \begin{itemize}
-    \item Can the model be used to ensure uniform sampling?
-    \item What is the reason behind all algorithms behaving similarly?
+    \item Can we ensure uniform sampling?
+    \item Why do all of the algorithms behave so similarly?
     \item Why does independence have no effect on inference time?
-    \item Can random program generation be useful in learning?
+%    \item Can random program generation be useful in learning?
     \end{itemize}
   \end{itemize}
-  \begin{block}{The implementation of the model is available at}
-    \url{https://github.com/dilkas/random-logic-programs}
-  \end{block}
+%  \begin{block}{The implementation of the model is available at}
+%    \url{https://github.com/dilkas/random-logic-programs}
+%  \end{block}
 \end{frame}
 
 % Things I could mention:
