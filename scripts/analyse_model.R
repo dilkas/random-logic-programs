@@ -119,12 +119,19 @@ mytolatex <- function(name) {
   }
 }
 
-# reformat the table to have 3 columns: parameter_name, value (1, 2, 4, 8), and mean of nodes
-effects <- data.frame(Variable = factor(), Value = integer(), mean = numeric(), aritylabel = character())
-factors <- c('numPredicates', 'maxArity', 'numVariables', 'numConstants', 'numAdditionalClauses', 'maxNumNodes')
-labels <- c("$|\\mathcal{P}|$", "$\\mathcal{M}_{\\mathcal{A}}$", "$|\\mathcal{V}|$", "$|\\mathcal{C}|$", "$\\mathcal{M}_{\\mathcal{C}}-|\\mathcal{P}|$", "$\\mathcal{M}_{\\mathcal{N}}$")
+# reformat the table to have 3 columns: parameter_name, value (1, 2, 4, 8),
+# and mean of nodes
+effects <- data.frame(Variable = factor(), Value = integer(),
+                      mean = numeric(), aritylabel = character())
+factors <- c('numPredicates', 'maxArity', 'numVariables', 'numConstants',
+             'numAdditionalClauses', 'maxNumNodes')
+labels <- c("$|\\mathcal{P}|$", "$\\mathcal{M}_{\\mathcal{A}}$",
+            "$|\\mathcal{V}|$", "$|\\mathcal{C}|$",
+            "$\\mathcal{M}_{\\mathcal{C}}-|\\mathcal{P}|$",
+            "$\\mathcal{M}_{\\mathcal{N}}$")
 for (Variable in factors) {
-  foo <- df %>% group_by_at(Variable) %>% summarise(mean(nodes)) %>% rename(Value = Variable, mean = "mean(nodes)")
+  foo <- df %>% group_by_at(Variable) %>% summarise(mean(nodes)) %>%
+    rename(Value = Variable, mean = "mean(nodes)")
 #  foo$Variable <- factor(Variable, levels = factors, labels = labels)
   foo$Variable <- as.factor(Variable)
   foo$aritylabel <- ""
@@ -134,18 +141,20 @@ effects$label <- ifelse(effects$Value == 8, sapply(as.character(effects$Variable
 effects$aritylabel[effects$Variable == "maxArity" & effects$Value == 4] <- "$\\mathcal{M}_{\\mathcal{A}}$"
 
 # Paper version
-tikz(file = "../paper/impact.tex", width = 2.4, height = 1.8)
+#tikz(file = "../paper/impact.tex", width = 2.4, height = 1.8)
+tikz(file = "../../../annual-report/thesis/chapters/random_lps/impact.tex", width = 5.7, height = 3.1)
 ggplot(effects, aes(Value, mean, color = factor(Variable))) +
   geom_line(aes(linetype = factor(Variable))) +
-  scale_x_continuous(trans = "log2", limits = c(1, 10)) +
+  scale_x_continuous(trans = "log2", limits = c(1, 8)) +
   ylab("Mean number of nodes") +
   geom_label_repel(aes(label = label, size = 1), nudge_x = 1, segment.color = "transparent", box.padding = 0.1) +
   geom_label_repel(aes(label = aritylabel, size = 1), segment.color = "transparent", nudge_y = 300) +
   xlab("The value of each parameter") +
   scale_color_brewer(palette = "Dark2") +
   scale_size_area(max_size = 2) +
-  theme_bw() +
-  theme(legend.position = "none")
+  theme_light(base_size = 9) +
+  theme(legend.position = "none") +
+  annotation_logticks(sides = "b", colour = "#b3b3b3")
 dev.off()
 
 # Talk version

@@ -92,7 +92,8 @@ get_legend <- function(myggplot){
 }
 
 plot <- function(var.name, c, s, scale = F, dots = T, legend = F, smooth = F,
-                 breaks = NULL, labels = NULL, ylims = NULL, separated = F, disable.y.axis = T, ribbon.size = 0.1) {
+                 breaks = NULL, labels = NULL, ylims = NULL, separated = F,
+                 disable.y.axis = T, ribbon.size = 0.1) {
   if (smooth) {
     data <- c[c$variable == var.name,]
     y <- data$Total.time
@@ -101,10 +102,11 @@ plot <- function(var.name, c, s, scale = F, dots = T, legend = F, smooth = F,
     y <- data$mean.time
   }
 
-  p <- ggplot(data = data, aes(x = value, y = y, color = Algorithm, fill = Algorithm, linetype = Algorithm)) +
+  p <- ggplot(data = data, aes(x = value, y = y, color = Algorithm,
+                               fill = Algorithm, linetype = Algorithm)) +
     xlab(pretty_names[relevant_columns == var.name]) +
     ylab("Total time (s)") +
-    theme_bw() +
+    theme_bw(base_size = 9) +
     scale_colour_brewer(palette = "Dark2") +
     scale_fill_brewer(palette = "Dark2")
 
@@ -202,27 +204,33 @@ summary <- rbind(summarised2[summarised2$variable %in% c("proportion.independent
 
 # ===================== Camera-ready ================================
 
-plot2 <- function(df, column.names, df2 = NULL, column.names2 = NULL, factors = T, replace.labels = T) {
+plot2 <- function(df, column.names, df2 = NULL, column.names2 = NULL,
+                  factors = T, replace.labels = T) {
   smaller <- df[df$variable %in% column.names,]
   smaller$value <- as.factor(smaller$value)
-  smaller$variable <- ifelse(smaller$variable == "maximum.arity", "Maximum arity", "Probabilistic")
+  smaller$variable <- ifelse(smaller$variable == "maximum.arity",
+                             "Maximum arity", "Probabilistic")
   p <- ggplot(smaller, aes(x = value, y = Total.time, group = value))
   p <- p + geom_boxplot(outlier.shape = 4, outlier.alpha = 0.25)
   p + facet_wrap(~ variable, scales = "free_x") +
     scale_x_discrete() +
     ylab("Inference time (s)") +
     xlab("") +
-    theme_bw()
+    theme_bw(base_size = 9)
 }
 
-tikz(file = "../paper/bars.tex", width = 2.4, height = 1.8)
+#tikz(file = "../paper/bars.tex", width = 2.4, height = 1.8)
+tikz(file = "../../../annual-report/thesis/chapters/random_lps/bars.tex",
+     width = 5.7, height = 3.1)
 plot2(combined2, c("maximum.arity", "proportion.probabilistic", "Total.time"))
 dev.off()
 
 # Paper version
 summary$variable <- factor(summary$variable, levels = c("number.of.facts", "proportion.independent.pairs"),
                            labels = c("The number of facts ($\\times 10^3$)", "Proportion of independent pairs"))
-tikz(file = "../paper/line_plots.tex", width = 4.8, height = 1.8)
+#tikz(file = "../paper/line_plots.tex", width = 4.8, height = 1.8)
+tikz(file = "../../../annual-report/thesis/chapters/random_lps/line_plots.tex",
+     width = 5.7, height = 3.1)
 ggplot(data = summary, aes(x = value, y = mean.time, color = Algorithm, shape = Algorithm)) +
   geom_line(aes(linetype = Algorithm)) +
   facet_wrap(~ variable, scales = "free_x") +
@@ -230,7 +238,7 @@ ggplot(data = summary, aes(x = value, y = mean.time, color = Algorithm, shape = 
   ylab("Mean inference time (s)") +
   scale_x_continuous(labels = function(x) ifelse(x > 1e3, x / 1e3, x)) +
   scale_colour_brewer(palette = "Dark2") +
-  theme_bw()
+  theme_bw(base_size = 9)
 dev.off()
 
 # Talk version
